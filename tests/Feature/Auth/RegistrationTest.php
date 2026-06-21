@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Usuario\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,13 +20,80 @@ class RegistrationTest extends TestCase
     public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Test User',
+            'nome' => 'Test User',
             'email' => 'test@example.com',
+            'data_nascimento' => '1990-01-15',
+            'motivo_controle_financeiro' => 'Organizar gastos',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_new_users_can_register_via_json(): void
+    {
+        $response = $this->postJson('/register', [
+            'nome' => 'Test User',
+            'email' => 'test@example.com',
+            'data_nascimento' => '1990-01-15',
+            'motivo_controle_financeiro' => 'Organizar gastos',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'redirect' => route('dashboard', absolute: false),
+            ]);
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_registration_rejects_duplicate_email(): void
+    {
+        Usuario::factory()->create(['email' => 'test@example.com']);
+
+        $response = $this->from('/register')->post('/register', [
+            'nome' => 'Outro Usuario',
+            'email' => 'test@example.com',
+            'data_nascimento' => '1990-01-15',
+            'motivo_controle_financeiro' => 'Organizar gastos',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors([
+                'email' => __('validation.usuario.email.unique'),
+            ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_registration_rejects_duplicate_email_via_json(): void
+    {
+        Usuario::factory()->create(['email' => 'test@example.com']);
+
+        $response = $this->postJson('/register', [
+            'nome' => 'Outro Usuario',
+            'email' => 'test@example.com',
+            'data_nascimento' => '1990-01-15',
+            'motivo_controle_financeiro' => 'Organizar gastos',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'email' => __('validation.usuario.email.unique'),
+            ]);
+
+        $this->assertGuest();
     }
 }

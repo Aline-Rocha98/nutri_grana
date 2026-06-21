@@ -1,3 +1,50 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.nutrigrana-bootbox .modal-content {
+    border-radius: 1rem;
+    border: 1px solid rgb(255 255 255 / 0.2);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+.nutrigrana-bootbox .modal-header {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.nutrigrana-bootbox .modal-footer {
+    border-top: none;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.nutrigrana-bootbox .btn-primary {
+    background-color: #1fa67e;
+    border-color: #1fa67e;
+}
+
+.nutrigrana-bootbox .btn-primary:hover {
+    background-color: #188f6b;
+    border-color: #188f6b;
+}
+
+.nutrigrana-bootbox .btn-success {
+    background-color: #0c2e24;
+    border-color: #0c2e24;
+}
+
+.nutrigrana-bootbox .btn-success:hover {
+    background-color: #0a241c;
+    border-color: #0a241c;
+}
+
+.nutrigrana-bootbox.modal {
+    z-index: 1060 !important;
+}
+.nutrigrana-bootbox .modal-backdrop {
+    z-index: 1055 !important;
+}
