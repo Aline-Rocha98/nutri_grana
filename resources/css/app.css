@@ -48,3 +48,31 @@
 .nutrigrana-bootbox .modal-backdrop {
     z-index: 1055 !important;
 }
+
+.barra-lateral {
+    width: 5rem;
+}
+
+.barra-lateral--expandida {
+    width: 16rem;
+}
+
+.barra-lateral--recolhida .barra-lateral__item {
+    justify-content: center;
+}
+
+.barra-lateral--recolhida .barra-lateral__cabecalho-perfil {
+    justify-content: center;
+}
+
+.barra-lateral__submenu {
+    display: none;
+}
+
+.barra-lateral__submenu--aberto {
+    display: block;
+}
+
+.barra-lateral__chevron--aberto {
+    transform: rotate(180deg);
+}

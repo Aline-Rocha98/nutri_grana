@@ -144,7 +144,7 @@ function configurarFormularioAuthAjax(seletorFormulario, opcoes = {}) {
                     return;
                 }
 
-                window.location.href = dados.redirect || window.authRoutes?.dashboard || '/dashboard';
+                window.location.href = dados.redirect || window.authRoutes?.home || '/home';
             },
             error: function (xhr) {
                 alternarCarregamento(formulario, false);
@@ -199,7 +199,7 @@ function configurarFormularioAuthAjax(seletorFormulario, opcoes = {}) {
 export function initAutenticacao() {
     configurarFormularioAuthAjax('#form-login', {
         aoSucesso: (dados) => {
-            window.location.href = dados.redirect || window.authRoutes?.dashboard || '/dashboard';
+                    window.location.href = dados.redirect || window.authRoutes?.home || '/home';
         },
     });
 
@@ -210,7 +210,7 @@ export function initAutenticacao() {
                 dados.message || 'Cadastro realizado com sucesso!',
                 'success',
                 () => {
-                    window.location.href = dados.redirect || window.authRoutes?.dashboard || '/dashboard';
+                    window.location.href = dados.redirect || window.authRoutes?.home || '/home';
                 }
             );
         },

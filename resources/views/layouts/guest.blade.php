@@ -17,7 +17,7 @@
                 login: @json(route('login')),
                 register: @json(route('register')),
                 recover: @json(route('password.request')),
-                dashboard: @json(route('dashboard')),
+                home: @json(route('home')),
             };
             window.authMessages = {
                 emailJaCadastrado: @json(__('validation.usuario.email.unique')),

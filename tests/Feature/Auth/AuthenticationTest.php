@@ -27,7 +27,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('home', absolute: false));
     }
 
     public function test_users_can_authenticate_via_json(): void
@@ -43,7 +43,7 @@ class AuthenticationTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'success' => true,
-                'redirect' => route('dashboard', absolute: false),
+                'redirect' => route('home', absolute: false),
             ]);
 
         $this->assertAuthenticated();
@@ -68,6 +68,21 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_users_can_logout_via_json(): void
+    {
+        $user = Usuario::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/logout');
+
+        $this->assertGuest();
+        $response
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'redirect' => route('login', absolute: false),
+            ]);
     }
 }

@@ -58,10 +58,10 @@ class RegisteredUserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Conta criada com sucesso!',
-                'redirect' => route('dashboard', absolute: false),
+                'redirect' => route('home', absolute: false),
             ]);
         }
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route('home', absolute: false));
     }
 }

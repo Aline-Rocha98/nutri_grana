@@ -27,14 +27,14 @@ class AuthenticatedSessionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Login realizado com sucesso!',
-                'redirect' => route('dashboard', absolute: false),
+                'redirect' => route('home', absolute: false),
             ]);
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route('home', absolute: false));
     }
 
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): RedirectResponse|JsonResponse
     {
         Auth::guard('web')->logout();
 
@@ -42,6 +42,14 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout realizado com sucesso.',
+                'redirect' => route('login', absolute: false),
+            ]);
+        }
+
+        return redirect()->route('login');
     }
 }
