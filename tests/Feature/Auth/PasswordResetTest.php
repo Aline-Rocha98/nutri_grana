@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Models\Usuario\Usuario;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -23,18 +23,47 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
+    public function test_reset_password_link_can_be_requested_via_json(): void
+    {
+        Notification::fake();
+
+        $user = Usuario::factory()->create();
+
+        $response = $this->postJson('/forgot-password', ['email' => $user->email]);
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => __('passwords.sent'),
+            ]);
+
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    public function test_reset_password_link_returns_error_for_unknown_email_via_json(): void
+    {
+        $response = $this->postJson('/forgot-password', ['email' => 'desconhecido@example.com']);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'email' => __('passwords.user'),
+            ]);
+    }
+
     public function test_reset_password_screen_can_be_rendered(): void
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
@@ -51,7 +80,7 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = Usuario::factory()->create();
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
@@ -59,8 +88,8 @@ class PasswordResetTest extends TestCase
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
             ]);
 
             $response

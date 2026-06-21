@@ -1,8 +1,5 @@
 <x-guest-layout>
-
-    <div class="bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl
-                w-full max-w-md p-8 border border-white/20">
-
+    <div class="bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-lg p-8 border border-white/20">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-[#1fa67e]">
                 NutriGrana
@@ -12,65 +9,92 @@
             </p>
         </div>
 
-        <form method="POST" action="{{ route('register') }}" class="space-y-5">
+        <form id="form-register" method="POST" action="{{ route('register') }}" class="space-y-5" novalidate>
             @csrf
 
-            <!-- Nome -->
             <div>
-                <label class="block text-sm font-medium text-gray-600">
+                <label for="nome" class="block text-sm font-medium text-gray-600">
                     Nome
                 </label>
-                <input type="text"
-                       name="name"
-                       value="{{ old('name') }}"
-                       required
-                       class="mt-1 w-full rounded-lg border-gray-200
-                              focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
-                <x-input-error :messages="$errors->get('name')" class="mt-2 text-sm text-red-500" />
+                <input id="nome"
+                       type="text"
+                       name="nome"
+                       value="{{ old('nome') }}"
+                       data-required
+                       autofocus
+                       autocomplete="name"
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
             </div>
 
-            <!-- Email -->
             <div>
-                <label class="block text-sm font-medium text-gray-600">
+                <label for="email" class="block text-sm font-medium text-gray-600">
                     Email
                 </label>
-                <input type="email"
+                <input id="email"
+                       type="email"
                        name="email"
                        value="{{ old('email') }}"
-                       required
-                       class="mt-1 w-full rounded-lg border-gray-200
-                              focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
-                <x-input-error :messages="$errors->get('email')" class="mt-2 text-sm text-red-500" />
+                       data-required
+                       autocomplete="username"
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
             </div>
 
-            <!-- Senha -->
             <div>
-                <label class="block text-sm font-medium text-gray-600">
+                <label for="data_nascimento" class="block text-sm font-medium text-gray-600">
+                    Data de nascimento
+                </label>
+                <input id="data_nascimento"
+                       type="date"
+                       name="data_nascimento"
+                       value="{{ old('data_nascimento') }}"
+                       data-required
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
+            </div>
+
+            <div>
+                <label for="motivo_controle_financeiro" class="block text-sm font-medium text-gray-600">
+                    Por que deseja controlar suas finanças?
+                </label>
+                <select id="motivo_controle_financeiro"
+                        name="motivo_controle_financeiro"
+                        data-required
+                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
+                    <option value="">Selecione uma opção</option>
+                    @foreach ($motivos as $motivo)
+                        <option value="{{ $motivo['value'] }}"
+                                @selected(old('motivo_controle_financeiro') === $motivo['value'])>
+                            {{ $motivo['label'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-600">
                     Senha
                 </label>
-                <input type="password"
+                <input id="password"
+                       type="password"
                        name="password"
-                       required
-                       class="mt-1 w-full rounded-lg border-gray-200
-                              focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
+                       data-required
+                       autocomplete="new-password"
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
             </div>
 
-            <!-- Confirmar -->
             <div>
-                <label class="block text-sm font-medium text-gray-600">
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-600">
                     Confirmar senha
                 </label>
-                <input type="password"
+                <input id="password_confirmation"
+                       type="password"
                        name="password_confirmation"
-                       required
-                       class="mt-1 w-full rounded-lg border-gray-200
-                              focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
+                       data-required
+                       autocomplete="new-password"
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
             </div>
 
             <button type="submit"
-                    class="w-full bg-[#1fa67e] hover:bg-[#188f6b]
-                           text-white font-semibold py-2.5 rounded-lg
-                           shadow-lg transition duration-300">
+                    class="btn-auth-submit w-full bg-[#1fa67e] hover:bg-[#188f6b] text-white font-semibold py-2.5 rounded-lg shadow-lg transition duration-300">
                 Criar conta
             </button>
 
@@ -81,9 +105,6 @@
                     Entrar
                 </a>
             </div>
-
         </form>
-
     </div>
-
 </x-guest-layout>

@@ -2,14 +2,18 @@
 
 namespace App\Models\Usuario;
 
+use Database\Factories\UsuarioFactory;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 
-class Usuario extends Authenticatable
+class Usuario extends Model implements AuthenticatableContract, CanResetPasswordContract
 {
-    use HasFactory, Notifiable;
+    use Authenticatable, CanResetPassword, HasFactory, Notifiable;
 
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
@@ -23,7 +27,7 @@ class Usuario extends Authenticatable
         'data_nascimento',
         'motivo_controle_financeiro',
     ];
-    
+
     protected $hidden = [
         'senha',
         'remember_token',
@@ -38,13 +42,23 @@ class Usuario extends Authenticatable
         ];
     }
 
-    public function getAuthPassword()
+    protected static function newFactory(): UsuarioFactory
     {
-        return $this->senha;
+        return UsuarioFactory::new();
     }
 
-    public function setSenhaAttribute($value)
+    public function getAuthPasswordName(): string
+    {
+        return 'senha';
+    }
+
+    public function setSenhaAttribute($value): void
     {
         $this->attributes['senha'] = bcrypt($value);
+    }
+
+    public function hasVerifiedEmail(): bool
+    {
+        return true;
     }
 }

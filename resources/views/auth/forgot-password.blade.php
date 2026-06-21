@@ -1,25 +1,51 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Esqueceu sua senha? Não tem problema. Nos informe seu endereco de email que enviaremos o link com o resete da senha e você poderá escolher outra!') }}
+    <div class="bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-md p-8 border border-white/20">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-[#1fa67e] tracking-wide">
+                NutriGrana
+            </h1>
+            <p class="text-gray-500 text-sm mt-2">
+                Recuperação de senha
+            </p>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-6 text-center">
+            Informe seu e-mail cadastrado. Enviaremos um link para você redefinir sua senha.
+        </p>
+
+        <form id="form-recuperar-senha"
+              method="POST"
+              action="{{ route('password.email') }}"
+              class="space-y-5"
+              novalidate>
+            @csrf
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-600">
+                    E-mail
+                </label>
+                <input id="email"
+                       type="email"
+                       name="email"
+                       value="{{ old('email') }}"
+                       data-required
+                       autofocus
+                       autocomplete="username"
+                       class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm">
+            </div>
+
+            <button type="submit"
+                    class="btn-auth-submit w-full bg-[#1fa67e] hover:bg-[#188f6b] text-white font-semibold py-2.5 rounded-lg shadow-lg transition duration-300">
+                Enviar link de redefinição
+            </button>
+
+            <div class="text-center text-sm text-gray-500 mt-4">
+                Lembrou a senha?
+                <a href="{{ route('login') }}"
+                   class="text-[#1fa67e] font-semibold hover:underline">
+                    Fazer login
+                </a>
+            </div>
+        </form>
     </div>
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('password.email') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Enviar email de resete') }}
-            </x-primary-button>
-        </div>
-    </form>
 </x-guest-layout>
