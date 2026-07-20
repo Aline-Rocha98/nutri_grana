@@ -21,5 +21,9 @@ window.Alpine = Alpine;
 Alpine.start();
 
 import { initAutenticacao } from './Autenticacao/autenticacao.js';
+import { initBarraLateral } from './Painel/barra-lateral.js';
 
-document.addEventListener('DOMContentLoaded', initAutenticacao);
+document.addEventListener('DOMContentLoaded', () => {
+    initAutenticacao();
+    initBarraLateral();
+});

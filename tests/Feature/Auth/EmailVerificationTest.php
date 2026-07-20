@@ -10,12 +10,12 @@ class EmailVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_verify_email_redirects_to_dashboard_when_verification_is_not_required(): void
+    public function test_verify_email_redirects_to_home_when_verification_is_not_required(): void
     {
         $user = Usuario::factory()->create();
 
         $response = $this->actingAs($user)->get('/verify-email');
 
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('home', absolute: false));
     }
 }

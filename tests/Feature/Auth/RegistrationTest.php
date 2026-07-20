@@ -29,7 +29,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('home', absolute: false));
     }
 
     public function test_new_users_can_register_via_json(): void
@@ -47,7 +47,7 @@ class RegistrationTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'success' => true,
-                'redirect' => route('dashboard', absolute: false),
+                'redirect' => route('home', absolute: false),
             ]);
 
         $this->assertAuthenticated();
