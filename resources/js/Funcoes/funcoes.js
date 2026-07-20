@@ -1,19 +1,21 @@
 const TIPO_CONFIG = {
-    error:   { icon: '✕', cor: 'text-red-500',    bg: 'bg-red-50' },
-    success: { icon: '✓', cor: 'text-[#1fa67e]',  bg: 'bg-green-50' },
-    info:    { icon: 'i', cor: 'text-blue-500',   bg: 'bg-blue-50' },
-    warn:    { icon: '!', cor: 'text-amber-500',  bg: 'bg-amber-50' },
+    error:   { icone: 'error', cor: 'text-red-500',    bg: 'bg-red-50' },
+    success: { icone: 'check_circle', cor: 'text-[#1fa67e]',  bg: 'bg-green-50' },
+    info:    { icone: 'info', cor: 'text-blue-500',   bg: 'bg-blue-50' },
+    warn:    { icone: 'warning', cor: 'text-amber-500',  bg: 'bg-amber-50' },
 };
 
 export function formatarMsgConfirmBootbox(titulo, mensagem, tipo = 'info') {
     const cfg = TIPO_CONFIG[tipo] ?? TIPO_CONFIG.info;
 
     return `
-        <div class="text-center px-2 py-1">
-            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full ${cfg.bg}">
-                <span class="text-xl font-bold ${cfg.cor}">${cfg.icon}</span>
+        <div class="flex flex-col items-center text-center px-2 py-1">
+            <div class="flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined ${cfg.cor} text-3xl">
+                    ${cfg.icone}
+                </span>
+                <h3 class="text-lg font-semibold text-gray-800">${titulo}</h3>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800">${titulo}</h3>
             ${mensagem ? `<p class="mt-2 text-sm text-gray-600 break-words">${mensagem}</p>` : ''}
         </div>
     `;
