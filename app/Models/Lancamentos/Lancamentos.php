@@ -16,6 +16,7 @@ class Lancamentos extends Model
         'mes_id',
         'categoria_id',
         'forma_pagamento_id',
+        'id_conta_bancaria',
         'descricao',
         'valor',
         'data_pagamento',

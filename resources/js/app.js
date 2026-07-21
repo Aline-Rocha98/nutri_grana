@@ -22,8 +22,10 @@ Alpine.start();
 
 import { initAutenticacao } from './Autenticacao/autenticacao.js';
 import { initBarraLateral } from './Painel/barra-lateral.js';
+import { initContasBancarias } from './ContasBancarias/contas-bancarias.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initAutenticacao();
     initBarraLateral();
+    initContasBancarias();
 });
