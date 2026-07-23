@@ -51,6 +51,15 @@ class ContaBancariaRepository
         return $conta;
     }
 
+    public function limparPadraoDescontoDoUsuario(int $idUsuario, ?int $excetoId = null): void
+    {
+        ContaBancaria::query()
+            ->where('id_usuario', $idUsuario)
+            ->when($excetoId !== null, fn ($query) => $query->where('id_conta_bancaria', '!=', $excetoId))
+            ->where('padrao_desconto', 'S')
+            ->update(['padrao_desconto' => 'N']);
+    }
+
     public function criar(array $dados): ContaBancaria
     {
         return ContaBancaria::query()->create($dados);

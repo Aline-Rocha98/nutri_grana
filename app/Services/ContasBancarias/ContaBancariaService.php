@@ -2,6 +2,7 @@
 
 namespace App\Services\ContasBancarias;
 
+use App\Enum\SimNao;
 use App\Models\ContasBancarias\ContaBancaria;
 use App\Repositories\ContasBancarias\ContaBancariaRepository;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -11,22 +12,31 @@ use Illuminate\Validation\ValidationException;
 class ContaBancariaService
 {
     public function __construct(
-        private readonly ContaBancariaRepository $repositorio,
+        private readonly ContaBancariaRepository $contaBancariaRepository,
     ) {}
 
     public function listarPorUsuario(int $idUsuario): Collection
     {
-        return $this->repositorio->listarPorUsuario($idUsuario);
+        return $this->contaBancariaRepository->listarPorUsuario($idUsuario);
     }
 
     public function criar(int $idUsuario, array $dados): ContaBancaria
     {
-        return $this->repositorio->criar([
+        $padraoDesconto = $dados['padrao_desconto'] ?? null;
+        $exibirResumo = $dados['exibir_resumo'] ?? null;
+
+        if ($padraoDesconto === SimNao::Sim || $padraoDesconto === SimNao::Sim->value) {
+            $this->contaBancariaRepository->limparPadraoDescontoDoUsuario($idUsuario);
+        }
+
+        return $this->contaBancariaRepository->criar([
             'id_usuario' => $idUsuario,
             'nome' => $dados['nome'],
             'saldo_inicial' => $dados['saldo_inicial'],
             'tipo' => $dados['tipo'],
             'arquivada' => false,
+            'padrao_desconto' => $padraoDesconto,
+            'exibir_resumo' => $exibirResumo,
         ]);
     }
 
@@ -36,7 +46,6 @@ class ContaBancariaService
 
         $dadosAtualizacao = [
             'nome' => $dados['nome'],
-            'saldo_inicial' => $dados['saldo_inicial'],
             'tipo' => $dados['tipo'],
         ];
 
@@ -44,14 +53,30 @@ class ContaBancariaService
             $dadosAtualizacao['arquivada'] = (bool) $dados['arquivada'];
         }
 
-        return $this->repositorio->atualizar($contaBancaria, $dadosAtualizacao);
+        if (array_key_exists('padrao_desconto', $dados)) {
+            $padraoDesconto = $dados['padrao_desconto'];
+            $dadosAtualizacao['padrao_desconto'] = $padraoDesconto;
+
+            if ($padraoDesconto === SimNao::Sim || $padraoDesconto === SimNao::Sim->value) {
+                $this->contaBancariaRepository->limparPadraoDescontoDoUsuario(
+                    $idUsuario,
+                    (int) $contaBancaria->id_conta_bancaria
+                );
+            }
+        }
+
+        if (array_key_exists('exibir_resumo', $dados)) {
+            $dadosAtualizacao['exibir_resumo'] = $dados['exibir_resumo'];
+        }
+
+        return $this->contaBancariaRepository->atualizar($contaBancaria, $dadosAtualizacao);
     }
 
     public function arquivar(ContaBancaria $contaBancaria, int $idUsuario, bool $arquivada = true): ContaBancaria
     {
         $this->garantirPropriedade($contaBancaria, $idUsuario);
 
-        return $this->repositorio->atualizar($contaBancaria, [
+        return $this->contaBancariaRepository->atualizar($contaBancaria, [
             'arquivada' => $arquivada,
         ]);
     }
@@ -60,13 +85,13 @@ class ContaBancariaService
     {
         $this->garantirPropriedade($contaBancaria, $idUsuario);
 
-        if ($this->repositorio->temLancamentos($contaBancaria)) {
+        if ($this->contaBancariaRepository->temLancamentos($contaBancaria)) {
             throw ValidationException::withMessages([
                 'conta_bancaria' => 'Não é possível excluir uma conta com lançamentos vinculados.',
             ]);
         }
 
-        $this->repositorio->excluir($contaBancaria);
+        $this->contaBancariaRepository->excluir($contaBancaria);
     }
 
     private function garantirPropriedade(ContaBancaria $contaBancaria, int $idUsuario): void

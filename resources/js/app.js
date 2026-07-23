@@ -1,31 +1,24 @@
-
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-
-import jQuery from 'jquery';
-window.$ = window.jQuery = jQuery;
-
-import * as bootstrap from 'bootstrap';
-window.bootstrap = bootstrap;
-
-if (bootstrap.Modal?.jQueryInterface) {
-    window.$.fn.modal = bootstrap.Modal.jQueryInterface;
-    window.$.fn.modal.Constructor = bootstrap.Modal;
-}
-
-import bootbox from 'bootbox';
-window.bootbox = bootbox;
-
 import './bootstrap';
-import Alpine from 'alpinejs';
-window.Alpine = Alpine;
-Alpine.start();
 
-import { initAutenticacao } from './Autenticacao/autenticacao.js';
-import { initBarraLateral } from './Painel/barra-lateral.js';
-import { initContasBancarias } from './ContasBancarias/contas-bancarias.js';
+import { createApp, h } from 'vue';
+import { createInertiaApp } from '@inertiajs/vue3';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
-document.addEventListener('DOMContentLoaded', () => {
-    initAutenticacao();
-    initBarraLateral();
-    initContasBancarias();
+const nomeApp = import.meta.env.VITE_APP_NAME || 'NutriGrana';
+
+createInertiaApp({
+    title: (titulo) => (titulo ? `${titulo} - ${nomeApp}` : nomeApp),
+    resolve: (nome) =>
+        resolvePageComponent(
+            `./Pages/${nome}.vue`,
+            import.meta.glob('./Pages/**/*.vue'),
+        ),
+    setup({ el, App, props, plugin }) {
+        createApp({ render: () => h(App, props) })
+            .use(plugin)
+            .mount(el);
+    },
+    progress: {
+        color: '#1fa67e',
+    },
 });

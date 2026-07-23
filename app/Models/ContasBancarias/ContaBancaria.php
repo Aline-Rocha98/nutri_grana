@@ -2,6 +2,7 @@
 
 namespace App\Models\ContasBancarias;
 
+use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
 use App\Models\Concerns\TemChaveRotaCriptografada;
 use App\Models\Usuario\Usuario;
@@ -22,6 +23,8 @@ class ContaBancaria extends Model
         'saldo_inicial',
         'tipo',
         'arquivada',
+        'padrao_desconto',
+        'exibir_resumo',
     ];
 
     protected function casts(): array
@@ -30,6 +33,8 @@ class ContaBancaria extends Model
             'saldo_inicial' => 'decimal:2',
             'tipo' => TipoContaBancaria::class,
             'arquivada' => 'boolean',
+            'padrao_desconto' => SimNao::class,
+            'exibir_resumo' => SimNao::class,
         ];
     }
 
