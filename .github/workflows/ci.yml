@@ -31,10 +31,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer-
 
-      - run: composer install --no-interaction --prefer-dist --no-progress
-
+      - run: |
+        mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+        chmod -R 777 storage bootstrap/cache
       - run: cp .env.example .env
-
+      - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php artisan key:generate
-
       - run: php artisan test
