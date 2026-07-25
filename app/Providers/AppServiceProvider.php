@@ -6,6 +6,7 @@ use App\Models\ContasBancarias\ContaBancaria;
 use App\Policies\ContasBancarias\ContaBancariaPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Database\Eloquent\Model;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(ContaBancaria::class, ContaBancariaPolicy::class);
+        Model::shouldBeStrict(!app()->isProduction());
     }
 }

@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
+import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
 
 const props = defineProps({
     aberto: {
@@ -122,7 +123,7 @@ function salvar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto" @fechar="fechar">
+    <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="salvar">
             <h2 class="text-lg font-semibold text-gray-900">
                 {{ editando ? 'Editar conta' : 'Nova conta' }}
@@ -192,12 +193,14 @@ function salvar() {
                     </div>
                     <input
                         id="saldo_inicial"
-                        v-model="formulario.saldo_inicial"
+                        :value="formulario.saldo_inicial"
                         type="text"
+                        inputmode="numeric"
                         class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         :class="{ 'bg-gray-50 text-gray-500 cursor-not-allowed': editando }"
                         :readonly="editando"
                         placeholder="0,00"
+                        @input="formulario.saldo_inicial = aoDigitarMoeda($event)"
                     >
                     <p v-if="formulario.errors.saldo_inicial" class="mt-2 text-sm text-red-600">
                         {{ formulario.errors.saldo_inicial }}

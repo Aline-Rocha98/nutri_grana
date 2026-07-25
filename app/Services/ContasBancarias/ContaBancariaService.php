@@ -87,7 +87,7 @@ class ContaBancariaService
 
         if ($this->contaBancariaRepository->temLancamentos($contaBancaria)) {
             throw ValidationException::withMessages([
-                'conta_bancaria' => 'Não é possível excluir uma conta com lançamentos vinculados.',
+                'conta_bancaria' => 'Não é possível excluir uma conta com lançamentos vinculados. Arquive a conta bancária em vez de excluí-la.',
             ]);
         }
 

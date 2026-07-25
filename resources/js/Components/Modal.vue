@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, watch } from 'vue';
+import { watch } from 'vue';
 
 const props = defineProps({
     aberto: {
@@ -12,8 +12,6 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['fechar']);
-
 const classesMax = {
     sm: 'sm:max-w-sm',
     md: 'sm:max-w-md',
@@ -22,31 +20,12 @@ const classesMax = {
     '2xl': 'sm:max-w-2xl',
 };
 
-function fechar() {
-    emit('fechar');
-}
-
-function aoTeclar(evento) {
-    if (evento.key === 'Escape' && props.aberto) {
-        fechar();
-    }
-}
-
 watch(
     () => props.aberto,
     (aberto) => {
         document.body.classList.toggle('overflow-y-hidden', aberto);
     },
 );
-
-onMounted(() => {
-    document.addEventListener('keydown', aoTeclar);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('keydown', aoTeclar);
-    document.body.classList.remove('overflow-y-hidden');
-});
 </script>
 
 <template>
@@ -54,16 +33,11 @@ onUnmounted(() => {
         <div
             v-show="aberto"
             class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 py-6 sm:px-0"
+            style="background-color: rgba(0, 0, 0, 0.55)"
         >
             <div
-                class="fixed inset-0 transform transition-all bg-gray-500/75"
-                @click="fechar"
-            />
-
-            <div
-                class="relative mb-6 w-full transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:mx-auto sm:w-full"
+                class="relative mb-6 w-full overflow-hidden rounded-lg bg-white shadow-2xl sm:mx-auto sm:w-full"
                 :class="classesMax[maxLargura] ?? classesMax['2xl']"
-                @click.stop
             >
                 <slot />
             </div>

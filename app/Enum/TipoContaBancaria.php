@@ -6,12 +6,14 @@ enum TipoContaBancaria: string
 {
     case Corrente = 'corrente';
     case Poupanca = 'poupanca';
-
+    case Investimento = 'investimento';
+    
     public function rotulo(): string
     {
         return match ($this) {
             self::Corrente => 'Corrente',
             self::Poupanca => 'Poupança',
+            self::Investimento => 'Investimento',
         };
     }
 

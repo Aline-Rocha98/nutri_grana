@@ -1,6 +1,4 @@
 <script setup>
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
 import BarraLateral from '@/Components/BarraLateral.vue';
 
 defineProps({
@@ -8,26 +6,6 @@ defineProps({
         type: String,
         default: '',
     },
-});
-
-const pagina = usePage();
-const flash = computed(() => pagina.props.flash ?? {});
-
-const mensagemErro = computed(() => {
-    const erro = flash.value.erro;
-    if (!erro) {
-        return null;
-    }
-    if (typeof erro === 'string') {
-        return erro;
-    }
-    if (Array.isArray(erro)) {
-        return erro.flat().join(' ');
-    }
-    if (typeof erro === 'object') {
-        return Object.values(erro).flat().join(' ');
-    }
-    return String(erro);
 });
 </script>
 
@@ -48,24 +26,7 @@ const mensagemErro = computed(() => {
                     </slot>
                 </header>
 
-                <Alerta :mensagem="flash.sucesso" tipo="sucesso" />
-                <Alerta :mensagem="mensagemErro" tipo="erro" />
                 <slot />
-                <!-- <main class="flex-1 rounded-[2rem] bg-gray-100 shadow-inner overflow-auto">
-                    <div v-if="flash.sucesso" class="p-6 pb-0">
-                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                            {{ flash.sucesso }}
-                        </div>
-                    </div>
-
-                    <div v-if="mensagemErro" class="p-6 pb-0">
-                        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {{ mensagemErro }}
-                        </div>
-                    </div>
-
-                    <slot />
-                </main> -->
             </div>
         </div>
     </div>

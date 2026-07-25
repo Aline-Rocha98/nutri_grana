@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
+import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/ContasBancarias/FormularioModal.vue';
 
 const props = defineProps({
@@ -22,6 +23,9 @@ const props = defineProps({
 const pagina = usePage();
 const modalAberto = ref(false);
 const contaEmEdicao = ref(null);
+const modalExclusaoAberto = ref(false);
+const contaParaExcluir = ref(null);
+const excluindo = ref(false);
 
 watch(
     () => pagina.props.errors,
@@ -73,15 +77,45 @@ function alternarArquivada(conta) {
     });
 }
 
-function excluirConta(conta) {
-    if (!window.confirm('Excluir esta conta bancária?')) {
+function pedirExclusao(conta) {
+    contaParaExcluir.value = conta;
+    modalExclusaoAberto.value = true;
+}
+
+function fecharExclusao() {
+    if (excluindo.value) {
         return;
     }
 
-    router.delete(conta.url_excluir, {
+    modalExclusaoAberto.value = false;
+    contaParaExcluir.value = null;
+}
+
+function confirmarExclusao() {
+    if (!contaParaExcluir.value || excluindo.value) {
+        return;
+    }
+
+    excluindo.value = true;
+
+    router.delete(contaParaExcluir.value.url_excluir, {
         preserveScroll: true,
+        onFinish: () => {
+            excluindo.value = false;
+            modalExclusaoAberto.value = false;
+            contaParaExcluir.value = null;
+        },
     });
 }
+
+const mensagemExclusao = computed(() => {
+    const nome = contaParaExcluir.value?.nome;
+    if (!nome) {
+        return 'Deseja excluir esta conta bancária? Esta ação não pode ser desfeita.';
+    }
+
+    return `Deseja excluir a conta "${nome}"? Esta ação não pode ser desfeita.`;
+});
 </script>
 
 <template>
@@ -184,7 +218,7 @@ function excluirConta(conta) {
                                 type="button"
                                 class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
                                 title="Excluir"
-                                @click="excluirConta(conta)"
+                                @click="pedirExclusao(conta)"
                             >
                                 <span class="material-symbols-outlined text-[20px]">delete</span>
                             </button>
@@ -260,6 +294,18 @@ function excluirConta(conta) {
             :bancos-sugeridos="bancosSugeridos"
             :conta="contaEmEdicao"
             @fechar="fecharModal"
+        />
+
+        <ModalNotificacao
+            :aberto="modalExclusaoAberto"
+            titulo="Excluir conta"
+            :mensagem="mensagemExclusao"
+            texto-confirmar="Excluir"
+            texto-cancelar="Cancelar"
+            perigo
+            :processando="excluindo"
+            @confirmar="confirmarExclusao"
+            @cancelar="fecharExclusao"
         />
     </AutenticadoLayout>
 </template>

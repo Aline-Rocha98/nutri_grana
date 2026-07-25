@@ -194,7 +194,7 @@ function excluirConta() {
             </div>
         </div>
 
-        <Modal :aberto="modalExclusaoAberto" max-largura="lg" @fechar="modalExclusaoAberto = false">
+        <Modal :aberto="modalExclusaoAberto" max-largura="lg">
             <form class="p-6" @submit.prevent="excluirConta">
                 <h2 class="text-lg font-medium text-gray-900">
                     Tem certeza que deseja excluir sua conta?
