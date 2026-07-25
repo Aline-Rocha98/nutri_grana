@@ -1,0 +1,56 @@
+name: Release to Main
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update PR from release to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main release
+
+          EXISTING_PR=$(gh pr list --base main --head release --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already open from release to main (updated by push)."
+            exit 0
+          fi
+
+          AHEAD=$(git rev-list --count origin/main..origin/release)
+          if [ "$AHEAD" = "0" ]; then
+            echo "release has no commits ahead of main; skipping PR."
+            exit 0
+          fi
+
+          gh pr create \
+            --base main \
+            --head release \
+            --title "Release: promote release to main" \
+            --body "$(cat <<'EOF'
+          ## Summary
+          Automated PR to promote the `release` branch into `main` after validation.
+
+          ## Checklist
+          - [ ] CI (Laravel CI) passed on this PR
+          - [ ] Features tested on `release`
+          - [ ] Ready to merge into `main`
+          EOF
+          )"
