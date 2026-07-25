@@ -1,29 +1,38 @@
-
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-
-import jQuery from 'jquery';
-window.$ = window.jQuery = jQuery;
-
-import * as bootstrap from 'bootstrap';
-window.bootstrap = bootstrap;
-
-if (bootstrap.Modal?.jQueryInterface) {
-    window.$.fn.modal = bootstrap.Modal.jQueryInterface;
-    window.$.fn.modal.Constructor = bootstrap.Modal;
-}
-
-import bootbox from 'bootbox';
-window.bootbox = bootbox;
-
 import './bootstrap';
-import Alpine from 'alpinejs';
-window.Alpine = Alpine;
-Alpine.start();
 
-import { initAutenticacao } from './Autenticacao/autenticacao.js';
-import { initBarraLateral } from './Painel/barra-lateral.js';
+import { createApp, h } from 'vue';
+import { createInertiaApp } from '@inertiajs/vue3';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import Vue3Toastify from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
+import '../css/toastify-custom.css';
+import { processarFlash, registrarFlashNotificacao } from '@/Helpers/notificacao';
 
-document.addEventListener('DOMContentLoaded', () => {
-    initAutenticacao();
-    initBarraLateral();
+const nomeApp = import.meta.env.VITE_APP_NAME || 'NutriGrana';
+
+createInertiaApp({
+    title: (titulo) => titulo || nomeApp,
+    resolve: (nome) =>
+        resolvePageComponent(
+            `./Pages/${nome}.vue`,
+            import.meta.glob('./Pages/**/*.vue'),
+        ),
+    setup({ el, App, props, plugin }) {
+        createApp({ render: () => h(App, props) })
+            .use(plugin)
+            .use(Vue3Toastify, {
+                autoClose: 4000,
+                position: 'top-right',
+                theme: 'colored',
+                hideProgressBar: true,
+                clearOnUrlChange: false,
+            })
+            .mount(el);
+
+        processarFlash(props.initialPage?.props?.flash ?? {});
+        registrarFlashNotificacao();
+    },
+    progress: {
+        color: '#1fa67e',
+    },
 });

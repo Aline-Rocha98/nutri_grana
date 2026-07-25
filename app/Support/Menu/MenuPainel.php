@@ -30,8 +30,9 @@ class MenuPainel
                 'rotulo' => 'Financeiro',
                 'icone' => 'financeiro',
                 'filhos' => [
-                    ['rotulo' => 'Meses', 'rota' => 'meses.index'],
+                    ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
+                    ['rotulo' => 'Meses', 'rota' => 'meses.index'],
                 ],
             ],
             [

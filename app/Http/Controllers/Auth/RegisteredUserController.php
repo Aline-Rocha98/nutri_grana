@@ -2,28 +2,28 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Enum\MotivosControleFinanceiro;
+use App\Http\Controllers\Controller;
 use App\Models\Usuario\Usuario;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
-    public function create(): View
+    public function create(): Response
     {
-        return view('auth.register', [
+        return Inertia::render('Auth/Register', [
             'motivos' => MotivosControleFinanceiro::opcoesParaSelect(),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse|JsonResponse
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'nome' => ['required', 'string', 'max:100'],
@@ -36,7 +36,7 @@ class RegisteredUserController extends Controller
                 Rule::unique(Usuario::class, 'email'),
             ],
             'data_nascimento' => ['required', 'date', 'before:today'],
-            'motivo_controle_financeiro' => ['required',  Rule::enum(MotivosControleFinanceiro::class)],
+            'motivo_controle_financeiro' => ['required', Rule::enum(MotivosControleFinanceiro::class)],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
             'email.unique' => __('validation.usuario.email.unique'),
@@ -53,14 +53,6 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Conta criada com sucesso!',
-                'redirect' => route('home', absolute: false),
-            ]);
-        }
 
         return redirect(route('home', absolute: false));
     }
