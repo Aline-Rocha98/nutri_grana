@@ -31,6 +31,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer-
 
+      - name: Prepare Laravel directories
         run: |
           mkdir -p storage/framework/cache
           mkdir -p storage/framework/sessions
@@ -38,7 +39,11 @@ jobs:
           mkdir -p storage/framework/testing
           mkdir -p storage/logs
           mkdir -p bootstrap/cache
+
       - run: cp .env.example .env
+
       - run: composer install --no-interaction --prefer-dist --no-progress
+
       - run: php artisan key:generate
+
       - run: php artisan test
