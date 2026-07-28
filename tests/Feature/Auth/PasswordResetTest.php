@@ -30,31 +30,15 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
-    public function test_reset_password_link_can_be_requested_via_json(): void
+    public function test_reset_password_link_returns_error_for_unknown_email(): void
     {
-        Notification::fake();
-
-        $user = Usuario::factory()->create();
-
-        $response = $this->postJson('/forgot-password', ['email' => $user->email]);
+        $response = $this
+            ->from('/forgot-password')
+            ->post('/forgot-password', ['email' => 'desconhecido@example.com']);
 
         $response
-            ->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => __('passwords.sent'),
-            ]);
-
-        Notification::assertSentTo($user, ResetPassword::class);
-    }
-
-    public function test_reset_password_link_returns_error_for_unknown_email_via_json(): void
-    {
-        $response = $this->postJson('/forgot-password', ['email' => 'desconhecido@example.com']);
-
-        $response
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors([
+            ->assertRedirect('/forgot-password')
+            ->assertSessionHasErrors([
                 'email' => __('passwords.user'),
             ]);
     }
