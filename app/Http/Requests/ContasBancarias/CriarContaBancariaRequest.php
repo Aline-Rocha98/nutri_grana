@@ -5,6 +5,7 @@ namespace App\Http\Requests\ContasBancarias;
 use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
 use App\Models\ContasBancarias\ContaBancaria;
+use App\Support\Data\Valor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,8 +13,7 @@ class CriarContaBancariaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // return $this->user()?->can('create', ContaBancaria::class) ?? false;
+        return $this->user()?->can('create', ContaBancaria::class) ?? false;
     }
 
     public function rules(): array
@@ -30,27 +30,10 @@ class CriarContaBancariaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'saldo_inicial' => $this->normalizarValorMonetario($this->input('saldo_inicial')),
-            'padrao_desconto' => $this->normalizarSimNao($this->input('padrao_desconto')),
-            'exibir_resumo' => $this->normalizarSimNao($this->input('exibir_resumo')),
+            'saldo_inicial' => Valor::normalizarValorMonetario($this->input('saldo_inicial')),
+            'padrao_desconto' => SimNao::fromToggle($this->input('padrao_desconto'))?->value,
+            'exibir_resumo' => SimNao::fromToggle($this->input('exibir_resumo'))?->value,
         ]);
-    }
-
-    private function normalizarValorMonetario(mixed $valor): mixed
-    {
-        if (! is_string($valor)) {
-            return $valor;
-        }
-
-        $normalizado = str_replace(['R$', ' ', '.'], '', $valor);
-        $normalizado = str_replace(',', '.', $normalizado);
-
-        return $normalizado === '' ? $valor : $normalizado;
-    }
-
-    private function normalizarSimNao(mixed $valor): ?string
-    {
-        return SimNao::fromToggle($valor)?->value;
     }
 
     public function messages(): array
