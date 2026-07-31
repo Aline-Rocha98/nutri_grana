@@ -4,6 +4,7 @@ namespace App\Http\Requests\ContasBancarias;
 
 use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
+use App\Support\Data\Valor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,10 +12,9 @@ class AtualizarContaBancariaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // $contaBancaria = $this->route('contaBancaria');
+        $contaBancaria = $this->route('contaBancaria');
 
-        // return $contaBancaria && ($this->user()?->can('update', $contaBancaria) ?? false);
+        return $contaBancaria && ($this->user()?->can('update', $contaBancaria) ?? false);
     }
 
     public function rules(): array
@@ -34,37 +34,20 @@ class AtualizarContaBancariaRequest extends FormRequest
         $dados = [];
 
         if ($this->filled('saldo_inicial')) {
-            $dados['saldo_inicial'] = $this->normalizarValorMonetario($this->input('saldo_inicial'));
+            $dados['saldo_inicial'] = Valor::normalizarValorMonetario($this->input('saldo_inicial'));
         }
         if ($this->has('arquivada')) {
             $dados['arquivada'] = $this->boolean('arquivada');
         }
 
         if ($this->exists('padrao_desconto')) {
-            $dados['padrao_desconto'] = $this->normalizarSimNao($this->input('padrao_desconto'));
+            $dados['padrao_desconto'] = SimNao::fromToggle($this->input('padrao_desconto'))?->value;
         }
 
         if ($this->exists('exibir_resumo')) {
-            $dados['exibir_resumo'] = $this->normalizarSimNao($this->input('exibir_resumo'));
+            $dados['exibir_resumo'] = SimNao::fromToggle($this->input('exibir_resumo'))?->value;
         }
 
         $this->merge($dados);
-    }
-
-    private function normalizarValorMonetario(mixed $valor): mixed
-    {
-        if (! is_string($valor)) {
-            return $valor;
-        }
-
-        $normalizado = str_replace(['R$', ' ', '.'], '', $valor);
-        $normalizado = str_replace(',', '.', $normalizado);
-
-        return $normalizado === '' ? $valor : $normalizado;
-    }
-
-    private function normalizarSimNao(mixed $valor): ?string
-    {
-        return SimNao::fromToggle($valor)?->value;
     }
 }

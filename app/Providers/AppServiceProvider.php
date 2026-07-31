@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\CartoesCredito\CartaoCredito;
 use App\Models\ContasBancarias\ContaBancaria;
+use App\Policies\CartoesCredito\CartaoCreditoPolicy;
 use App\Policies\ContasBancarias\ContaBancariaPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(ContaBancaria::class, ContaBancariaPolicy::class);
+        Gate::policy(CartaoCredito::class, CartaoCreditoPolicy::class);
         Model::shouldBeStrict(!app()->isProduction());
     }
 }

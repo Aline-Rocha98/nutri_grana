@@ -31,18 +31,9 @@ class MenuPainel
                 'icone' => 'financeiro',
                 'filhos' => [
                     ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
+                    ['rotulo' => 'Cartões de crédito', 'rota' => 'cartoes-credito.index'],
                     ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
                     ['rotulo' => 'Meses', 'rota' => 'meses.index'],
-                ],
-            ],
-            [
-                'tipo' => 'grupo',
-                'id' => 'cadastros',
-                'rotulo' => 'Cadastros',
-                'icone' => 'cadastros',
-                'filhos' => [
-                    ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
-                    ['rotulo' => 'Formas de pagamento', 'rota' => 'formas-pagamento.index'],
                 ],
             ],
             [
