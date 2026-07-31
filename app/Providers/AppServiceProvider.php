@@ -2,13 +2,15 @@
 
 namespace App\Providers;
 
-use App\Models\CartoesCredito\CartaoCredito;
-use App\Models\ContasBancarias\ContaBancaria;
-use App\Policies\CartoesCredito\CartaoCreditoPolicy;
-use App\Policies\ContasBancarias\ContaBancariaPolicy;
+use App\Models\CartaoCredito\CartaoCredito;
+use App\Models\Categoria\Categoria;
+use App\Models\ContaBancaria\ContaBancaria;
+use App\Policies\CartaoCredito\CartaoCreditoPolicy;
+use App\Policies\Categoria\CategoriaPolicy;
+use App\Policies\ContaBancaria\ContaBancariaPolicy;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Model;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(ContaBancaria::class, ContaBancariaPolicy::class);
         Gate::policy(CartaoCredito::class, CartaoCreditoPolicy::class);
-        Model::shouldBeStrict(!app()->isProduction());
+        Gate::policy(Categoria::class, CategoriaPolicy::class);
+        Model::shouldBeStrict(! app()->isProduction());
     }
 }

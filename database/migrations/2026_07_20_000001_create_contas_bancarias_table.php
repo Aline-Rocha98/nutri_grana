@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nome', 100);
             $table->decimal('saldo_inicial', 15, 2)->default(0);
             $table->string('tipo', 20);
-            $table->boolean('arquivada')->default(false);
+            $table->enum('arquivada', ['S', 'N'])->default('N');
             $table->timestamps();
 
             $table->index('arquivada');

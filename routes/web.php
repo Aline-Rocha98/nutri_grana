@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\CartoesCredito\CartaoCreditoController;
-use App\Http\Controllers\ContasBancarias\ContaBancariaController;
+use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
+use App\Http\Controllers\Categoria\CategoriaController;
+use App\Http\Controllers\ContaBancaria\ContaBancariaController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,11 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::redirect('/dashboard', '/home');
+
+    // Perfil
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Contas Bancárias
     Route::get('/contas-bancarias', [ContaBancariaController::class, 'index'])->name('contas-bancarias.index');
@@ -27,10 +33,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/cartoes-credito/{cartaoCredito}/arquivar', [CartaoCreditoController::class, 'arquivarCartaoCredito'])->name('cartoes-credito.arquivar');
     Route::delete('/cartoes-credito/{cartaoCredito}', [CartaoCreditoController::class, 'excluirCartaoCredito'])->name('cartoes-credito.excluir');
 
-    // Perfil
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Categorias
+    Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+    Route::post('/categorias', [CategoriaController::class, 'criarCategoria'])->name('categorias.criar');
+    Route::put('/categorias/{categoria}', [CategoriaController::class, 'atualizarCategoria'])->name('categorias.atualizar');
+    Route::patch('/categorias/{categoria}/arquivar', [CategoriaController::class, 'arquivarCategoria'])->name('categorias.arquivar');
+    Route::delete('/categorias/{categoria}', [CategoriaController::class, 'excluirCategoria'])->name('categorias.excluir');
 });
 
 require __DIR__.'/auth.php';

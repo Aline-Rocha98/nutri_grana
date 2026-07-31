@@ -32,8 +32,7 @@ class MenuPainel
                 'filhos' => [
                     ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Cartões de crédito', 'rota' => 'cartoes-credito.index'],
-                    ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
-                    ['rotulo' => 'Meses', 'rota' => 'meses.index'],
+                    ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
                 ],
             ],
             [
