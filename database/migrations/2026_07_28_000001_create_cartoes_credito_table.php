@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('dia_vencimento');
             $table->string('bandeira', 30);
             $table->enum('padrao', ['S', 'N'])->nullable()->default(null);
-            $table->boolean('arquivada')->default(false);
+            $table->enum('arquivada', ['S', 'N'])->default('N');
             $table->timestamps();
 
             $table->index('padrao');
