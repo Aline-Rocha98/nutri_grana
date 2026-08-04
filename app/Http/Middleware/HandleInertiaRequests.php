@@ -52,6 +52,8 @@ class HandleInertiaRequests extends Middleware
                 'profileEdit' => route('profile.edit'),
                 'profileUpdate' => route('profile.update'),
                 'profileDestroy' => route('profile.destroy'),
+                'profilePasswordSendCode' => route('profile.password.send-code'),
+                'profilePasswordConfirm' => route('profile.password.confirm'),
                 'contasBancariasIndex' => route('contas-bancarias.index'),
                 'contasBancariasCriar' => route('contas-bancarias.criar'),
                 'cartoesCreditoIndex' => route('cartoes-credito.index'),

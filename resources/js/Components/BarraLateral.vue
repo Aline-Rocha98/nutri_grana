@@ -63,8 +63,14 @@ function sair() {
                 class="barra-lateral__cabecalho-perfil flex items-center gap-3"
                 :class="{ 'justify-center': !expandida }"
             >
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1fa67e]/20 text-sm font-bold text-[#1fa67e]">
-                    {{ menu.perfil.iniciais }}
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1fa67e]/20 text-sm font-bold text-[#1fa67e]">
+                    <img
+                        v-if="menu.perfil.foto_url"
+                        :src="menu.perfil.foto_url"
+                        alt="Foto de perfil"
+                        class="h-full w-full object-cover"
+                    >
+                    <span v-else>{{ menu.perfil.iniciais }}</span>
                 </div>
                 <div v-show="expandida" class="barra-lateral__texto min-w-0">
                     <p class="text-xs text-gray-500">Olá 👋</p>

@@ -18,6 +18,12 @@ Route::middleware('auth')->group(function () {
     // Perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/password/send-code', [ProfileController::class, 'solicitarCodigoSenha'])
+        ->middleware('throttle:5,1')
+        ->name('profile.password.send-code');
+    Route::put('/profile/password/confirm', [ProfileController::class, 'confirmarAlteracaoSenha'])
+        ->middleware('throttle:5,1')
+        ->name('profile.password.confirm');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Contas Bancárias

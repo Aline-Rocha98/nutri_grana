@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enum\MotivosControleFinanceiro;
 use App\Models\Usuario\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -30,6 +31,8 @@ class ProfileTest extends TestCase
             ->patch('/profile', [
                 'nome' => 'Test User',
                 'email' => 'test@example.com',
+                'data_nascimento' => '1990-05-15',
+                'motivo_controle_financeiro' => MotivosControleFinanceiro::ECONOMIZAR_DINHEIRO->value,
             ]);
 
         $response
@@ -40,6 +43,11 @@ class ProfileTest extends TestCase
 
         $this->assertSame('Test User', $user->nome);
         $this->assertSame('test@example.com', $user->email);
+        $this->assertSame('1990-05-15', $user->data_nascimento->format('Y-m-d'));
+        $this->assertSame(
+            MotivosControleFinanceiro::ECONOMIZAR_DINHEIRO->value,
+            $user->motivo_controle_financeiro
+        );
     }
 
     public function test_user_can_delete_their_account(): void

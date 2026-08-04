@@ -9,11 +9,13 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\Access\Authorizable;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 use Illuminate\Notifications\Notifiable;
 
-class Usuario extends Model implements AuthenticatableContract, CanResetPasswordContract
+class Usuario extends Model implements AuthenticatableContract, CanResetPasswordContract,  AuthorizableContract
 {
-    use Authenticatable, CanResetPassword, HasFactory, Notifiable;
+    use Authenticatable, CanResetPassword, HasFactory, Notifiable, Authorizable;
 
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';
@@ -26,6 +28,7 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
         'email_verificado',
         'data_nascimento',
         'motivo_controle_financeiro',
+        'foto_perfil',
     ];
 
     protected $hidden = [
