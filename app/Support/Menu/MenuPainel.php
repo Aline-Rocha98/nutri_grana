@@ -40,7 +40,7 @@ class MenuPainel
                 'id' => 'perfil',
                 'rotulo' => 'Perfil',
                 'icone' => 'perfil',
-                'rota' => 'profile.edit',
+                'rota' => 'usuario.perfil',
             ],
         ];
     }
@@ -61,6 +61,7 @@ class MenuPainel
             return [
                 'nome' => '',
                 'iniciais' => 'NG',
+                'foto_url' => null,
             ];
         }
 
@@ -73,6 +74,7 @@ class MenuPainel
         return [
             'nome' => $usuario->nome,
             'iniciais' => $iniciais ?: 'NG',
+            'foto_url' => $usuario->foto_url,
         ];
     }
 

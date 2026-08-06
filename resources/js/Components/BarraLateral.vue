@@ -8,6 +8,14 @@ const menu = computed(() => pagina.props.menu);
 const CHAVE_STORAGE = 'barraLateralExpandida';
 const expandida = ref(localStorage.getItem(CHAVE_STORAGE) !== 'false');
 const gruposAbertos = reactive({ ...(menu.value?.gruposAbertos ?? {}) });
+const fotoSidebarComErro = ref(false);
+
+watch(
+    () => menu.value?.perfil?.foto_url,
+    () => {
+        fotoSidebarComErro.value = false;
+    },
+);
 
 watch(
     () => menu.value?.gruposAbertos,
@@ -16,6 +24,12 @@ watch(
     },
     { deep: true },
 );
+
+const mostrarFotoSidebar = computed(
+    () => Boolean(menu.value?.perfil?.foto_url) && !fotoSidebarComErro.value,
+);
+
+const urlPerfil = computed(() => pagina.props.rotas?.usuarioPerfil ?? '#');
 
 const classeBarra = computed(() =>
     expandida.value ? 'barra-lateral--expandida' : 'barra-lateral--recolhida',
@@ -59,18 +73,27 @@ function sair() {
         </button>
 
         <div class="px-4 pt-5 pb-4 border-b border-white/10">
-            <div
-                class="barra-lateral__cabecalho-perfil flex items-center gap-3"
+            <Link
+                :href="urlPerfil"
+                class="barra-lateral__cabecalho-perfil flex items-center gap-3 rounded-xl px-1 py-1 transition hover:bg-white/5"
                 :class="{ 'justify-center': !expandida }"
+                title="Meu Perfil"
             >
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1fa67e]/20 text-sm font-bold text-[#1fa67e]">
-                    {{ menu.perfil.iniciais }}
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1fa67e]/20 text-sm font-bold text-[#1fa67e]">
+                    <img
+                        v-if="mostrarFotoSidebar"
+                        :src="menu.perfil.foto_url"
+                        alt=""
+                        class="h-full w-full object-cover"
+                        @error="fotoSidebarComErro = true"
+                    >
+                    <span v-else>{{ menu.perfil.iniciais }}</span>
                 </div>
                 <div v-show="expandida" class="barra-lateral__texto min-w-0">
-                    <p class="text-xs text-gray-500">Olá 👋</p>
+                    <p class="text-xs text-gray-500">Olá</p>
                     <p class="truncate text-sm font-semibold text-white">{{ menu.perfil.nome }}</p>
                 </div>
-            </div>
+            </Link>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">

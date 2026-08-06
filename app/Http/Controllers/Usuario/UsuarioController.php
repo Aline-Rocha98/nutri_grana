@@ -1,126 +1,97 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Usuario;
 
-use App\Services\UsuarioService;
-use App\Repositories\ObjetivoRepository;
-use App\Repositories\ReservaSegurancaRepository;
+use App\Enum\MotivosControleFinanceiro;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Usuario\AtualizarPerfilRequest;
+use App\Http\Requests\Usuario\ConfirmarAlteracaoSenhaRequest;
+use App\Http\Requests\Usuario\ExcluirContaRequest;
+use App\Http\Requests\Usuario\SolicitarCodigoAlteracaoSenhaRequest;
+use App\Http\Resources\Usuario\UsuarioResource;
+use App\Services\Usuario\UsuarioService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UsuarioController extends Controller
 {
-    protected $perfilService;
-    protected $objetivoRepository;
-    protected $reservaSegurancaRepository;
+    use AuthorizesRequests;
 
     public function __construct(
-        UsuarioService $perfilService,
-        ObjetivoRepository $objetivoRepository,
-    ) {
-        $this->middleware('auth');
-        $this->perfilService = $perfilService;
-        $this->objetivoRepository = $objetivoRepository;
+        private readonly UsuarioService $usuarioService,
+    ) {}
+
+    public function perfil(Request $request): Response
+    {
+        $usuario = $request->user();
+
+        $this->authorize('view', $usuario);
+
+        return Inertia::render('Usuario/Perfil', [
+            'usuario' => (new UsuarioResource($usuario))->resolve(),
+            'motivos' => MotivosControleFinanceiro::opcoesParaSelect(),
+        ]);
     }
 
-    /**
-     * Exibir perfil do usuário
-     */
-    public function index()
+    public function atualizar(AtualizarPerfilRequest $request): RedirectResponse
     {
-        $usuario = Auth::user();
-        $objetivos = $this->objetivoRepository->listarPorUsuario($usuario->id);
-        $reservasSeguranca = $this->reservaSegurancaRepository->listarPorUsuario($usuario->id);
+        $usuario = $request->user();
 
-        return view('usuario.index', compact('usuario'));
-    }
-
-    /**
-     * Atualizar perfil
-     */
-    public function atualizar(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . Auth::id(),
-            'data_nascimento' => 'required|date',
-            'profissao' => 'nullable|string|max:255',
-            'motivo_controle_financeiro' => 'nullable|string',
-            'password' => 'nullable|string|min:8|confirmed',
+        $dados = $request->safe()->only([
+            'nome',
+            'email',
+            'data_nascimento',
+            'motivo_controle_financeiro',
         ]);
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
+        $this->usuarioService->atualizarPerfil(
+            $usuario,
+            $dados,
+            $request->file('foto'),
+        );
 
-        $dados = $request->only(['nome', 'email', 'data_nascimento', 'profissao', 'motivo_controle_financeiro']);
-        if ($request->filled('password')) {
-            $dados['password'] = $request->password;
-        }
-
-        $resultado = $this->perfilService->atualizarPerfil(Auth::id(), $dados);
-
-        if ($resultado['sucesso']) {
-            return back()->with('sucesso', $resultado['mensagem']);
-        }
-
-        return back()->withErrors(['erro' => $resultado['mensagem']])->withInput();
+        return Redirect::route('usuario.perfil')->with('sucesso', 'Perfil atualizado com sucesso.');
     }
 
-    /**
-     * Criar objetivo
-     */
-    public function criarObjetivo(Request $request)
+    public function solicitarCodigoSenha(SolicitarCodigoAlteracaoSenhaRequest $request): RedirectResponse
     {
-        $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
-            'valor_objetivo' => 'required|numeric|min:0',
-        ]);
+        $this->usuarioService->solicitarCodigoAlteracaoSenha($request->user());
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $dados = $request->all();
-        $dados['user_id'] = Auth::id();
-        $dados['valor_atual'] = 0;
-
-        $resultado = $this->perfilService->criarObjetivo($dados);
-
-        if ($resultado['sucesso']) {
-            return back()->with('sucesso', $resultado['mensagem']);
-        }
-
-        return back()->withErrors(['erro' => $resultado['mensagem']])->withInput();
+        return back()->with('sucesso', 'Enviamos um código de confirmação para o seu e-mail.');
     }
 
-    /**
-     * Criar reserva de segurança
-     */
-    public function criarReservaSeguranca(Request $request)
+    public function confirmarAlteracaoSenha(ConfirmarAlteracaoSenhaRequest $request): RedirectResponse
     {
-        $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
-            'valor_objetivo' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
+        $this->usuarioService->confirmarAlteracaoSenha(
+            $request->user(),
+            $validated['codigo'],
+            $validated['password'],
+        );
 
-        $dados = $request->all();
-        $dados['user_id'] = Auth::id();
-        $dados['valor_atual'] = 0;
+        return back()->with('sucesso', 'Senha alterada com sucesso.');
+    }
 
-        $resultado = $this->perfilService->criarReservaSeguranca($dados);
+    public function excluir(ExcluirContaRequest $request): RedirectResponse
+    {
+        $usuario = $request->user();
 
-        if ($resultado['sucesso']) {
-            return back()->with('sucesso', $resultado['mensagem']);
-        }
+        Auth::logout();
 
-        return back()->withErrors(['erro' => $resultado['mensagem']])->withInput();
+        DB::transaction(function () use ($usuario) {
+            $this->usuarioService->excluirConta($usuario);
+        });
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return Redirect::to('/');
     }
 }

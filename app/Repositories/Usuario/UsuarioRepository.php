@@ -1,71 +1,74 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\Usuario;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use App\Models\Usuario\CodigoAlteracaoSenha;
+use App\Models\Usuario\Usuario;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-class UserRepository
+class UsuarioRepository
 {
-    protected $model;
-
-    public function __construct(User $model)
+    public function atualizar(Usuario $usuario, array $dados): Usuario
     {
-        $this->model = $model;
+        $usuario->fill($dados);
+        $usuario->save();
+
+        return $usuario->refresh();
     }
 
-    /**
-     * Criar novo usuário
-     */
-    public function criar(array $dados): User
+    public function excluir(Usuario $usuario): void
     {
-        $dados['password'] = Hash::make($dados['password']);
-        return $this->model->create($dados);
+        $usuario->delete();
     }
 
-    /**
-     * Buscar usuário por email
-     */
-    public function buscarPorEmail(string $email): ?User
+    public function invalidarCodigosAlteracaoSenha(int $idUsuario): void
     {
-        return $this->model->where('email', $email)->first();
+        CodigoAlteracaoSenha::query()
+            ->where('id_usuario', $idUsuario)
+            ->whereNull('used_at')
+            ->update(['used_at' => now()]);
     }
 
-    /**
-     * Buscar usuário por ID
-     */
-    public function buscarPorId(int $id): ?User
+    public function criarCodigoAlteracaoSenha(int $idUsuario, string $codigoHash, \DateTimeInterface $expiresAt): CodigoAlteracaoSenha
     {
-        return $this->model->find($id);
+        return CodigoAlteracaoSenha::query()->create([
+            'id_usuario' => $idUsuario,
+            'codigo_hash' => $codigoHash,
+            'expires_at' => $expiresAt,
+        ]);
     }
 
-    /**
-     * Atualizar usuário
-     */
-    public function atualizar(int $id, array $dados): bool
+    public function buscarCodigoAlteracaoSenhaValido(int $idUsuario): ?CodigoAlteracaoSenha
     {
-        $usuario = $this->model->find($id);
-        if (!$usuario) {
-            return false;
+        return CodigoAlteracaoSenha::query()
+            ->where('id_usuario', $idUsuario)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
+    }
+
+    public function marcarCodigoComoUsado(CodigoAlteracaoSenha $codigo): void
+    {
+        $codigo->update(['used_at' => now()]);
+    }
+
+    public function limparTokensResetSenha(string $email): void
+    {
+        DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->delete();
+    }
+
+    public function limparSessoesDoUsuario(int $idUsuario): void
+    {
+        if (! Schema::hasTable('sessions')) {
+            return;
         }
 
-        if (isset($dados['password'])) {
-            $dados['password'] = Hash::make($dados['password']);
-        }
-
-        return $usuario->update($dados);
-    }
-
-    /**
-     * Deletar usuário
-     */
-    public function deletar(int $id): bool
-    {
-        $usuario = $this->model->find($id);
-        if (!$usuario) {
-            return false;
-        }
-
-        return $usuario->delete();
+        DB::table('sessions')
+            ->where('user_id', $idUsuario)
+            ->delete();
     }
 }
