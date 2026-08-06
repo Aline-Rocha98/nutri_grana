@@ -99,7 +99,7 @@ function salvarPerfil() {
         _method: 'patch',
     }));
 
-    formularioPerfil.post(rotas.value.profileUpdate, {
+    formularioPerfil.post(rotas.value.usuarioAtualizar, {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
@@ -133,7 +133,7 @@ function fecharModalSenha() {
 function enviarCodigoSenha() {
     formularioSenha
         .transform(() => ({}))
-        .post(rotas.value.profilePasswordSendCode, {
+        .post(rotas.value.usuarioSenhaEnviarCodigo, {
             preserveScroll: true,
             onSuccess: () => {
                 etapaSenha.value = 'confirmar';
@@ -148,7 +148,7 @@ function enviarCodigoSenha() {
 }
 
 function confirmarNovaSenha() {
-    formularioSenha.put(rotas.value.profilePasswordConfirm, {
+    formularioSenha.put(rotas.value.usuarioSenhaConfirmar, {
         preserveScroll: true,
         onSuccess: () => {
             fecharModalSenha();
@@ -169,9 +169,13 @@ function fecharModalExclusao() {
 }
 
 function excluirConta() {
-    formularioExclusao.delete(rotas.value.profileDestroy, {
+    formularioExclusao.delete(rotas.value.usuarioExcluir, {
         onFinish: () => formularioExclusao.reset(),
     });
+}
+
+function aoErroFoto() {
+    previewFoto.value = null;
 }
 </script>
 
@@ -218,19 +222,35 @@ function excluirConta() {
                         </div>
                     </div>
 
-                    <form class="mt-6 space-y-6" @submit.prevent="salvarPerfil">
-                        <div class="flex justify-center sm:justify-start">
-                            <div class="relative">
+                    <form class="mt-6" @submit.prevent="salvarPerfil">
+                        <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
+                            <div class="relative mx-auto shrink-0 sm:mx-0">
                                 <div
-                                    class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-3xl font-bold text-[#1fa67e]"
+                                    class="group/foto relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-3xl font-bold text-[#1fa67e]"
+                                    :class="{ 'cursor-not-allowed': !editando }"
                                 >
                                     <img
                                         v-if="previewFoto"
                                         :src="previewFoto"
                                         alt="Foto de perfil"
-                                        class="h-full w-full object-cover"
+                                        class="h-full w-full object-cover transition"
+                                        :class="{ 'group-hover/foto:opacity-40': !editando }"
+                                        @error="aoErroFoto"
                                     >
-                                    <span v-else>{{ iniciais }}</span>
+                                    <span
+                                        v-else
+                                        class="transition"
+                                        :class="{ 'group-hover/foto:opacity-40': !editando }"
+                                    >
+                                        {{ iniciais }}
+                                    </span>
+                                    <span
+                                        v-if="!editando"
+                                        class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/foto:opacity-100"
+                                        title="Clique em Editar Perfil para alterar"
+                                    >
+                                        <span class="material-icons text-2xl text-gray-700">lock</span>
+                                    </span>
                                 </div>
                                 <button
                                     type="button"
@@ -250,98 +270,143 @@ function excluirConta() {
                                     @change="selecionarFoto"
                                 >
                             </div>
-                        </div>
-                        <p v-if="formularioPerfil.errors.foto" class="text-sm text-red-600">
-                            {{ formularioPerfil.errors.foto }}
-                        </p>
 
-                        <div>
-                            <label for="nome" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                Nome completo
-                            </label>
-                            <input
-                                id="nome"
-                                v-model="formularioPerfil.nome"
-                                type="text"
-                                class="mt-1 block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:opacity-70"
-                                :disabled="!editando"
-                                required
-                                autocomplete="name"
-                            >
-                            <p v-if="formularioPerfil.errors.nome" class="mt-2 text-sm text-red-600">
-                                {{ formularioPerfil.errors.nome }}
-                            </p>
-                        </div>
+                            <div class="min-w-0 flex-1 space-y-4">
+                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div class="group/campo relative">
+                                        <label for="nome" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Nome completo
+                                        </label>
+                                        <div class="relative mt-1">
+                                            <input
+                                                id="nome"
+                                                v-model="formularioPerfil.nome"
+                                                type="text"
+                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                :class="{ 'group-hover/campo:pr-10': !editando }"
+                                                :disabled="!editando"
+                                                required
+                                                autocomplete="name"
+                                            >
+                                            <span
+                                                v-if="!editando"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                title="Clique em Editar Perfil para alterar"
+                                            >
+                                                <span class="material-icons text-lg">lock</span>
+                                            </span>
+                                        </div>
+                                        <p v-if="formularioPerfil.errors.nome" class="mt-2 text-sm text-red-600">
+                                            {{ formularioPerfil.errors.nome }}
+                                        </p>
+                                    </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="email" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                    E-mail
-                                </label>
-                                <input
-                                    id="email"
-                                    v-model="formularioPerfil.email"
-                                    type="email"
-                                    class="mt-1 block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:opacity-70"
-                                    :disabled="!editando"
-                                    required
-                                    autocomplete="username"
-                                >
-                                <p v-if="formularioPerfil.errors.email" class="mt-2 text-sm text-red-600">
-                                    {{ formularioPerfil.errors.email }}
+                                    <div class="group/campo relative">
+                                        <label
+                                            for="data_nascimento"
+                                            class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
+                                        >
+                                            Data de nascimento
+                                        </label>
+                                        <div class="relative mt-1">
+                                            <input
+                                                id="data_nascimento"
+                                                v-model="formularioPerfil.data_nascimento"
+                                                type="date"
+                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                :class="{ 'group-hover/campo:pr-10': !editando }"
+                                                :disabled="!editando"
+                                                required
+                                            >
+                                            <span
+                                                v-if="!editando"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                title="Clique em Editar Perfil para alterar"
+                                            >
+                                                <span class="material-icons text-lg">lock</span>
+                                            </span>
+                                        </div>
+                                        <p v-if="formularioPerfil.errors.data_nascimento" class="mt-2 text-sm text-red-600">
+                                            {{ formularioPerfil.errors.data_nascimento }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div class="group/campo relative">
+                                        <label for="email" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            E-mail
+                                        </label>
+                                        <div class="relative mt-1">
+                                            <input
+                                                id="email"
+                                                v-model="formularioPerfil.email"
+                                                type="email"
+                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                :class="{ 'group-hover/campo:pr-10': !editando }"
+                                                :disabled="!editando"
+                                                required
+                                                autocomplete="username"
+                                            >
+                                            <span
+                                                v-if="!editando"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                title="Clique em Editar Perfil para alterar"
+                                            >
+                                                <span class="material-icons text-lg">lock</span>
+                                            </span>
+                                        </div>
+                                        <p v-if="formularioPerfil.errors.email" class="mt-2 text-sm text-red-600">
+                                            {{ formularioPerfil.errors.email }}
+                                        </p>
+                                    </div>
+
+                                    <div class="group/campo relative">
+                                        <label
+                                            for="motivo_controle_financeiro"
+                                            class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
+                                        >
+                                            Motivo do controle financeiro
+                                        </label>
+                                        <div class="relative mt-1">
+                                            <select
+                                                id="motivo_controle_financeiro"
+                                                v-model="formularioPerfil.motivo_controle_financeiro"
+                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                :class="{ 'group-hover/campo:pr-10': !editando }"
+                                                :disabled="!editando"
+                                                required
+                                            >
+                                                <option value="">Selecione uma opção</option>
+                                                <option
+                                                    v-for="motivo in motivos"
+                                                    :key="motivo.value"
+                                                    :value="motivo.value"
+                                                >
+                                                    {{ motivo.label }}
+                                                </option>
+                                            </select>
+                                            <span
+                                                v-if="!editando"
+                                                class="pointer-events-none absolute inset-y-0 right-8 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                title="Clique em Editar Perfil para alterar"
+                                            >
+                                                <span class="material-icons text-lg">lock</span>
+                                            </span>
+                                        </div>
+                                        <p
+                                            v-if="formularioPerfil.errors.motivo_controle_financeiro"
+                                            class="mt-2 text-sm text-red-600"
+                                        >
+                                            {{ formularioPerfil.errors.motivo_controle_financeiro }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <p v-if="formularioPerfil.errors.foto" class="text-sm text-red-600">
+                                    {{ formularioPerfil.errors.foto }}
                                 </p>
                             </div>
-
-                            <div>
-                                <label
-                                    for="data_nascimento"
-                                    class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
-                                >
-                                    Data de nascimento
-                                </label>
-                                <input
-                                    id="data_nascimento"
-                                    v-model="formularioPerfil.data_nascimento"
-                                    type="date"
-                                    class="mt-1 block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:opacity-70"
-                                    :disabled="!editando"
-                                    required
-                                >
-                                <p v-if="formularioPerfil.errors.data_nascimento" class="mt-2 text-sm text-red-600">
-                                    {{ formularioPerfil.errors.data_nascimento }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                for="motivo_controle_financeiro"
-                                class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
-                            >
-                                Motivo do controle financeiro
-                            </label>
-                            <select
-                                id="motivo_controle_financeiro"
-                                v-model="formularioPerfil.motivo_controle_financeiro"
-                                class="mt-1 block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:opacity-70"
-                                :disabled="!editando"
-                                required
-                            >
-                                <option value="">Selecione uma opção</option>
-                                <option
-                                    v-for="motivo in motivos"
-                                    :key="motivo.value"
-                                    :value="motivo.value"
-                                >
-                                    {{ motivo.label }}
-                                </option>
-                            </select>
-                            <p
-                                v-if="formularioPerfil.errors.motivo_controle_financeiro"
-                                class="mt-2 text-sm text-red-600"
-                            >
-                                {{ formularioPerfil.errors.motivo_controle_financeiro }}
-                            </p>
                         </div>
                     </form>
                 </section>

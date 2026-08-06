@@ -4,7 +4,6 @@ namespace App\Support\Menu;
 
 use App\Models\Usuario\Usuario;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 
 class MenuPainel
 {
@@ -41,7 +40,7 @@ class MenuPainel
                 'id' => 'perfil',
                 'rotulo' => 'Perfil',
                 'icone' => 'perfil',
-                'rota' => 'profile.edit',
+                'rota' => 'usuario.perfil',
             ],
         ];
     }
@@ -72,15 +71,10 @@ class MenuPainel
             ->map(fn (string $parte) => mb_strtoupper(mb_substr($parte, 0, 1)))
             ->implode('');
 
-        $fotoUrl = null;
-        if ($usuario->foto_perfil) {
-            $fotoUrl = Storage::disk('public')->url($usuario->foto_perfil);
-        }
-
         return [
             'nome' => $usuario->nome,
             'iniciais' => $iniciais ?: 'NG',
-            'foto_url' => $fotoUrl,
+            'foto_url' => $usuario->foto_url,
         ];
     }
 

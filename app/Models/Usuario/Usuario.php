@@ -64,4 +64,21 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
     {
         return true;
     }
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        if (! $this->foto_perfil) {
+            return null;
+        }
+
+        $caminho = 'storage/'.ltrim($this->foto_perfil, '/');
+
+        // Usa a raiz da requisição atual para funcionar em subpastas do XAMPP
+        // mesmo quando APP_URL está incompleto.
+        if (! app()->runningInConsole()) {
+            return rtrim(request()->root(), '/').'/'.$caminho;
+        }
+
+        return asset($caminho);
+    }
 }

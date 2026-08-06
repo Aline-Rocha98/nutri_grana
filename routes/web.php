@@ -4,7 +4,7 @@ use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
 use App\Http\Controllers\Categoria\CategoriaController;
 use App\Http\Controllers\ContaBancaria\ContaBancariaController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,16 +15,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::redirect('/dashboard', '/home');
 
-    // Perfil
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/password/send-code', [ProfileController::class, 'solicitarCodigoSenha'])
+    // Usuário
+    Route::redirect('/profile', '/usuario/perfil');
+    Route::get('/usuario/perfil', [UsuarioController::class, 'perfil'])->name('usuario.perfil');
+    Route::patch('/usuario', [UsuarioController::class, 'atualizar'])->name('usuario.atualizar');
+    Route::post('/usuario/senha/enviar-codigo', [UsuarioController::class, 'solicitarCodigoSenha'])
         ->middleware('throttle:5,1')
-        ->name('profile.password.send-code');
-    Route::put('/profile/password/confirm', [ProfileController::class, 'confirmarAlteracaoSenha'])
+        ->name('usuario.senha.enviar-codigo');
+    Route::put('/usuario/senha', [UsuarioController::class, 'confirmarAlteracaoSenha'])
         ->middleware('throttle:5,1')
-        ->name('profile.password.confirm');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        ->name('usuario.senha.confirmar');
+    Route::delete('/usuario', [UsuarioController::class, 'excluir'])->name('usuario.excluir');
 
     // Contas Bancárias
     Route::get('/contas-bancarias', [ContaBancariaController::class, 'index'])->name('contas-bancarias.index');
