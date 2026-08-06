@@ -57,7 +57,7 @@ class CategoriaController extends Controller
 
             return redirect()
                 ->route('categorias.index')
-                ->with('erro', $e->errors());
+                ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -82,7 +82,7 @@ class CategoriaController extends Controller
 
             return redirect()
                 ->route('categorias.index')
-                ->with('erro', $e->errors());
+                ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -135,7 +135,7 @@ class CategoriaController extends Controller
 
             return redirect()
                 ->route('categorias.index')
-                ->with('erro', $e->errors());
+                ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
 

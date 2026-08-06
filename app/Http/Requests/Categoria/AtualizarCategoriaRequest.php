@@ -11,10 +11,9 @@ class AtualizarCategoriaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // $categoria = $this->route('categoria');
+        $categoria = $this->route('categoria');
 
-        // return $categoria && ($this->user()?->can('update', $categoria) ?? false);
+        return $categoria && ($this->user()?->can('update', $categoria) ?? false);
     }
 
     public function rules(): array
