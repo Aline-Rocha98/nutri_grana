@@ -13,6 +13,8 @@ class CategoriaResource extends JsonResource
 
         return [
             'id' => $this->id_categoria,
+            'id_categoria_pai' => $this->id_categoria_pai,
+            'nivel' => $this->nivel,
             'nome' => $this->nome,
             'tipo' => $this->tipo?->value,
             'tipo_rotulo' => $this->tipo?->rotulo(),
@@ -25,6 +27,10 @@ class CategoriaResource extends JsonResource
             'url_atualizar' => route('categorias.atualizar', $this->resource),
             'url_arquivar' => route('categorias.arquivar', $this->resource),
             'url_excluir' => route('categorias.excluir', $this->resource),
+            'subcategorias' => $this->whenLoaded(
+                'subcategorias',
+                fn () => CategoriaResource::collection($this->subcategorias)->resolve()
+            ),
         ];
     }
 }

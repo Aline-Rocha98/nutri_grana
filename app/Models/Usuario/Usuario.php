@@ -67,11 +67,13 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
 
     public function getFotoUrlAttribute(): ?string
     {
-        if (! $this->foto_perfil) {
+        $fotoPerfil = $this->attributes['foto_perfil'] ?? null;
+
+        if (! $fotoPerfil) {
             return null;
         }
 
-        $caminho = 'storage/'.ltrim($this->foto_perfil, '/');
+        $caminho = 'storage/'.ltrim($fotoPerfil, '/');
 
         // Usa a raiz da requisição atual para funcionar em subpastas do XAMPP
         // mesmo quando APP_URL está incompleto.

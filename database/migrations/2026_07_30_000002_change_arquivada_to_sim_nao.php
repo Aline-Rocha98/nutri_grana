@@ -104,6 +104,10 @@ return new class extends Migration
 
     private function colunaJaEhSimNao(string $tabela, string $coluna): bool
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return true;
+        }
+
         $resultado = DB::selectOne(
             'SHOW COLUMNS FROM `'.$tabela.'` WHERE Field = ?',
             [$coluna]
