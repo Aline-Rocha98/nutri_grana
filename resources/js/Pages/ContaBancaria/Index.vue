@@ -40,7 +40,7 @@ watch(
 const contasAtivas = computed(() => props.contasBancarias.filter((conta) => conta.arquivada !== 'S'));
 const contasArquivadas = computed(() => props.contasBancarias.filter((conta) => conta.arquivada === 'S'));
 const saldoGeral = computed(() =>
-    contasAtivas.value.reduce((total, conta) => total + Number(conta.saldo_inicial_numero || 0), 0),
+    contasAtivas.value.reduce((total, conta) => total + Number(conta.saldo_atual_numero ?? conta.saldo_inicial_numero || 0), 0),
 );
 
 function formatarMoeda(valor) {
@@ -177,9 +177,9 @@ const mensagemExclusao = computed(() => {
                         <div class="text-right shrink-0">
                             <p
                                 class="font-semibold"
-                                :class="conta.saldo_inicial_numero >= 0 ? 'text-[#1fa67e]' : 'text-red-600'"
+                                :class="(conta.saldo_atual_numero ?? conta.saldo_inicial_numero) >= 0 ? 'text-[#1fa67e]' : 'text-red-600'"
                             >
-                                R$ {{ conta.saldo_inicial }}
+                                R$ {{ conta.saldo_atual ?? conta.saldo_inicial }}
                             </p>
                         </div>
 

@@ -15,6 +15,8 @@ class ContaBancariaResource extends JsonResource
             'nome' => $this->nome,
             'saldo_inicial' => number_format((float) $this->saldo_inicial, 2, ',', '.'),
             'saldo_inicial_numero' => (float) $this->saldo_inicial,
+            'saldo_atual' => number_format((float) ($this->saldo_atual ?? $this->saldo_inicial), 2, ',', '.'),
+            'saldo_atual_numero' => (float) ($this->saldo_atual ?? $this->saldo_inicial),
             'tipo' => $this->tipo?->value,
             'tipo_rotulo' => $this->tipo?->rotulo(),
             'arquivada' => $this->arquivada?->value,

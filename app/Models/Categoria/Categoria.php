@@ -5,6 +5,7 @@ namespace App\Models\Categoria;
 use App\Enum\SimNao;
 use App\Enum\TipoCategoria;
 use App\Models\Concerns\TemChaveRotaCriptografada;
+use App\Models\Lancamento\Lancamento;
 use App\Models\Usuario\Usuario;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -60,6 +61,11 @@ class Categoria extends Model
         return $this->hasMany(self::class, 'id_categoria_pai', 'id_categoria')
             ->orderBy('arquivada')
             ->orderBy('nome');
+    }
+
+    public function lancamentos(): HasMany
+    {
+        return $this->hasMany(Lancamento::class, 'id_categoria', 'id_categoria');
     }
 
     public function scopePrincipais(Builder $query): Builder

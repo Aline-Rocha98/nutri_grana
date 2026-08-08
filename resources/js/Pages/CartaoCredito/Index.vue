@@ -187,6 +187,14 @@ const mensagemExclusao = computed(() => {
                         </div>
 
                         <div class="flex items-center gap-1 shrink-0">
+                            <a
+                                :href="cartao.url_faturas"
+                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                title="Faturas"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+                            </a>
+
                             <button type="button"
                                 class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                                 title="Editar" @click="abrirEditar(cartao)"

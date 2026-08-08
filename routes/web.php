@@ -3,7 +3,9 @@
 use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
 use App\Http\Controllers\Categoria\CategoriaController;
 use App\Http\Controllers\ContaBancaria\ContaBancariaController;
+use App\Http\Controllers\FaturaCartao\FaturaCartaoController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Lancamento\LancamentoController;
 use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +48,24 @@ Route::middleware('auth')->group(function () {
     Route::put('/categorias/{categoria}', [CategoriaController::class, 'atualizarCategoria'])->name('categorias.atualizar');
     Route::patch('/categorias/{categoria}/arquivar', [CategoriaController::class, 'arquivarCategoria'])->name('categorias.arquivar');
     Route::delete('/categorias/{categoria}', [CategoriaController::class, 'excluirCategoria'])->name('categorias.excluir');
+
+    // Lançamentos
+    Route::get('/lancamentos/{ano?}/{mes?}', [LancamentoController::class, 'index'])
+        ->whereNumber('ano')
+        ->whereNumber('mes')
+        ->name('lancamentos.index');
+    Route::post('/lancamentos', [LancamentoController::class, 'criar'])->name('lancamentos.criar');
+    Route::put('/lancamentos/{lancamento}', [LancamentoController::class, 'atualizar'])->name('lancamentos.atualizar');
+    Route::patch('/lancamentos/{lancamento}/situacao', [LancamentoController::class, 'alterarSituacao'])->name('lancamentos.situacao');
+    Route::delete('/lancamentos/{lancamento}', [LancamentoController::class, 'excluir'])->name('lancamentos.excluir');
+
+    // Faturas de cartão
+    Route::get('/cartoes-credito/{cartaoCredito}/faturas', [FaturaCartaoController::class, 'indexPorCartao'])
+        ->name('faturas-cartao.index');
+    Route::get('/faturas-cartao/{faturaCartao}', [FaturaCartaoController::class, 'show'])
+        ->name('faturas-cartao.show');
+    Route::post('/faturas-cartao/{faturaCartao}/baixar', [FaturaCartaoController::class, 'baixar'])
+        ->name('faturas-cartao.baixar');
 });
 
 require __DIR__.'/auth.php';

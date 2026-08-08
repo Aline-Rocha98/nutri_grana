@@ -2,7 +2,10 @@
 
 namespace App\Repositories\CartaoCredito;
 
+use App\Enum\SituacaoFatura;
+use App\Enum\SituacaoLancamento;
 use App\Models\CartaoCredito\CartaoCredito;
+use App\Models\FaturaCartao\FaturaCartao;
 use Illuminate\Support\Collection;
 
 class CartaoCreditoRepository
@@ -49,11 +52,12 @@ class CartaoCreditoRepository
         $cartaoCredito->delete();
     }
 
-    /**
-     * Implementação futura para verificar status de fatura aberta.
-     */
     public function temFaturaAberta(CartaoCredito $cartaoCredito): bool
     {
-        return false;
+        return FaturaCartao::query()
+            ->where('id_cartao_credito', $cartaoCredito->id_cartao_credito)
+            ->whereIn('situacao', [SituacaoFatura::Aberta, SituacaoFatura::Fechada])
+            ->whereHas('lancamentos', fn ($q) => $q->where('situacao', '!=', SituacaoLancamento::Cancelado))
+            ->exists();
     }
 }

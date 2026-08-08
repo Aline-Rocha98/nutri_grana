@@ -12,11 +12,21 @@ class CategoriaRepository
         return Categoria::query()
             ->where('id_usuario', $idUsuario)
             ->principais()
-            ->with(['subcategorias'])
+            ->with([
+                'subcategorias' => fn ($q) => $q->withCount('lancamentos'),
+            ])
+            ->withCount('lancamentos')
             ->orderBy('arquivada')
             ->orderBy('tipo')
             ->orderBy('nome')
-            ->get();
+            ->get()
+            ->each(function (Categoria $categoria): void {
+                $categoria->setAttribute('total_lancamentos', (int) $categoria->lancamentos_count);
+
+                $categoria->subcategorias->each(function (Categoria $sub): void {
+                    $sub->setAttribute('total_lancamentos', (int) $sub->lancamentos_count);
+                });
+            });
     }
 
     public function encontrarDoUsuario(int $idCategoria, int $idUsuario): ?Categoria
@@ -88,7 +98,7 @@ class CategoriaRepository
 
     public function temLancamentos(Categoria $categoria): bool
     {
-        return false;
+        return $categoria->lancamentos()->exists();
     }
 
     public function temLancamentosNaArvore(Categoria $categoria): bool
