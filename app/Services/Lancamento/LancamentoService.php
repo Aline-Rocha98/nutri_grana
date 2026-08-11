@@ -30,13 +30,8 @@ class LancamentoService
         private readonly ContaBancariaRepository $contaBancariaRepository,
     ) {}
 
-    public function listarDoMes(
-        int $idUsuario,
-        int $ano,
-        int $mes,
-        array $filtros = [],
-        int $porPagina = 20,
-    ): LengthAwarePaginator {
+    public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
+    {
         $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
 
         return $this->lancamentoRepository->listarDoMes($idUsuario, $ano, $mes, $filtros, $porPagina);
@@ -288,12 +283,12 @@ class LancamentoService
         }
 
         $idCartao = $payload['id_cartao_credito'] ?? null;
-        if (! $idCartao) {
+        if (!$idCartao) {
             return $payload;
         }
 
         $cartao = CartaoCredito::query()->find($idCartao);
-        if (! $cartao) {
+        if (!$cartao) {
             return $payload;
         }
 
@@ -323,7 +318,7 @@ class LancamentoService
                 $idUsuario
             );
 
-            if (! $conta) {
+            if (!$conta) {
                 throw ValidationException::withMessages([
                     'id_conta_bancaria' => 'Conta bancária inválida.',
                 ]);
@@ -342,7 +337,7 @@ class LancamentoService
                 ->where('id_usuario', $idUsuario)
                 ->first();
 
-            if (! $cartao) {
+            if (!$cartao) {
                 throw ValidationException::withMessages([
                     'id_cartao_credito' => 'Cartão de crédito inválido.',
                 ]);
@@ -364,7 +359,7 @@ class LancamentoService
             })
             ->exists();
 
-        if (! $existe) {
+        if (!$existe) {
             throw ValidationException::withMessages([
                 'id_categoria' => 'Categoria inválida.',
             ]);

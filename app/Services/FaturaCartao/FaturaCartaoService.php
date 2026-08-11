@@ -62,12 +62,8 @@ class FaturaCartaoService
         return $this->faturaCartaoRepository->listarAbertasPorUsuario($idUsuario);
     }
 
-    public function baixar(
-        FaturaCartao $fatura,
-        int $idUsuario,
-        ContaBancaria $contaBancaria,
-        ?Carbon $dataPagamento = null,
-    ): FaturaCartao {
+    public function baixar(FaturaCartao $fatura, int $idUsuario, ContaBancaria $contaBancaria, ?Carbon $dataPagamento = null): FaturaCartao 
+    {
         $this->garantirPropriedade($fatura, $idUsuario);
 
         if ((int) $contaBancaria->id_usuario !== $idUsuario) {

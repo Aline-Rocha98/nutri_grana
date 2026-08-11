@@ -264,7 +264,10 @@ const mensagemExclusao = computed(() => {
                         class="flex items-center gap-4 rounded-2xl border border-gray-100 px-4 py-3 hover:bg-gray-50/80 transition"
                     >
                         <div
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f7f1] text-[#1fa67e]"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                            :class="item.tipo === 'receita'
+                                ? 'bg-[#e8f7f1] text-[#1fa67e]'
+                                : 'bg-red-50 text-red-600'"
                         >
                             <span class="material-symbols-outlined text-[20px]">
                                 {{ item.tipo === 'receita' ? 'trending_up' : 'trending_down' }}
@@ -278,7 +281,16 @@ const mensagemExclusao = computed(() => {
                                 <span v-if="item.categoria_nome"> · {{ item.categoria_nome }}</span>
                                 <span v-if="item.conta_bancaria_nome"> · {{ item.conta_bancaria_nome }}</span>
                                 <span v-if="item.cartao_credito_nome"> · {{ item.cartao_credito_nome }}</span>
-                                · {{ item.situacao_rotulo }}
+                                ·
+                                <span
+                                    :class="{
+                                        'text-orange-500 font-medium': item.situacao === 'pendente',
+                                        'text-[#1fa67e] font-medium': item.situacao === 'pago',
+                                        'text-gray-500': item.situacao !== 'pendente' && item.situacao !== 'pago',
+                                    }"
+                                >
+                                    {{ item.situacao === 'pago' ? 'Pago' : item.situacao_rotulo }}
+                                </span>
                             </p>
                         </div>
 

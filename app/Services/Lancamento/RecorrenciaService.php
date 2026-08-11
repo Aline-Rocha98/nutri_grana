@@ -31,7 +31,7 @@ class RecorrenciaService
 
     public function gerarOcorrenciasAte(Lancamento $pai, Carbon $limite): void
     {
-        if (! $pai->ehPaiRecorrencia() || ! $pai->frequencia_recorrencia) {
+        if (!$pai->ehPaiRecorrencia() || !$pai->frequencia_recorrencia) {
             return;
         }
 
@@ -55,7 +55,7 @@ class RecorrenciaService
             : null;
 
         while ($proximo->lte($ate)) {
-            if (! $this->lancamentoRepository->existeOcorrenciaNaData((int) $pai->id_lancamento, $proximo)) {
+            if (!$this->lancamentoRepository->existeOcorrenciaNaData((int) $pai->id_lancamento, $proximo)) {
                 $this->criarOcorrencia($pai, $proximo);
             }
 
@@ -99,12 +99,7 @@ class RecorrenciaService
         return $this->lancamentoRepository->criar($dados);
     }
 
-    private function proximaData(
-        Carbon $inicio,
-        FrequenciaRecorrencia $frequencia,
-        ?int $intervaloDias,
-        Carbon $apos,
-    ): Carbon {
+    private function proximaData(Carbon $inicio, FrequenciaRecorrencia $frequencia, ?int $intervaloDias, Carbon $apos): Carbon {
         $candidato = $inicio->copy();
 
         while ($candidato->lte($apos)) {
