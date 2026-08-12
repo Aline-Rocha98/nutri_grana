@@ -10,7 +10,8 @@ class MenuPainel
     private const ICONES_MATERIAL = [
         'home' => 'grid_view',
         'financeiro' => 'account_balance_wallet',
-        'cadastros' => 'folder',
+        'objetivos' => 'flag',
+        'orcamentos' => 'donut_large',
         'perfil' => 'person',
     ];
 
@@ -34,7 +35,23 @@ class MenuPainel
                     ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
                     ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
-                    ['rotulo' => 'Objetivos', 'rota' => 'objetivos.index'],
+                ],
+            ],
+            [
+                'tipo' => 'link',
+                'id' => 'objetivos',
+                'rotulo' => 'Objetivos',
+                'icone' => 'objetivos',
+                'rota' => 'objetivos.index',
+            ],
+            [
+                'tipo' => 'grupo',
+                'id' => 'orcamentos',
+                'rotulo' => 'Orçamentos',
+                'icone' => 'orcamentos',
+                'filhos' => [
+                    ['rotulo' => 'Por categoria', 'rota' => 'orcamentos.index'],
+                    ['rotulo' => 'Por serviço', 'rota' => 'orcamentos.index'],
                 ],
             ],
             [

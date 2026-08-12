@@ -7,6 +7,7 @@ use App\Http\Controllers\FaturaCartao\FaturaCartaoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Lancamento\LancamentoController;
 use App\Http\Controllers\Objetivo\ObjetivoController;
+use App\Http\Controllers\Orcamento\OrcamentoController;
 use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,6 +76,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/objetivos/{objetivo}', [ObjetivoController::class, 'excluir'])->name('objetivos.excluir');
     Route::post('/objetivos/{objetivo}/aportes', [ObjetivoController::class, 'criarAporte'])
         ->name('objetivos.aportes.criar');
+
+    // Orçamentos
+    Route::get('/orcamentos', [OrcamentoController::class, 'index'])->name('orcamentos.index');
+    Route::post('/orcamentos', [OrcamentoController::class, 'criar'])->name('orcamentos.criar');
+    Route::put('/orcamentos/{orcamento}', [OrcamentoController::class, 'atualizar'])->name('orcamentos.atualizar');
+    Route::delete('/orcamentos/{orcamento}', [OrcamentoController::class, 'excluir'])->name('orcamentos.excluir');
 });
 
 require __DIR__.'/auth.php';

@@ -14,6 +14,7 @@ use App\Models\Lancamento\Lancamento;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\FaturaCartao\FaturaCartaoService;
+use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -28,6 +29,7 @@ class LancamentoService
         private readonly RecorrenciaService $recorrenciaService,
         private readonly FaturaCartaoService $faturaCartaoService,
         private readonly ContaBancariaRepository $contaBancariaRepository,
+        private readonly VerificadorUltrapassagemOrcamento $verificadorUltrapassagemOrcamento,
     ) {}
 
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
@@ -60,6 +62,7 @@ class LancamentoService
     {
         $this->validarFormaPagamento($idUsuario, $dados);
         $this->validarCategoria($idUsuario, $dados['id_categoria'] ?? null);
+        $this->verificadorUltrapassagemOrcamento->garantirDentroDoLimiteOuConfirmado($idUsuario, $dados);
 
         $parcelas = (int) ($dados['total_parcelas'] ?? 1);
         $ehRecorrente = ($dados['recorrente'] ?? false) === true
@@ -95,6 +98,11 @@ class LancamentoService
 
         $this->validarFormaPagamento($idUsuario, $dados);
         $this->validarCategoria($idUsuario, $dados['id_categoria'] ?? null);
+        $this->verificadorUltrapassagemOrcamento->garantirDentroDoLimiteOuConfirmado(
+            $idUsuario,
+            $dados,
+            $lancamento,
+        );
 
         $payload = $this->montarDados($idUsuario, $dados);
         $payload = $this->vincularFatura($payload, $dados);

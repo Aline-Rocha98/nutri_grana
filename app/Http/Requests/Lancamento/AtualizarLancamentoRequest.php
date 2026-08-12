@@ -30,6 +30,7 @@ class AtualizarLancamentoRequest extends FormRequest
             'id_categoria' => ['nullable', 'integer'],
             'observacao' => ['nullable', 'string'],
             'data_pagamento' => ['nullable', 'date'],
+            'confirmar_ultrapassagem_orcamento' => ['nullable', 'boolean'],
         ];
     }
 
@@ -37,6 +38,11 @@ class AtualizarLancamentoRequest extends FormRequest
     {
         $this->merge([
             'valor' => Valor::normalizarValorMonetario($this->input('valor')),
+            'confirmar_ultrapassagem_orcamento' => filter_var(
+                $this->input('confirmar_ultrapassagem_orcamento'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? false,
         ]);
     }
 }

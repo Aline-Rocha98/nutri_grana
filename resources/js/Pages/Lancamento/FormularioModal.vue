@@ -1,7 +1,8 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
+import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
 
 const props = defineProps({
@@ -22,6 +23,8 @@ const props = defineProps({
 const emit = defineEmits(['fechar']);
 
 const editando = computed(() => Boolean(props.lancamento));
+const modalOrcamentoAberto = ref(false);
+const mensagemOrcamento = ref('');
 
 function dataDoMes() {
     const hoje = new Date();
@@ -48,11 +51,24 @@ const formulario = useForm({
     frequencia_recorrencia: 'mensal',
     intervalo_dias: 30,
     total_parcelas: 1,
+    confirmar_ultrapassagem_orcamento: false,
 });
 
 const estadoUi = reactive({
     urlAtualizar: '',
 });
+
+watch(
+    () => formulario.errors.confirmar_ultrapassagem_orcamento,
+    (mensagem) => {
+        if (!mensagem) {
+            return;
+        }
+
+        mensagemOrcamento.value = mensagem;
+        modalOrcamentoAberto.value = true;
+    },
+);
 
 const categoriasPai = computed(() => {
     const tipoCat = formulario.tipo === 'receita' ? 'entrada' : 'saida';
@@ -86,6 +102,9 @@ watch(
         }
 
         formulario.clearErrors();
+        formulario.confirmar_ultrapassagem_orcamento = false;
+        modalOrcamentoAberto.value = false;
+        mensagemOrcamento.value = '';
 
         if (props.lancamento) {
             const item = props.lancamento;
@@ -187,7 +206,7 @@ function fechar() {
     emit('fechar');
 }
 
-function salvar() {
+function montarDadosEnvio() {
     const dados = { ...formulario.data() };
 
     dados.id_categoria = dados.id_subcategoria || dados.id_categoria_principal || null;
@@ -208,17 +227,43 @@ function salvar() {
         delete dados.frequencia_recorrencia;
         delete dados.intervalo_dias;
         delete dados.total_parcelas;
-
-        formulario.transform(() => dados).put(estadoUi.urlAtualizar, {
-            preserveScroll: true,
-            onSuccess: () => fechar(),
-        });
-    } else {
-        formulario.transform(() => dados).post(props.urlCriar, {
-            preserveScroll: true,
-            onSuccess: () => fechar(),
-        });
     }
+
+    return dados;
+}
+
+function enviarLancamento() {
+    const dados = montarDadosEnvio();
+    const opcoes = {
+        preserveScroll: true,
+        onSuccess: () => {
+            modalOrcamentoAberto.value = false;
+            fechar();
+        },
+    };
+
+    if (editando.value) {
+        formulario.transform(() => dados).put(estadoUi.urlAtualizar, opcoes);
+        return;
+    }
+
+    formulario.transform(() => dados).post(props.urlCriar, opcoes);
+}
+
+function salvar() {
+    formulario.confirmar_ultrapassagem_orcamento = false;
+    enviarLancamento();
+}
+
+function cancelarUltrapassagemOrcamento() {
+    modalOrcamentoAberto.value = false;
+    formulario.confirmar_ultrapassagem_orcamento = false;
+    formulario.clearErrors('confirmar_ultrapassagem_orcamento');
+}
+
+function confirmarUltrapassagemOrcamento() {
+    formulario.confirmar_ultrapassagem_orcamento = true;
+    enviarLancamento();
 }
 </script>
 
@@ -437,4 +482,15 @@ function salvar() {
             </form>
         </div>
     </Modal>
+
+    <ModalNotificacao
+        :aberto="modalOrcamentoAberto"
+        titulo="Orçamento ultrapassado"
+        :mensagem="mensagemOrcamento"
+        texto-confirmar="Confirmar lançamento"
+        texto-cancelar="Revisar"
+        :processando="formulario.processing"
+        @confirmar="confirmarUltrapassagemOrcamento"
+        @cancelar="cancelarUltrapassagemOrcamento"
+    />
 </template>
