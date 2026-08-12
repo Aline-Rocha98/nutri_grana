@@ -60,6 +60,8 @@ class HandleInertiaRequests extends Middleware
                 'cartoesCreditoCriar' => route('cartoes-credito.criar'),
                 'categoriasIndex' => route('categorias.index'),
                 'categoriasCriar' => route('categorias.criar'),
+                'lancamentosIndex' => route('lancamentos.index'),
+                'lancamentosCriar' => route('lancamentos.criar'),
             ],
         ];
     }

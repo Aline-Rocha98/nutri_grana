@@ -31,6 +31,10 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
         'foto_perfil',
     ];
 
+    protected $attributes = [
+        'foto_perfil' => null,
+    ];
+
     protected $hidden = [
         'senha',
         'remember_token',
@@ -69,15 +73,13 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
     {
         $fotoPerfil = $this->attributes['foto_perfil'] ?? null;
 
-        if (! $fotoPerfil) {
+        if (!$fotoPerfil) {
             return null;
         }
 
         $caminho = 'storage/'.ltrim($fotoPerfil, '/');
 
-        // Usa a raiz da requisição atual para funcionar em subpastas do XAMPP
-        // mesmo quando APP_URL está incompleto.
-        if (! app()->runningInConsole()) {
+        if (!app()->runningInConsole()) {
             return rtrim(request()->root(), '/').'/'.$caminho;
         }
 

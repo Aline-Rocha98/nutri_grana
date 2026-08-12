@@ -32,6 +32,7 @@ class CartaoCreditoResource extends JsonResource
             'url_atualizar' => route('cartoes-credito.atualizar', $this->resource),
             'url_arquivar' => route('cartoes-credito.arquivar', $this->resource),
             'url_excluir' => route('cartoes-credito.excluir', $this->resource),
+            'url_faturas' => route('faturas-cartao.index', $this->resource),
         ];
     }
 }

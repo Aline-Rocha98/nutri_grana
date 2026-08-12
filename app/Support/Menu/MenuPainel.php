@@ -30,9 +30,10 @@ class MenuPainel
                 'rotulo' => 'Financeiro',
                 'icone' => 'financeiro',
                 'filhos' => [
-                    ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Cartões de crédito', 'rota' => 'cartoes-credito.index'],
                     ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
+                    ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
+                    ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
                 ],
             ],
             [
@@ -129,17 +130,22 @@ class MenuPainel
 
     private static function prepararGrupo(array $item): array
     {
+        $filhosOrdenados = collect($item['filhos'])
+            ->sortBy(fn (array $filho) => mb_strtolower($filho['rotulo'] ?? ''), SORT_NATURAL)
+            ->values()
+            ->all();
+
         $filhos = array_map(
             fn (array $filho) => array_merge($filho, [
                 'url' => self::resolverUrl($filho['rota'] ?? null),
                 'ativo' => self::linkAtivo($filho['rota'] ?? null),
             ]),
-            $item['filhos']
+            $filhosOrdenados
         );
 
         return array_merge($item, [
             'filhos' => $filhos,
-            'ativo' => self::grupoAtivo($item['filhos']),
+            'ativo' => self::grupoAtivo($filhosOrdenados),
             'iconeMaterial' => self::iconeMaterial($item['icone']),
         ]);
     }

@@ -1,5 +1,5 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 
 defineProps({
@@ -12,6 +12,9 @@ defineProps({
         required: true,
     },
 });
+
+const agora = new Date();
+const urlLancamentos = `/lancamentos/${agora.getFullYear()}/${agora.getMonth() + 1}`;
 </script>
 
 <template>
@@ -36,18 +39,27 @@ defineProps({
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center">
-                    <h4 class="font-semibold text-gray-800">Meses</h4>
-                    <p class="mt-2 text-sm text-gray-500">Gerencie seus meses financeiros</p>
-                </div>
-                <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center">
+                <Link
+                    :href="urlLancamentos"
+                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center hover:border-[#1fa67e]/40 transition"
+                >
                     <h4 class="font-semibold text-gray-800">Lançamentos</h4>
-                    <p class="mt-2 text-sm text-gray-500">Visualize todos os seus lançamentos</p>
-                </div>
-                <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center">
+                    <p class="mt-2 text-sm text-gray-500">Receitas e despesas do mês</p>
+                </Link>
+                <Link
+                    href="/contas-bancarias"
+                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center hover:border-[#1fa67e]/40 transition"
+                >
+                    <h4 class="font-semibold text-gray-800">Contas</h4>
+                    <p class="mt-2 text-sm text-gray-500">Saldos e contas bancárias</p>
+                </Link>
+                <Link
+                    href="/categorias"
+                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center hover:border-[#1fa67e]/40 transition"
+                >
                     <h4 class="font-semibold text-gray-800">Categorias</h4>
-                    <p class="mt-2 text-sm text-gray-500">Gerencie suas categorias</p>
-                </div>
+                    <p class="mt-2 text-sm text-gray-500">Organize suas categorias</p>
+                </Link>
             </div>
         </div>
     </AutenticadoLayout>
