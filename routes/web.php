@@ -6,6 +6,7 @@ use App\Http\Controllers\ContaBancaria\ContaBancariaController;
 use App\Http\Controllers\FaturaCartao\FaturaCartaoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Lancamento\LancamentoController;
+use App\Http\Controllers\Objetivo\ObjetivoController;
 use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +67,14 @@ Route::middleware('auth')->group(function () {
         ->name('faturas-cartao.show');
     Route::post('/faturas-cartao/{faturaCartao}/baixar', [FaturaCartaoController::class, 'baixar'])
         ->name('faturas-cartao.baixar');
+
+    // Objetivos
+    Route::get('/objetivos', [ObjetivoController::class, 'index'])->name('objetivos.index');
+    Route::post('/objetivos', [ObjetivoController::class, 'criar'])->name('objetivos.criar');
+    Route::put('/objetivos/{objetivo}', [ObjetivoController::class, 'atualizar'])->name('objetivos.atualizar');
+    Route::delete('/objetivos/{objetivo}', [ObjetivoController::class, 'excluir'])->name('objetivos.excluir');
+    Route::post('/objetivos/{objetivo}/aportes', [ObjetivoController::class, 'criarAporte'])
+        ->name('objetivos.aportes.criar');
 });
 
 require __DIR__.'/auth.php';
