@@ -28,6 +28,10 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
         'email_verificado',
         'data_nascimento',
         'motivo_controle_financeiro',
+        'foto_perfil',
+    ];
+
+    protected $attributes = [
         'foto_perfil' => null,
     ];
 
