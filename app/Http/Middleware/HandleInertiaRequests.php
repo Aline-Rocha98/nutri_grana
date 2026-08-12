@@ -62,6 +62,8 @@ class HandleInertiaRequests extends Middleware
                 'categoriasCriar' => route('categorias.criar'),
                 'lancamentosIndex' => route('lancamentos.index'),
                 'lancamentosCriar' => route('lancamentos.criar'),
+                'objetivosIndex' => route('objetivos.index'),
+                'objetivosCriar' => route('objetivos.criar'),
             ],
         ];
     }
