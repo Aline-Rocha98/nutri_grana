@@ -17,6 +17,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    ano: {
+        type: Number,
+        required: true,
+    },
+    mes: {
+        type: Number,
+        required: true,
+    },
 });
 
 const emit = defineEmits(['fechar']);
@@ -34,6 +42,8 @@ const formulario = useForm({
     id_categoria: null,
     valor_mensal: '0,00',
     exibir_dashboard: 'N',
+    ano: props.ano,
+    mes: props.mes,
 });
 
 const estadoUi = reactive({
@@ -46,6 +56,8 @@ function reiniciarFormulario() {
     formulario.id_categoria = props.orcamento?.id_categoria ?? null;
     formulario.valor_mensal = props.orcamento?.valor_mensal ?? '0,00';
     formulario.exibir_dashboard = props.orcamento?.exibir_dashboard ?? 'N';
+    formulario.ano = props.ano;
+    formulario.mes = props.mes;
     estadoUi.urlAtualizar = props.orcamento?.url_atualizar ?? '';
 }
 

@@ -37,7 +37,7 @@ class OrcamentoTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/orcamentos');
+            ->assertRedirect('/orcamentos/'.now()->year.'/'.now()->month);
 
         $this->assertDatabaseHas('orcamentos', [
             'id_usuario' => $usuario->id_usuario,
@@ -85,11 +85,43 @@ class OrcamentoTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Orcamento/Index')
+            ->where('ano', (int) now()->year)
+            ->where('mes', (int) now()->month)
             ->has('orcamentos', 1)
             ->where('orcamentos.0.gasto_mes_numero', 620)
             ->where('orcamentos.0.valor_mensal_numero', 1000)
             ->where('orcamentos.0.percentual', 62)
             ->where('orcamentos.0.ultrapassado', false)
+        );
+    }
+
+    public function test_listagem_respeita_mes_selecionado_na_rota(): void
+    {
+        $usuario = Usuario::factory()->create();
+        $categoria = $this->criarCategoriaPrincipal($usuario, 'Alimentação');
+        $conta = $this->criarConta($usuario);
+        $this->criarOrcamento($usuario, $categoria, 1000);
+
+        $mesAnterior = now()->subMonthNoOverflow();
+        $this->criarDespesa(
+            $usuario,
+            $conta,
+            $categoria,
+            400,
+            $mesAnterior->toDateString(),
+        );
+
+        $response = $this
+            ->actingAs($usuario)
+            ->get('/orcamentos/'.$mesAnterior->year.'/'.$mesAnterior->month);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Orcamento/Index')
+            ->where('ano', (int) $mesAnterior->year)
+            ->where('mes', (int) $mesAnterior->month)
+            ->where('orcamentos.0.gasto_mes_numero', 400)
+            ->where('orcamentos.0.percentual', 40)
         );
     }
 

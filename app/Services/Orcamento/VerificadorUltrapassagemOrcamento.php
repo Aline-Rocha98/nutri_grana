@@ -19,11 +19,8 @@ class VerificadorUltrapassagemOrcamento
         private readonly OrcamentoService $orcamentoService,
     ) {}
 
-    public function garantirDentroDoLimiteOuConfirmado(
-        int $idUsuario,
-        array $dados,
-        ?Lancamento $lancamentoAtual = null,
-    ): void {
+    public function garantirDentroDoLimiteOuConfirmado(int $idUsuario, array $dados, ?Lancamento $lancamentoAtual = null,): void 
+    {
         if ($this->confirmouUltrapassagem($dados)) {
             return;
         }
@@ -43,7 +40,7 @@ class VerificadorUltrapassagemOrcamento
         }
 
         $categoriaPai = $this->resolverCategoriaPai((int) $idCategoria);
-        if (! $categoriaPai) {
+        if (!$categoriaPai) {
             return;
         }
 
@@ -53,7 +50,7 @@ class VerificadorUltrapassagemOrcamento
             TipoOrcamento::PorCategoria,
         );
 
-        if (! $orcamento) {
+        if (!$orcamento) {
             return;
         }
 
@@ -82,10 +79,10 @@ class VerificadorUltrapassagemOrcamento
 
         throw ValidationException::withMessages([
             'confirmar_ultrapassagem_orcamento' => sprintf(
-                "Este lançamento ultrapassa o orçamento de %s.\nCom este valor, o mês fica em R$ %s de R$ %s.\nDeseja confirmar mesmo assim?",
+                "Este lançamento ultrapassa o valor mensal de R$ %s que você definiu para a categoria %s.\n\nCom este lançamento, o mês fica em R$ %s.\n\nDeseja confirmar mesmo assim?",
+                $limiteFormatado,
                 $nomeCategoria,
                 $gastoFormatado,
-                $limiteFormatado,
             ),
         ]);
     }

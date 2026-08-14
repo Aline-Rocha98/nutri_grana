@@ -6,6 +6,14 @@ import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/Orcamento/FormularioModal.vue';
 
 const props = defineProps({
+    ano: {
+        type: Number,
+        required: true,
+    },
+    mes: {
+        type: Number,
+        required: true,
+    },
     orcamentos: {
         type: Array,
         default: () => [],
@@ -22,6 +30,10 @@ const props = defineProps({
         type: String,
         default: 'por_categoria',
     },
+    urlBase: {
+        type: String,
+        required: true,
+    },
 });
 
 const pagina = usePage();
@@ -31,10 +43,18 @@ const modalExclusaoAberto = ref(false);
 const orcamentoParaExcluir = ref(null);
 const excluindo = ref(false);
 
-const mesReferenciaRotulo = computed(() => {
-    return props.orcamentos[0]?.mes_referencia_rotulo
-        ?? new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-});
+const meses = [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+];
+
+const nomesMeses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+const siglaMes = computed(() => meses[props.mes - 1] ?? '');
+const nomeMes = computed(() => nomesMeses[props.mes - 1] ?? '');
 
 watch(
     () => pagina.props.errors,
@@ -47,6 +67,32 @@ watch(
     },
     { deep: true, immediate: true },
 );
+
+function abrirMes(ano, mes) {
+    let a = ano;
+    let m = mes;
+
+    if (m < 1) {
+        m = 12;
+        a -= 1;
+    } else if (m > 12) {
+        m = 1;
+        a += 1;
+    }
+
+    router.get(`${props.urlBase}/${a}/${m}`, {}, {
+        preserveState: true,
+        preserveScroll: true,
+    });
+}
+
+function mesAnterior() {
+    abrirMes(props.ano, props.mes - 1);
+}
+
+function proximoMes() {
+    abrirMes(props.ano, props.mes + 1);
+}
 
 function abrirCriar() {
     orcamentoEmEdicao.value = null;
@@ -85,6 +131,10 @@ function confirmarExclusao() {
     excluindo.value = true;
 
     router.delete(orcamentoParaExcluir.value.url_excluir, {
+        data: {
+            ano: props.ano,
+            mes: props.mes,
+        },
         preserveScroll: true,
         onFinish: () => {
             excluindo.value = false;
@@ -105,7 +155,7 @@ const mensagemExclusao = computed(() => {
 </script>
 
 <template>
-    <Head title="Orçamentos" />
+    <Head :title="`Orçamentos · ${nomeMes} ${ano}`" />
 
     <AutenticadoLayout>
         <template #cabecalho>
@@ -115,7 +165,7 @@ const mensagemExclusao = computed(() => {
                         Orçamentos
                     </h2>
                     <p class="mt-1 text-sm text-gray-500">
-                        Acompanhe quanto já usou neste mês · {{ mesReferenciaRotulo }}
+                        Acompanhe quanto já usou em {{ nomeMes.toLowerCase() }}/{{ ano }}
                     </p>
                 </div>
                 <button
@@ -130,6 +180,27 @@ const mensagemExclusao = computed(() => {
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
+            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
+                <div class="flex items-center justify-center gap-6 px-4 py-1">
+                    <button
+                        type="button"
+                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        @click="mesAnterior"
+                    >
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <p class="min-w-[3rem] text-center text-base font-semibold text-gray-800">
+                        {{ siglaMes }}
+                    </p>
+                    <button
+                        type="button"
+                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        @click="proximoMes"
+                    >
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+                </div>
+            </div>
 
             <div v-if="orcamentos.length === 0" class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-10 text-center">
                 <span class="material-symbols-outlined text-4xl text-gray-300">account_balance_wallet</span>
@@ -147,85 +218,90 @@ const mensagemExclusao = computed(() => {
             </div>
 
             <div
-                v-for="orcamento in orcamentos"
-                :key="orcamento.id"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6"
+                v-else
+                class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6"
             >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span
-                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                                :style="{ backgroundColor: `${orcamento.categoria_cor || '#1fa67e'}20`, color: orcamento.categoria_cor || '#1fa67e' }"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">
-                                    {{ orcamento.categoria_icone || 'category' }}
+                <div
+                    v-for="orcamento in orcamentos"
+                    :key="orcamento.id"
+                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                                    :style="{ backgroundColor: `${orcamento.categoria_cor || '#1fa67e'}20`, color: orcamento.categoria_cor || '#1fa67e' }"
+                                >
+                                    <span class="material-symbols-outlined text-[20px]">
+                                        {{ orcamento.categoria_icone || 'category' }}
+                                    </span>
                                 </span>
-                            </span>
-                            <h3 class="text-lg font-semibold text-gray-900">
-                                {{ orcamento.categoria_nome }}
-                            </h3>
-                            <span
-                                v-if="orcamento.ultrapassado"
-                                class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700"
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    {{ orcamento.categoria_nome }}
+                                </h3>
+                                <span
+                                    v-if="orcamento.ultrapassado"
+                                    class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700"
+                                >
+                                    Ultrapassado
+                                </span>
+                                <span
+                                    v-if="orcamento.exibir_dashboard === 'S'"
+                                    class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                                >
+                                    No dashboard
+                                </span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Limite mensal de R$ {{ orcamento.valor_mensal }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                                @click="abrirEditar(orcamento)"
                             >
-                                Ultrapassado
-                            </span>
-                            <span
-                                v-if="orcamento.exibir_dashboard === 'S'"
-                                class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                                Editar
+                            </button>
+                            <button
+                                type="button"
+                                class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
+                                @click="pedirExclusao(orcamento)"
                             >
-                                No dashboard
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="flex items-center justify-between text-sm">
+                            <span
+                                class="font-medium"
+                                :class="orcamento.ultrapassado ? 'text-red-700' : 'text-gray-700'"
+                            >
+                                {{ orcamento.percentual }}% usado
+                            </span>
+                            <span :class="orcamento.ultrapassado ? 'text-red-600 font-medium' : 'text-gray-500'">
+                                R$ {{ orcamento.texto_progresso }}
                             </span>
                         </div>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Limite mensal de R$ {{ orcamento.valor_mensal }}
+                        <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div
+                                class="h-full rounded-full transition-all"
+                                :class="orcamento.ultrapassado ? 'bg-red-500' : 'bg-[#1fa67e]'"
+                                :style="{ width: `${orcamento.percentual_barra}%` }"
+                            />
+                        </div>
+                        <p v-if="orcamento.ultrapassado" class="mt-2 text-sm text-red-600">
+                            Você ultrapassou R$ {{ orcamento.valor_excedente }} neste mês.
+                        </p>
+                        <p v-else class="mt-2 text-sm text-gray-500">
+                            Ainda restam R$ {{ orcamento.valor_restante }} neste mês.
                         </p>
                     </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
-                            @click="abrirEditar(orcamento)"
-                        >
-                            Editar
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
-                            @click="pedirExclusao(orcamento)"
-                        >
-                            Excluir
-                        </button>
-                    </div>
-                </div>
-
-                <div class="mt-5">
-                    <div class="flex items-center justify-between text-sm">
-                        <span
-                            class="font-medium"
-                            :class="orcamento.ultrapassado ? 'text-red-700' : 'text-gray-700'"
-                        >
-                            {{ orcamento.percentual }}% usado
-                        </span>
-                        <span :class="orcamento.ultrapassado ? 'text-red-600 font-medium' : 'text-gray-500'">
-                            R$ {{ orcamento.texto_progresso }}
-                        </span>
-                    </div>
-                    <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-                        <div
-                            class="h-full rounded-full transition-all"
-                            :class="orcamento.ultrapassado ? 'bg-red-500' : 'bg-[#1fa67e]'"
-                            :style="{ width: `${orcamento.percentual_barra}%` }"
-                        />
-                    </div>
-                    <p v-if="orcamento.ultrapassado" class="mt-2 text-sm text-red-600">
-                        Você ultrapassou R$ {{ orcamento.valor_excedente }} neste mês.
-                    </p>
-                    <p v-else class="mt-2 text-sm text-gray-500">
-                        Ainda restam R$ {{ orcamento.valor_restante }} neste mês.
-                    </p>
                 </div>
             </div>
         </div>
@@ -234,6 +310,8 @@ const mensagemExclusao = computed(() => {
             :aberto="modalFormularioAberto"
             :orcamento="orcamentoEmEdicao"
             :categorias="categorias"
+            :ano="ano"
+            :mes="mes"
             @fechar="fecharFormulario"
         />
 

@@ -78,7 +78,10 @@ Route::middleware('auth')->group(function () {
         ->name('objetivos.aportes.criar');
 
     // Orçamentos
-    Route::get('/orcamentos', [OrcamentoController::class, 'index'])->name('orcamentos.index');
+    Route::get('/orcamentos/{ano?}/{mes?}', [OrcamentoController::class, 'index'])
+        ->whereNumber('ano')
+        ->whereNumber('mes')
+        ->name('orcamentos.index');
     Route::post('/orcamentos', [OrcamentoController::class, 'criar'])->name('orcamentos.criar');
     Route::put('/orcamentos/{orcamento}', [OrcamentoController::class, 'atualizar'])->name('orcamentos.atualizar');
     Route::delete('/orcamentos/{orcamento}', [OrcamentoController::class, 'excluir'])->name('orcamentos.excluir');
