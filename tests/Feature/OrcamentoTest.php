@@ -37,7 +37,7 @@ class OrcamentoTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/orcamentos/'.now()->year.'/'.now()->month);
+            ->assertRedirect('/orcamentos/'.now()->year.'/'.now()->month.'?tipo=por_categoria');
 
         $this->assertDatabaseHas('orcamentos', [
             'id_usuario' => $usuario->id_usuario,

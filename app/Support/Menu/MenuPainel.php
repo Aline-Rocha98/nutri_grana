@@ -50,8 +50,16 @@ class MenuPainel
                 'rotulo' => 'Orçamentos',
                 'icone' => 'orcamentos',
                 'filhos' => [
-                    ['rotulo' => 'Por categoria', 'rota' => 'orcamentos.index'],
-                    ['rotulo' => 'Por serviço', 'rota' => 'orcamentos.index'],
+                    [
+                        'rotulo' => 'Por categoria',
+                        'rota' => 'orcamentos.index',
+                        'parametros' => ['tipo' => 'por_categoria'],
+                    ],
+                    [
+                        'rotulo' => 'Por serviço',
+                        'rota' => 'orcamentos.index',
+                        'parametros' => ['tipo' => 'por_servico'],
+                    ],
                 ],
             ],
             [
@@ -112,24 +120,40 @@ class MenuPainel
         return $estado;
     }
 
-    public static function resolverUrl(?string $nomeRota): string
+    public static function resolverUrl(?string $nomeRota, array $parametros = []): string
     {
         if (! $nomeRota || ! Route::has($nomeRota)) {
             return '#';
         }
 
-        return route($nomeRota);
+        return route($nomeRota, $parametros);
     }
 
-    public static function linkAtivo(?string $nomeRota): bool
+    public static function linkAtivo(?string $nomeRota, array $parametros = []): bool
     {
-        return $nomeRota && request()->routeIs($nomeRota);
+        if (! $nomeRota || ! request()->routeIs($nomeRota)) {
+            return false;
+        }
+
+        foreach ($parametros as $chave => $valor) {
+            $atual = request()->query($chave);
+
+            if ($chave === 'tipo' && ($valor === 'por_categoria' || $valor === null || $valor === '')) {
+                return $atual === null || $atual === '' || $atual === 'por_categoria';
+            }
+
+            if ((string) $atual !== (string) $valor) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function grupoAtivo(array $filhos): bool
     {
         foreach ($filhos as $filho) {
-            if (isset($filho['rota']) && request()->routeIs($filho['rota'])) {
+            if (self::linkAtivo($filho['rota'] ?? null, $filho['parametros'] ?? [])) {
                 return true;
             }
         }
@@ -139,9 +163,11 @@ class MenuPainel
 
     private static function prepararLink(array $item): array
     {
+        $parametros = $item['parametros'] ?? [];
+
         return array_merge($item, [
-            'url' => self::resolverUrl($item['rota'] ?? null),
-            'ativo' => self::linkAtivo($item['rota'] ?? null),
+            'url' => self::resolverUrl($item['rota'] ?? null, $parametros),
+            'ativo' => self::linkAtivo($item['rota'] ?? null, $parametros),
             'iconeMaterial' => self::iconeMaterial($item['icone']),
         ]);
     }
@@ -154,10 +180,14 @@ class MenuPainel
             ->all();
 
         $filhos = array_map(
-            fn (array $filho) => array_merge($filho, [
-                'url' => self::resolverUrl($filho['rota'] ?? null),
-                'ativo' => self::linkAtivo($filho['rota'] ?? null),
-            ]),
+            function (array $filho) {
+                $parametros = $filho['parametros'] ?? [];
+
+                return array_merge($filho, [
+                    'url' => self::resolverUrl($filho['rota'] ?? null, $parametros),
+                    'ativo' => self::linkAtivo($filho['rota'] ?? null, $parametros),
+                ]);
+            },
             $filhosOrdenados
         );
 
