@@ -222,4 +222,32 @@ class LancamentoRepository
             ->where('situacao', SituacaoLancamento::Pendente)
             ->update(['situacao' => SituacaoLancamento::Cancelado]);
     }
+
+    public function somarDespesasDasCategoriasNoMes(
+        int $idUsuario,
+        array $idsCategorias,
+        int $ano,
+        int $mes,
+        ?int $excetoIdLancamento = null,
+    ): float {
+        if ($idsCategorias === []) {
+            return 0.0;
+        }
+
+        $inicio = sprintf('%04d-%02d-01', $ano, $mes);
+        $fim = date('Y-m-t', strtotime($inicio));
+
+        return (float) Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->whereIn('id_categoria', $idsCategorias)
+            ->whereBetween('data_vencimento', [$inicio, $fim])
+            ->when(
+                $excetoIdLancamento,
+                fn ($query, int $id) => $query->where('id_lancamento', '!=', $id)
+            )
+            ->sum('valor');
+    }
 }

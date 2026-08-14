@@ -36,6 +36,7 @@ class CriarLancamentoRequest extends FormRequest
             'recorrencia_ate' => ['nullable', 'date', 'after_or_equal:data_vencimento'],
             'total_parcelas' => ['nullable', 'integer', 'min:1', 'max:48'],
             'data_pagamento' => ['nullable', 'date'],
+            'confirmar_ultrapassagem_orcamento' => ['nullable', 'boolean'],
         ];
     }
 
@@ -47,6 +48,11 @@ class CriarLancamentoRequest extends FormRequest
             'total_parcelas' => $this->input('total_parcelas') !== null && $this->input('total_parcelas') !== ''
                 ? (int) $this->input('total_parcelas')
                 : 1,
+            'confirmar_ultrapassagem_orcamento' => filter_var(
+                $this->input('confirmar_ultrapassagem_orcamento'),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? false,
         ]);
     }
 
