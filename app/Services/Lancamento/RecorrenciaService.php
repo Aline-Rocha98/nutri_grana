@@ -46,7 +46,6 @@ class RecorrenciaService
         $proximo = $this->proximaData(
             Carbon::parse($pai->data_vencimento),
             $pai->frequencia_recorrencia,
-            $pai->intervalo_dias,
             $cursor
         );
 
@@ -60,7 +59,7 @@ class RecorrenciaService
             }
 
             $geradoAte = $proximo->copy();
-            $proximo = $this->avancarData($proximo, $pai->frequencia_recorrencia, $pai->intervalo_dias);
+            $proximo = $this->avancarData($proximo, $pai->frequencia_recorrencia);
         }
 
         if ($geradoAte) {
@@ -99,23 +98,23 @@ class RecorrenciaService
         return $this->lancamentoRepository->criar($dados);
     }
 
-    private function proximaData(Carbon $inicio, FrequenciaRecorrencia $frequencia, ?int $intervaloDias, Carbon $apos): Carbon {
+    private function proximaData(Carbon $inicio, FrequenciaRecorrencia $frequencia, Carbon $apos): Carbon
+    {
         $candidato = $inicio->copy();
 
         while ($candidato->lte($apos)) {
-            $candidato = $this->avancarData($candidato, $frequencia, $intervaloDias);
+            $candidato = $this->avancarData($candidato, $frequencia);
         }
 
         return $candidato;
     }
 
-    private function avancarData(Carbon $data, FrequenciaRecorrencia $frequencia, ?int $intervaloDias): Carbon
+    private function avancarData(Carbon $data, FrequenciaRecorrencia $frequencia): Carbon
     {
         return match ($frequencia) {
             FrequenciaRecorrencia::Mensal => $data->copy()->addMonthNoOverflow(),
             FrequenciaRecorrencia::Semanal => $data->copy()->addWeek(),
             FrequenciaRecorrencia::Anual => $data->copy()->addYearNoOverflow(),
-            FrequenciaRecorrencia::ACadaXDias => $data->copy()->addDays(max(1, (int) $intervaloDias)),
         };
     }
 }

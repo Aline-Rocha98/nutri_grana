@@ -12,6 +12,7 @@ use App\Models\Categoria\Categoria;
 use App\Models\Concerns\TemChaveRotaCriptografada;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\FaturaCartao\FaturaCartao;
+use App\Models\Renda\Renda;
 use App\Models\Usuario\Usuario;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,7 @@ class Lancamento extends Model
         'id_grupo_parcela',
         'descricao',
         'valor',
+        'valor_previsto',
         'data_vencimento',
         'data_pagamento',
         'tipo',
@@ -41,12 +43,12 @@ class Lancamento extends Model
         'id_fatura_cartao',
         'situacao',
         'id_categoria',
+        'id_renda',
         'observacao',
         'parcela_atual',
         'total_parcelas',
         'eh_recorrencia',
         'frequencia_recorrencia',
-        'intervalo_dias',
         'recorrencia_ate',
         'recorrencia_gerada_ate',
     ];
@@ -55,6 +57,7 @@ class Lancamento extends Model
     {
         return [
             'valor' => 'decimal:2',
+            'valor_previsto' => 'decimal:2',
             'data_vencimento' => 'date',
             'data_pagamento' => 'date',
             'tipo' => TipoLancamento::class,
@@ -62,7 +65,6 @@ class Lancamento extends Model
             'situacao' => SituacaoLancamento::class,
             'eh_recorrencia' => SimNao::class,
             'frequencia_recorrencia' => FrequenciaRecorrencia::class,
-            'intervalo_dias' => 'integer',
             'recorrencia_ate' => 'date',
             'recorrencia_gerada_ate' => 'date',
             'parcela_atual' => 'integer',
@@ -103,6 +105,16 @@ class Lancamento extends Model
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class, 'id_categoria', 'id_categoria');
+    }
+
+    public function renda(): BelongsTo
+    {
+        return $this->belongsTo(Renda::class, 'id_renda', 'id_renda');
+    }
+
+    public function ehRenda(): bool
+    {
+        return $this->id_renda !== null;
     }
 
     public function scopeOcorrenciasDoMes(Builder $query, int $idUsuario, int $ano, int $mes): Builder

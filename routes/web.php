@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Lancamento\LancamentoController;
 use App\Http\Controllers\Objetivo\ObjetivoController;
 use App\Http\Controllers\Orcamento\OrcamentoController;
+use App\Http\Controllers\Renda\RendaController;
 use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,7 +60,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/lancamentos', [LancamentoController::class, 'criar'])->name('lancamentos.criar');
     Route::put('/lancamentos/{lancamento}', [LancamentoController::class, 'atualizar'])->name('lancamentos.atualizar');
     Route::patch('/lancamentos/{lancamento}/situacao', [LancamentoController::class, 'alterarSituacao'])->name('lancamentos.situacao');
+    Route::patch('/lancamentos/{lancamento}/confirmar-receita', [LancamentoController::class, 'confirmarReceita'])
+        ->name('lancamentos.confirmar-receita');
     Route::delete('/lancamentos/{lancamento}', [LancamentoController::class, 'excluir'])->name('lancamentos.excluir');
+
+    // Rendas
+    Route::get('/rendas', [RendaController::class, 'index'])->name('rendas.index');
+    Route::post('/rendas', [RendaController::class, 'criar'])->name('rendas.criar');
+    Route::put('/rendas/{renda}', [RendaController::class, 'atualizar'])->name('rendas.atualizar');
+    Route::delete('/rendas/{renda}', [RendaController::class, 'excluir'])->name('rendas.excluir');
 
     // Faturas de cartão
     Route::get('/cartoes-credito/{cartaoCredito}/faturas', [FaturaCartaoController::class, 'indexPorCartao'])
