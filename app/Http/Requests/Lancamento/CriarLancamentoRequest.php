@@ -32,7 +32,6 @@ class CriarLancamentoRequest extends FormRequest
             'observacao' => ['nullable', 'string'],
             'recorrente' => ['nullable', 'boolean'],
             'frequencia_recorrencia' => ['nullable', Rule::enum(FrequenciaRecorrencia::class)],
-            'intervalo_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
             'recorrencia_ate' => ['nullable', 'date', 'after_or_equal:data_vencimento'],
             'total_parcelas' => ['nullable', 'integer', 'min:1', 'max:48'],
             'data_pagamento' => ['nullable', 'date'],

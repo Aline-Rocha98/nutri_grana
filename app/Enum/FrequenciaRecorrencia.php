@@ -7,7 +7,6 @@ enum FrequenciaRecorrencia: string
     case Mensal = 'mensal';
     case Semanal = 'semanal';
     case Anual = 'anual';
-    case ACadaXDias = 'a_cada_x_dias';
 
     public function rotulo(): string
     {
@@ -15,7 +14,6 @@ enum FrequenciaRecorrencia: string
             self::Mensal => 'Todo mês',
             self::Semanal => 'Toda semana',
             self::Anual => 'Todo ano',
-            self::ACadaXDias => 'A cada X dias',
         };
     }
 

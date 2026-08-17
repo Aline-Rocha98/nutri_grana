@@ -35,6 +35,7 @@ class LancamentoRepository
                 ($filtros['id_categoria'] ?? null),
                 fn ($q, $idCategoria) => $q->where('id_categoria', $idCategoria)
             )
+            ->orderByRaw("CASE WHEN id_renda IS NOT NULL AND situacao = 'previsto' THEN 0 ELSE 1 END")
             ->orderBy('data_vencimento')
             ->orderBy('id_lancamento');
 
@@ -74,17 +75,17 @@ class LancamentoRepository
 
             if ($tipo === TipoLancamento::Receita) {
                 $resultado['receitas'] += $valor;
-                if ($situacao === SituacaoLancamento::Pago) {
+                if ($situacao->estaEfetivado()) {
                     $resultado['receitas_pagas'] += $valor;
                 }
             } else {
                 $resultado['despesas'] += $valor;
-                if ($situacao === SituacaoLancamento::Pago) {
+                if ($situacao->estaEfetivado()) {
                     $resultado['despesas_pagas'] += $valor;
                 }
             }
 
-            if ($situacao === SituacaoLancamento::Pendente) {
+            if ($situacao->estaAberto()) {
                 $resultado['pendentes'] += $valor;
             }
         }
@@ -101,7 +102,10 @@ class LancamentoRepository
         $linhas = Lancamento::query()
             ->where('id_usuario', $idUsuario)
             ->where('eh_recorrencia', SimNao::Nao)
-            ->where('situacao', SituacaoLancamento::Pendente)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
             ->where('data_vencimento', '<', $inicioMes)
             ->selectRaw('tipo, SUM(valor) as total')
             ->groupBy('tipo')
@@ -174,6 +178,15 @@ class LancamentoRepository
             ->exists();
     }
 
+    public function existeOcorrenciaDeRendaNaData(int $idRenda, Carbon $data): bool
+    {
+        return Lancamento::query()
+            ->where('id_renda', $idRenda)
+            ->whereDate('data_vencimento', $data->toDateString())
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->exists();
+    }
+
     public function temLancamentosNaConta(int $idContaBancaria): bool
     {
         return Lancamento::query()
@@ -200,14 +213,20 @@ class LancamentoRepository
         $receitas = (float) Lancamento::query()
             ->where('id_conta_bancaria', $idContaBancaria)
             ->where('tipo', TipoLancamento::Receita)
-            ->where('situacao', SituacaoLancamento::Pago)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pago,
+                SituacaoLancamento::Recebido,
+            ])
             ->where('eh_recorrencia', SimNao::Nao)
             ->sum('valor');
 
         $despesas = (float) Lancamento::query()
             ->where('id_conta_bancaria', $idContaBancaria)
             ->where('tipo', TipoLancamento::Despesa)
-            ->where('situacao', SituacaoLancamento::Pago)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pago,
+                SituacaoLancamento::Recebido,
+            ])
             ->where('eh_recorrencia', SimNao::Nao)
             ->sum('valor');
 

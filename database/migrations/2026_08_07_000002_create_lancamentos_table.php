@@ -42,8 +42,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('parcela_atual')->nullable();
             $table->unsignedSmallInteger('total_parcelas')->nullable();
             $table->enum('eh_recorrencia', ['S', 'N'])->default('N');
-            $table->enum('frequencia_recorrencia', ['mensal', 'semanal', 'anual', 'a_cada_x_dias'])->nullable();
-            $table->unsignedSmallInteger('intervalo_dias')->nullable();
+            $table->enum('frequencia_recorrencia', ['mensal', 'semanal', 'anual'])->nullable();
             $table->date('recorrencia_ate')->nullable();
             $table->date('recorrencia_gerada_ate')->nullable();
             $table->timestamps();
