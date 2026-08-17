@@ -35,6 +35,7 @@ class MenuPainel
                     ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
                     ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
+                    ['rotulo' => 'Rendas', 'rota' => 'rendas.index'],
                 ],
             ],
             [

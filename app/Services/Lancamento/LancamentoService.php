@@ -15,6 +15,7 @@ use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\FaturaCartao\FaturaCartaoService;
 use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
+use App\Services\Renda\RendaGeracaoService;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -27,6 +28,7 @@ class LancamentoService
     public function __construct(
         private readonly LancamentoRepository $lancamentoRepository,
         private readonly RecorrenciaService $recorrenciaService,
+        private readonly RendaGeracaoService $rendaGeracaoService,
         private readonly FaturaCartaoService $faturaCartaoService,
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly VerificadorUltrapassagemOrcamento $verificadorUltrapassagemOrcamento,
@@ -35,12 +37,16 @@ class LancamentoService
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
     {
         $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
+        $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
 
         return $this->lancamentoRepository->listarDoMes($idUsuario, $ano, $mes, $filtros, $porPagina);
     }
 
     public function totaisDoMes(int $idUsuario, int $ano, int $mes): array
     {
+        $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
+        $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
+
         $totais = $this->lancamentoRepository->totaisDoMes($idUsuario, $ano, $mes);
         $pendentesAnteriores = $this->lancamentoRepository->totaisPendentesAnteriores($idUsuario, $ano, $mes);
 
@@ -51,9 +57,7 @@ class LancamentoService
 
         $totais['total_contas'] = $totalContas;
         $totais['pendentes_anteriores_despesas'] = $pendentesAnteriores['despesas'];
-        $totais['saldo'] = $totalContas
-            - $totais['despesas']
-            - $pendentesAnteriores['despesas'];
+        $totais['saldo'] = $totais['receitas'] - $totais['despesas'];
 
         return $totais;
     }
@@ -124,6 +128,12 @@ class LancamentoService
     {
         $this->garantirPropriedade($lancamento, $idUsuario);
 
+        if ($lancamento->ehRenda()) {
+            throw ValidationException::withMessages([
+                'situacao' => 'Receitas de renda devem ser confirmadas pelo modal de confirmação.',
+            ]);
+        }
+
         $dados = ['situacao' => $situacao];
 
         if ($situacao === SituacaoLancamento::Pago) {
@@ -135,6 +145,29 @@ class LancamentoService
         }
 
         return $this->lancamentoRepository->atualizar($lancamento, $dados);
+    }
+
+    public function confirmarReceita(Lancamento $lancamento, int $idUsuario, array $dados): Lancamento
+    {
+        $this->garantirPropriedade($lancamento, $idUsuario);
+
+        if (! $lancamento->ehRenda()) {
+            throw ValidationException::withMessages([
+                'lancamento' => 'Este lançamento não é uma receita de renda.',
+            ]);
+        }
+
+        if ($lancamento->situacao !== SituacaoLancamento::Previsto) {
+            throw ValidationException::withMessages([
+                'lancamento' => 'Somente receitas previstas podem ser confirmadas.',
+            ]);
+        }
+
+        return $this->lancamentoRepository->atualizar($lancamento, [
+            'valor' => $dados['valor_recebido'],
+            'data_pagamento' => $dados['data_recebimento'],
+            'situacao' => SituacaoLancamento::Recebido,
+        ]);
     }
 
     public function excluir(Lancamento $lancamento, int $idUsuario, bool $futuras = false): void
@@ -189,16 +222,9 @@ class LancamentoService
     {
         $frequencia = FrequenciaRecorrencia::from($dados['frequencia_recorrencia']);
 
-        if ($frequencia === FrequenciaRecorrencia::ACadaXDias && empty($dados['intervalo_dias'])) {
-            throw ValidationException::withMessages([
-                'intervalo_dias' => 'Informe o intervalo em dias para esta recorrência.',
-            ]);
-        }
-
         $payload = $this->montarDados($idUsuario, $dados);
         $payload['eh_recorrencia'] = SimNao::Sim;
         $payload['frequencia_recorrencia'] = $frequencia;
-        $payload['intervalo_dias'] = $dados['intervalo_dias'] ?? null;
         $payload['recorrencia_ate'] = $dados['recorrencia_ate'] ?? null;
         $payload['situacao'] = SituacaoLancamento::Pendente;
         $payload['data_pagamento'] = null;

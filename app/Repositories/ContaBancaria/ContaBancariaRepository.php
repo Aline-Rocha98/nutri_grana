@@ -83,14 +83,20 @@ class ContaBancariaRepository
         $receitas = (float) Lancamento::query()
             ->where('id_conta_bancaria', $idContaBancaria)
             ->where('tipo', TipoLancamento::Receita)
-            ->where('situacao', SituacaoLancamento::Pago)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pago,
+                SituacaoLancamento::Recebido,
+            ])
             ->where('eh_recorrencia', SimNao::Nao)
             ->sum('valor');
 
         $despesas = (float) Lancamento::query()
             ->where('id_conta_bancaria', $idContaBancaria)
             ->where('tipo', TipoLancamento::Despesa)
-            ->where('situacao', SituacaoLancamento::Pago)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pago,
+                SituacaoLancamento::Recebido,
+            ])
             ->where('eh_recorrencia', SimNao::Nao)
             ->sum('valor');
 

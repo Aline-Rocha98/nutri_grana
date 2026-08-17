@@ -51,6 +51,14 @@ class LancamentoResource extends JsonResource
             'categoria_nome' => $categoria?->nome,
             'categoria_cor' => $categoria?->cor,
             'categoria_icone' => $categoria?->icone,
+            'id_renda' => $this->id_renda,
+            'eh_renda' => $this->id_renda !== null,
+            'valor_previsto' => $this->valor_previsto !== null
+                ? number_format((float) $this->valor_previsto, 2, ',', '.')
+                : null,
+            'valor_previsto_numero' => $this->valor_previsto !== null
+                ? (float) $this->valor_previsto
+                : null,
             'observacao' => $this->observacao,
             'parcela_atual' => $this->parcela_atual,
             'total_parcelas' => $this->total_parcelas,
@@ -61,10 +69,12 @@ class LancamentoResource extends JsonResource
             'eh_parcelado' => $ehParcelado,
             'frequencia_recorrencia' => $this->frequencia_recorrencia?->value
                 ?? $pai?->frequencia_recorrencia?->value,
-            'intervalo_dias' => $this->intervalo_dias ?? $pai?->intervalo_dias,
             'url_atualizar' => route('lancamentos.atualizar', $this->resource),
             'url_excluir' => route('lancamentos.excluir', $this->resource),
             'url_situacao' => route('lancamentos.situacao', $this->resource),
+            'url_confirmar_receita' => $this->id_renda
+                ? route('lancamentos.confirmar-receita', $this->resource)
+                : null,
         ];
     }
 }

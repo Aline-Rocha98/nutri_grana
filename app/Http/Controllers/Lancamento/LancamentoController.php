@@ -8,6 +8,7 @@ use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lancamento\AtualizarLancamentoRequest;
+use App\Http\Requests\Lancamento\ConfirmarReceitaRequest;
 use App\Http\Requests\Lancamento\CriarLancamentoRequest;
 use App\Http\Resources\CartaoCredito\CartaoCreditoResource;
 use App\Http\Resources\Categoria\CategoriaResource;
@@ -185,12 +186,51 @@ class LancamentoController extends Controller
             return redirect()
                 ->back()
                 ->with('sucesso', 'Situação atualizada.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withErrors($e->errors())
+                ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
 
             return redirect()
                 ->back()
                 ->with('erro', 'Erro ao atualizar situação.');
+        }
+    }
+
+    public function confirmarReceita(ConfirmarReceitaRequest $request, Lancamento $lancamento): RedirectResponse
+    {
+        $this->authorize('update', $lancamento);
+
+        try {
+            DB::beginTransaction();
+            $this->lancamentoService->confirmarReceita(
+                $lancamento,
+                (int) Auth::id(),
+                $request->validated()
+            );
+            DB::commit();
+
+            return redirect()
+                ->back()
+                ->with('sucesso', 'Receita confirmada com sucesso.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('erro', 'Erro ao confirmar receita.');
         }
     }
 

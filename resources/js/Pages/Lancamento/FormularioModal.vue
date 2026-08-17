@@ -49,7 +49,6 @@ const formulario = useForm({
     observacao: '',
     recorrente: false,
     frequencia_recorrencia: 'mensal',
-    intervalo_dias: 30,
     total_parcelas: 1,
     confirmar_ultrapassagem_orcamento: false,
 });
@@ -121,7 +120,6 @@ watch(
             formulario.observacao = item.observacao ?? '';
             formulario.recorrente = Boolean(item.eh_recorrente);
             formulario.frequencia_recorrencia = item.frequencia_recorrencia ?? 'mensal';
-            formulario.intervalo_dias = item.intervalo_dias ?? 30;
             formulario.total_parcelas = item.total_parcelas > 1 ? item.total_parcelas : 1;
             estadoUi.urlAtualizar = item.url_atualizar ?? '';
         } else {
@@ -143,7 +141,6 @@ watch(
             formulario.observacao = '';
             formulario.recorrente = false;
             formulario.frequencia_recorrencia = 'mensal';
-            formulario.intervalo_dias = 30;
             formulario.total_parcelas = 1;
             estadoUi.urlAtualizar = '';
         }
@@ -215,7 +212,6 @@ function montarDadosEnvio() {
 
     if (!dados.recorrente) {
         delete dados.frequencia_recorrencia;
-        delete dados.intervalo_dias;
     }
 
     if (Number(dados.total_parcelas) <= 1) {
@@ -225,7 +221,6 @@ function montarDadosEnvio() {
     if (editando.value) {
         delete dados.recorrente;
         delete dados.frequencia_recorrencia;
-        delete dados.intervalo_dias;
         delete dados.total_parcelas;
     }
 
@@ -421,17 +416,6 @@ function confirmarUltrapassagemOrcamento() {
                             >
                                 <option v-for="f in frequencias" :key="f.valor" :value="f.valor">{{ f.rotulo }}</option>
                             </select>
-                        </div>
-                        <div v-if="formulario.frequencia_recorrencia === 'a_cada_x_dias'">
-                            <label class="block text-xs font-medium text-gray-500">A cada quantos dias</label>
-                            <input
-                                v-model.number="formulario.intervalo_dias"
-                                type="number"
-                                min="1"
-                                max="365"
-                                class="mt-1 w-full rounded-lg border-gray-300 text-sm focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-gray-100"
-                                :disabled="editando"
-                            >
                         </div>
                     </div>
 

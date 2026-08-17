@@ -4,6 +4,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/Lancamento/FormularioModal.vue';
+import ConfirmarReceitaModal from '@/Pages/Lancamento/ConfirmarReceitaModal.vue';
 
 const props = defineProps({
     ano: { type: Number, required: true },
@@ -25,6 +26,8 @@ const props = defineProps({
 const pagina = usePage();
 const modalAberto = ref(false);
 const lancamentoEmEdicao = ref(null);
+const modalConfirmacaoAberto = ref(false);
+const lancamentoParaConfirmar = ref(null);
 const modalExclusaoAberto = ref(false);
 const lancamentoParaExcluir = ref(null);
 const excluindo = ref(false);
@@ -47,9 +50,16 @@ const links = computed(() => props.lancamentos?.links ?? []);
 watch(
     () => pagina.props.errors,
     (erros) => {
-        if (erros && Object.keys(erros).length > 0) {
-            modalAberto.value = true;
+        if (!erros || Object.keys(erros).length === 0) {
+            return;
         }
+
+        if (erros.valor_recebido || erros.data_recebimento) {
+            modalConfirmacaoAberto.value = true;
+            return;
+        }
+
+        modalAberto.value = true;
     },
     { deep: true, immediate: true },
 );
@@ -93,6 +103,12 @@ function abrirCriar() {
 }
 
 function abrirEditar(item) {
+    if (item.eh_renda && item.situacao === 'previsto') {
+        lancamentoParaConfirmar.value = item;
+        modalConfirmacaoAberto.value = true;
+        return;
+    }
+
     lancamentoEmEdicao.value = item;
     modalAberto.value = true;
 }
@@ -102,7 +118,17 @@ function fecharModal() {
     lancamentoEmEdicao.value = null;
 }
 
+function fecharConfirmacao() {
+    modalConfirmacaoAberto.value = false;
+    lancamentoParaConfirmar.value = null;
+}
+
 function marcarPago(item) {
+    if (item.eh_renda) {
+        abrirEditar(item);
+        return;
+    }
+
     const situacao = item.situacao === 'pago' ? 'pendente' : 'pago';
     router.patch(item.url_situacao, { situacao }, { preserveScroll: true });
 }
@@ -223,7 +249,7 @@ const mensagemExclusao = computed(() => {
                             <span
                                 class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-56 -translate-x-1/2 rounded-lg bg-gray-800 px-2.5 py-1.5 text-center text-xs font-normal text-white shadow-lg group-hover:block group-focus:block"
                             >
-                                Total das contas bancárias menos as despesas
+                                Receitas do mês menos despesas do mês
                             </span>
                         </span>
                     </p>
@@ -283,13 +309,14 @@ const mensagemExclusao = computed(() => {
                                 <span v-if="item.cartao_credito_nome"> · {{ item.cartao_credito_nome }}</span>
                                 ·
                                 <span
+                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
                                     :class="{
-                                        'text-orange-500 font-medium': item.situacao === 'pendente',
-                                        'text-[#1fa67e] font-medium': item.situacao === 'pago',
-                                        'text-gray-500': item.situacao !== 'pendente' && item.situacao !== 'pago',
+                                        'bg-orange-50 text-orange-600 font-medium': item.situacao === 'pendente' || item.situacao === 'previsto',
+                                        'bg-[#e8f7f1] text-[#1fa67e] font-medium': item.situacao === 'pago' || item.situacao === 'recebido',
+                                        'bg-gray-100 text-gray-500': item.situacao !== 'pendente' && item.situacao !== 'previsto' && item.situacao !== 'pago' && item.situacao !== 'recebido',
                                     }"
                                 >
-                                    {{ item.situacao === 'pago' ? 'Pago' : item.situacao_rotulo }}
+                                    {{ item.situacao_rotulo }}
                                 </span>
                             </p>
                         </div>
@@ -305,6 +332,7 @@ const mensagemExclusao = computed(() => {
 
                         <div class="flex items-center gap-1 shrink-0">
                             <button
+                                v-if="!item.eh_renda"
                                 type="button"
                                 class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
                                 :title="item.situacao === 'pago' ? 'Marcar pendente' : 'Marcar pago'"
@@ -315,9 +343,18 @@ const mensagemExclusao = computed(() => {
                                 </span>
                             </button>
                             <button
+                                v-else-if="item.situacao === 'previsto'"
                                 type="button"
                                 class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-                                title="Editar"
+                                title="Confirmar receita"
+                                @click="abrirEditar(item)"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                :title="item.eh_renda && item.situacao === 'previsto' ? 'Confirmar receita' : 'Editar'"
                                 @click="abrirEditar(item)"
                             >
                                 <span class="material-symbols-outlined text-[20px]">edit</span>
@@ -377,6 +414,12 @@ const mensagemExclusao = computed(() => {
             :frequencias="frequencias"
             :url-criar="urlCriar"
             @fechar="fecharModal"
+        />
+
+        <ConfirmarReceitaModal
+            :aberto="modalConfirmacaoAberto"
+            :lancamento="lancamentoParaConfirmar"
+            @fechar="fecharConfirmacao"
         />
 
         <ModalNotificacao
