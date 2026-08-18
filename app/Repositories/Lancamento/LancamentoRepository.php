@@ -3,6 +3,7 @@
 namespace App\Repositories\Lancamento;
 
 use App\Enum\SimNao;
+use App\Enum\SituacaoFatura;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
 use App\Models\Lancamento\Lancamento;
@@ -268,5 +269,185 @@ class LancamentoRepository
                 fn ($query, int $id) => $query->where('id_lancamento', '!=', $id)
             )
             ->sum('valor');
+    }
+
+    public function somarPendenciasEmContasNoPeriodo(
+        int $idUsuario,
+        Carbon $inicio,
+        Carbon $fim,
+        bool $incluirAtrasadas = false,
+    ): array {
+        $linhas = Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
+            ->whereNotNull('id_conta_bancaria')
+            ->when(
+                $incluirAtrasadas,
+                fn ($query) => $query->where('data_vencimento', '<=', $fim->toDateString()),
+                fn ($query) => $query->whereBetween('data_vencimento', [
+                    $inicio->toDateString(),
+                    $fim->toDateString(),
+                ])
+            )
+            ->selectRaw('tipo, SUM(valor) as total')
+            ->groupBy('tipo')
+            ->get();
+
+        return $this->agregarReceitasDespesas($linhas);
+    }
+
+    public function somarPendenciasEmContasNoMes(int $idUsuario, int $ano, int $mes): array
+    {
+        $inicio = Carbon::create($ano, $mes, 1)->startOfDay();
+        $fim = $inicio->copy()->endOfMonth()->startOfDay();
+
+        return $this->somarPendenciasEmContasNoPeriodo($idUsuario, $inicio, $fim);
+    }
+
+    public function somarPendenciasAtrasadasEmContas(int $idUsuario, Carbon $antesDe): array
+    {
+        $linhas = Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
+            ->whereNotNull('id_conta_bancaria')
+            ->where('data_vencimento', '<', $antesDe->toDateString())
+            ->selectRaw('tipo, SUM(valor) as total')
+            ->groupBy('tipo')
+            ->get();
+
+        return $this->agregarReceitasDespesas($linhas);
+    }
+
+    public function somarUsoEmAbertoDoCartao(int $idCartaoCredito): float
+    {
+        return (float) Lancamento::query()
+            ->where('id_cartao_credito', $idCartaoCredito)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->where(function ($query) {
+                $query->whereNull('id_fatura_cartao')
+                    ->orWhereHas('faturaCartao', function ($fatura) {
+                        $fatura->whereIn('situacao', [
+                            SituacaoFatura::Aberta,
+                            SituacaoFatura::Fechada,
+                        ]);
+                    });
+            })
+            ->sum('valor');
+    }
+
+    public function somarPendenciasEmCartoesNoPeriodo(
+        int $idUsuario,
+        Carbon $inicio,
+        Carbon $fim,
+    ): array {
+        $linhas = Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
+            ->whereNotNull('id_cartao_credito')
+            ->whereBetween('data_vencimento', [
+                $inicio->toDateString(),
+                $fim->toDateString(),
+            ])
+            ->selectRaw('tipo, SUM(valor) as total')
+            ->groupBy('tipo')
+            ->get();
+
+        return $this->agregarReceitasDespesas($linhas);
+    }
+
+    public function somarPendenciasEmCartoesNoMes(int $idUsuario, int $ano, int $mes): array
+    {
+        $inicio = Carbon::create($ano, $mes, 1)->startOfDay();
+        $fim = $inicio->copy()->endOfMonth()->startOfDay();
+
+        return $this->somarPendenciasEmCartoesNoPeriodo($idUsuario, $inicio, $fim);
+    }
+
+    public function somarPendenciasConsolidadasNoMes(int $idUsuario, int $ano, int $mes): array
+    {
+        $conta = $this->somarPendenciasEmContasNoMes($idUsuario, $ano, $mes);
+        $cartao = $this->somarPendenciasEmCartoesNoMes($idUsuario, $ano, $mes);
+
+        return [
+            'receitas' => round($conta['receitas'] + $cartao['receitas'], 2),
+            'despesas' => round($conta['despesas'] + $cartao['despesas'], 2),
+        ];
+    }
+
+    public function somarPendenciasConsolidadasNoPeriodo(
+        int $idUsuario,
+        Carbon $inicio,
+        Carbon $fim,
+    ): array {
+        $conta = $this->somarPendenciasEmContasNoPeriodo($idUsuario, $inicio, $fim);
+        $cartao = $this->somarPendenciasEmCartoesNoPeriodo($idUsuario, $inicio, $fim);
+
+        return [
+            'receitas' => round($conta['receitas'] + $cartao['receitas'], 2),
+            'despesas' => round($conta['despesas'] + $cartao['despesas'], 2),
+        ];
+    }
+
+    public function somarPendenciasAtrasadasConsolidadas(int $idUsuario, Carbon $antesDe): array
+    {
+        $conta = $this->somarPendenciasAtrasadasEmContas($idUsuario, $antesDe);
+
+        $linhas = Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
+            ->whereNotNull('id_cartao_credito')
+            ->where('data_vencimento', '<', $antesDe->toDateString())
+            ->selectRaw('tipo, SUM(valor) as total')
+            ->groupBy('tipo')
+            ->get();
+
+        $cartao = $this->agregarReceitasDespesas($linhas);
+
+        return [
+            'receitas' => round($conta['receitas'] + $cartao['receitas'], 2),
+            'despesas' => round($conta['despesas'] + $cartao['despesas'], 2),
+        ];
+    }
+
+    private function agregarReceitasDespesas(Collection $linhas): array
+    {
+        $receitas = 0.0;
+        $despesas = 0.0;
+
+        foreach ($linhas as $linha) {
+            $valor = (float) $linha->total;
+            $tipo = $linha->tipo instanceof TipoLancamento
+                ? $linha->tipo
+                : TipoLancamento::from($linha->tipo);
+
+            if ($tipo === TipoLancamento::Receita) {
+                $receitas += $valor;
+            } else {
+                $despesas += $valor;
+            }
+        }
+
+        return [
+            'receitas' => round($receitas, 2),
+            'despesas' => round($despesas, 2),
+        ];
     }
 }

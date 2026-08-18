@@ -2,15 +2,24 @@
 
 namespace App\Http\Controllers\Orcamento;
 
+use App\Enum\FormaPagamento;
+use App\Enum\ModalidadePagamentoOrcamento;
 use App\Enum\TipoOrcamento;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Orcamento\AtualizarOrcamentoRequest;
 use App\Http\Requests\Orcamento\CriarOrcamentoRequest;
+use App\Http\Resources\CartaoCredito\CartaoCreditoResource;
 use App\Http\Resources\Categoria\CategoriaResource;
+use App\Http\Resources\ContaBancaria\ContaBancariaResource;
 use App\Http\Resources\Orcamento\OrcamentoResource;
+use App\Http\Resources\Orcamento\OrcamentoServicoResource;
 use App\Models\Orcamento\Orcamento;
+use App\Models\Orcamento\OrcamentoServico;
+use App\Services\CartaoCredito\CartaoCreditoService;
 use App\Services\Categoria\CategoriaService;
+use App\Services\ContaBancaria\ContaBancariaService;
 use App\Services\Orcamento\OrcamentoService;
+use App\Services\Orcamento\OrcamentoServicoService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -28,12 +37,21 @@ class OrcamentoController extends Controller
 
     public function __construct(
         private readonly OrcamentoService $orcamentoService,
+        private readonly OrcamentoServicoService $orcamentoServicoService,
         private readonly CategoriaService $categoriaService,
+        private readonly ContaBancariaService $contaBancariaService,
+        private readonly CartaoCreditoService $cartaoCreditoService,
     ) {}
 
-    public function index(?int $ano = null, ?int $mes = null): Response
+    public function index(Request $request, ?int $ano = null, ?int $mes = null): Response
     {
-        $this->authorize('viewAny', Orcamento::class);
+        $tipoAtivo = $this->resolverTipo($request->query('tipo'));
+
+        if ($tipoAtivo === TipoOrcamento::PorServico) {
+            $this->authorize('viewAny', OrcamentoServico::class);
+        } else {
+            $this->authorize('viewAny', Orcamento::class);
+        }
 
         $hoje = now();
         $ano = $ano ?? (int) $hoje->year;
@@ -46,22 +64,62 @@ class OrcamentoController extends Controller
         $idUsuario = (int) Auth::id();
         $referencia = Carbon::create($ano, $mes, 1)->startOfDay();
 
-        $orcamentos = $this->orcamentoService->listarDoUsuario(
-            $idUsuario,
-            TipoOrcamento::PorCategoria,
-            $referencia,
-        );
-        $categorias = $this->categoriaService->listarPorUsuario($idUsuario)
-            ->filter(fn ($categoria) => $categoria->tipo?->value === 'saida'
-                && $categoria->arquivada?->value !== 'S');
+        $orcamentos = [];
+        $orcamentosServico = [];
+        $categorias = [];
+        $contasBancarias = [];
+        $cartoesCredito = [];
+
+        if ($tipoAtivo === TipoOrcamento::PorServico) {
+            $orcamentosServico = OrcamentoServicoResource::collection(
+                $this->orcamentoServicoService->listarDoUsuario($idUsuario)
+            )->resolve();
+
+            $categorias = CategoriaResource::collection(
+                $this->categoriaService->listarPorUsuario($idUsuario)
+                    ->load('subcategorias')
+                    ->filter(fn ($categoria) => $categoria->tipo?->value === 'saida'
+                        && $categoria->arquivada?->value !== 'S'
+                        && $categoria->ehPrincipal())
+            )->resolve();
+
+            $contasBancarias = ContaBancariaResource::collection(
+                $this->contaBancariaService->listarPorUsuario($idUsuario)
+                    ->filter(fn ($conta) => $conta->arquivada?->value !== 'S')
+            )->resolve();
+
+            $cartoesCredito = CartaoCreditoResource::collection(
+                $this->cartaoCreditoService->listarPorUsuario($idUsuario)
+                    ->filter(fn ($cartao) => $cartao->arquivada?->value !== 'S')
+                    ->values()
+            )->resolve();
+        } else {
+            $orcamentos = OrcamentoResource::collection(
+                $this->orcamentoService->listarDoUsuario(
+                    $idUsuario,
+                    TipoOrcamento::PorCategoria,
+                    $referencia,
+                )
+            )->resolve();
+
+            $categorias = CategoriaResource::collection(
+                $this->categoriaService->listarPorUsuario($idUsuario)
+                    ->filter(fn ($categoria) => $categoria->tipo?->value === 'saida'
+                        && $categoria->arquivada?->value !== 'S')
+            )->resolve();
+        }
 
         return Inertia::render('Orcamento/Index', [
             'ano' => $ano,
             'mes' => $mes,
-            'orcamentos' => OrcamentoResource::collection($orcamentos)->resolve(),
-            'categorias' => CategoriaResource::collection($categorias)->resolve(),
-            'tiposOrcamento' => TipoOrcamento::opcoesParaSelect(),
-            'tipoAtivo' => TipoOrcamento::PorCategoria->value,
+            'orcamentos' => $orcamentos,
+            'orcamentosServico' => $orcamentosServico,
+            'categorias' => $categorias,
+            'contasBancarias' => $contasBancarias,
+            'cartoesCredito' => $cartoesCredito,
+            'formasPagamento' => FormaPagamento::opcoesParaSelect(),
+            'modalidadesPagamento' => ModalidadePagamentoOrcamento::opcoesParaSelect(),
+            'tipoAtivo' => $tipoAtivo->value,
             'urlBase' => url('/orcamentos'),
         ]);
     }
@@ -75,7 +133,7 @@ class OrcamentoController extends Controller
             $this->orcamentoService->criar((int) Auth::id(), $request->validated());
             DB::commit();
 
-            return $this->redirecionarParaIndex($request)
+            return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('sucesso', 'Orçamento criado com sucesso.');
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -103,7 +161,7 @@ class OrcamentoController extends Controller
             $this->orcamentoService->atualizar($orcamento, (int) Auth::id(), $request->validated());
             DB::commit();
 
-            return $this->redirecionarParaIndex($request)
+            return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('sucesso', 'Orçamento atualizado com sucesso.');
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -130,22 +188,31 @@ class OrcamentoController extends Controller
             $this->orcamentoService->excluir($orcamento, (int) Auth::id());
             DB::commit();
 
-            return $this->redirecionarParaIndex($request)
+            return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('sucesso', 'Orçamento excluído com sucesso.');
         } catch (ValidationException $e) {
             DB::rollBack();
 
-            return $this->redirecionarParaIndex($request)
+            return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
 
-            return $this->redirecionarParaIndex($request)
+            return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('erro', 'Erro ao excluir orçamento.');
         }
     }
 
-    private function redirecionarParaIndex(Request $request): RedirectResponse
+    private function resolverTipo(mixed $tipo): TipoOrcamento
+    {
+        if (! is_string($tipo) || $tipo === '') {
+            return TipoOrcamento::PorCategoria;
+        }
+
+        return TipoOrcamento::tryFrom($tipo) ?? TipoOrcamento::PorCategoria;
+    }
+
+    private function redirecionarParaIndex(Request $request, TipoOrcamento $tipo): RedirectResponse
     {
         $hoje = now();
         $ano = (int) ($request->input('ano') ?: $hoje->year);
@@ -159,6 +226,7 @@ class OrcamentoController extends Controller
         return redirect()->route('orcamentos.index', [
             'ano' => $ano,
             'mes' => $mes,
+            'tipo' => $tipo->value,
         ]);
     }
 }
