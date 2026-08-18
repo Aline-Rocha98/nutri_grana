@@ -11,6 +11,7 @@ class OrcamentoServicoRepository
     {
         return OrcamentoServico::query()
             ->where('id_usuario', $idUsuario)
+            ->with(['categoria', 'subcategoria', 'contaBancaria', 'cartaoCredito', 'compromissos'])
             ->orderByDesc('data_orcamento')
             ->orderByDesc('id_orcamento_servico')
             ->get();

@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Enum\FormaPagamento;
+use App\Enum\ModalidadePagamentoOrcamento;
 use App\Services\Orcamento\CalculadoraViabilidadeOrcamentoServico;
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +22,12 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
             $projecaoSem,
             $projecaoCom,
             Carbon::parse('2026-12-31'),
+            [
+                'modalidade' => ModalidadePagamentoOrcamento::AVista,
+                'forma' => FormaPagamento::ContaBancaria,
+                'total_parcelas' => 1,
+                'valor_parcela' => 600.0,
+            ],
             Carbon::parse('2026-08-14'),
         );
 
@@ -30,7 +38,7 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
         $this->assertNotNull($resumo['mensagem_alerta']);
     }
 
-    public function test_estima_meses_ate_pagar(): void
+    public function test_estima_meses_ate_pagar_parcelado(): void
     {
         $calculadora = new CalculadoraViabilidadeOrcamentoServico();
 
@@ -46,7 +54,7 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
                     'rotulo' => 'Agosto/2026',
                     'receitas' => 1000.0,
                     'despesas' => 500.0,
-                    'saldo_projetado' => 1500.0,
+                    'saldo_projetado' => 500.0,
                 ],
                 [
                     'ano' => 2026,
@@ -54,7 +62,7 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
                     'rotulo' => 'Setembro/2026',
                     'receitas' => 1000.0,
                     'despesas' => 500.0,
-                    'saldo_projetado' => 2000.0,
+                    'saldo_projetado' => 1000.0,
                 ],
                 [
                     'ano' => 2026,
@@ -62,28 +70,34 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
                     'rotulo' => 'Outubro/2026',
                     'receitas' => 1000.0,
                     'despesas' => 500.0,
-                    'saldo_projetado' => 2500.0,
+                    'saldo_projetado' => 1500.0,
                 ],
             ],
-            'saldo_projetado_final' => 2500.0,
+            'saldo_projetado_final' => 1500.0,
             'horizonte_ate' => '2026-10-31',
         ];
 
         $projecaoCom = $projecaoSem;
-        $projecaoCom['saldo_projetado_final'] = -3500.0;
-        $projecaoCom['meses'][2]['saldo_projetado'] = -3500.0;
+        $projecaoCom['saldo_projetado_final'] = -500.0;
+        $projecaoCom['meses'][2]['saldo_projetado'] = -500.0;
 
         $resumo = $calculadora->montarResumo(
-            2200,
+            3000,
             $projecaoSem,
             $projecaoCom,
             Carbon::parse('2026-10-31'),
+            [
+                'modalidade' => ModalidadePagamentoOrcamento::Parcelado,
+                'forma' => FormaPagamento::ContaBancaria,
+                'total_parcelas' => 3,
+                'valor_parcela' => 1000.0,
+            ],
             Carbon::parse('2026-08-01'),
         );
 
         $this->assertFalse($resumo['pago_integralmente_agora']);
-        $this->assertSame(3, $resumo['meses_ate_pagar']);
-        $this->assertStringContainsString('3 meses', $resumo['mensagem_principal']);
+        $this->assertSame(2, $resumo['meses_ate_pagar']);
+        $this->assertStringContainsString('3x', $resumo['mensagem_principal']);
     }
 
     /**

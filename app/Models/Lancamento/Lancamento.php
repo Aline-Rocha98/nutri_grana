@@ -12,6 +12,7 @@ use App\Models\Categoria\Categoria;
 use App\Models\Concerns\TemChaveRotaCriptografada;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\FaturaCartao\FaturaCartao;
+use App\Models\Orcamento\OrcamentoServico;
 use App\Models\Renda\Renda;
 use App\Models\Usuario\Usuario;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,6 +45,7 @@ class Lancamento extends Model
         'situacao',
         'id_categoria',
         'id_renda',
+        'id_orcamento_servico',
         'observacao',
         'parcela_atual',
         'total_parcelas',
@@ -110,6 +112,11 @@ class Lancamento extends Model
     public function renda(): BelongsTo
     {
         return $this->belongsTo(Renda::class, 'id_renda', 'id_renda');
+    }
+
+    public function orcamentoServico(): BelongsTo
+    {
+        return $this->belongsTo(OrcamentoServico::class, 'id_orcamento_servico', 'id_orcamento_servico');
     }
 
     public function ehRenda(): bool

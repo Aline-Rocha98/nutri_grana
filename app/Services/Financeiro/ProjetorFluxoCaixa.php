@@ -7,11 +7,13 @@ use App\Models\ContaBancaria\ContaBancaria;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\Lancamento\RecorrenciaService;
+use App\Services\Renda\RendaGeracaoService;
 use Carbon\Carbon;
 
 /**
  * Projeta o fluxo de caixa com base no saldo atual das contas
- * e nos lançamentos pendentes previstos (sem criar compromisso novo).
+ * e nos lançamentos abertos previstos (pendente/previsto),
+ * sem criar compromisso novo.
  */
 class ProjetorFluxoCaixa
 {
@@ -21,9 +23,11 @@ class ProjetorFluxoCaixa
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly LancamentoRepository $lancamentoRepository,
         private readonly RecorrenciaService $recorrenciaService,
+        private readonly RendaGeracaoService $rendaGeracaoService,
     ) {}
 
     /**
+     * @param  list<array{valor: float, data: Carbon|string}>  $compromissos
      * @return array{
      *     saldo_atual_contas: float,
      *     receitas_previstas: float,
@@ -44,19 +48,17 @@ class ProjetorFluxoCaixa
     public function projetar(
         int $idUsuario,
         ?Carbon $ate = null,
-        ?float $compromissoExtra = null,
-        ?Carbon $dataCompromisso = null,
+        array $compromissos = [],
         ?Carbon $referencia = null,
     ): array {
         $referencia = ($referencia ?? Carbon::today())->copy()->startOfDay();
         $ate = $this->resolverHorizonte($referencia, $ate);
-        $dataCompromisso = $dataCompromisso?->copy()->startOfDay();
-        $compromissoExtra = $compromissoExtra !== null ? round(max(0, $compromissoExtra), 2) : null;
+        $compromissosPorMes = $this->indexarCompromissosPorMes($compromissos);
 
-        $this->materializarRecorrenciasAte($idUsuario, $ate);
+        $this->materializarPrevistosAte($idUsuario, $ate);
 
         $saldoAtual = $this->somarSaldoAtualContasAtivas($idUsuario);
-        $atrasadas = $this->lancamentoRepository->somarPendenciasAtrasadasEmContas($idUsuario, $referencia);
+        $atrasadas = $this->lancamentoRepository->somarPendenciasAtrasadasConsolidadas($idUsuario, $referencia);
 
         $saldoCursor = round(
             $saldoAtual + $atrasadas['receitas'] - $atrasadas['despesas'],
@@ -73,24 +75,24 @@ class ProjetorFluxoCaixa
         while ($cursorMes->lte($fimMesLimite)) {
             $ano = (int) $cursorMes->year;
             $mes = (int) $cursorMes->month;
-            [$receitasMes, $despesasMes] = $this->pendenciasDoMesSemAtrasadasJaContadas(
+            [$receitasMes, $despesasMes] = $this->pendenciasConsolidadasDoMes(
                 $idUsuario,
                 $cursorMes,
                 $referencia,
             );
 
-            $saldoCursor = round($saldoCursor + $receitasMes - $despesasMes, 2);
+            [$receitasConta, $despesasConta] = $this->pendenciasContaDoMes(
+                $idUsuario,
+                $cursorMes,
+                $referencia,
+            );
 
-            $despesasExibidas = $despesasMes;
-            if (
-                $compromissoExtra
-                && $dataCompromisso
-                && $dataCompromisso->year === $ano
-                && $dataCompromisso->month === $mes
-            ) {
-                $saldoCursor = round($saldoCursor - $compromissoExtra, 2);
-                $despesasExibidas = round($despesasMes + $compromissoExtra, 2);
-            }
+            $chaveMes = sprintf('%04d-%02d', $ano, $mes);
+            $compromissoMes = round((float) ($compromissosPorMes[$chaveMes] ?? 0), 2);
+
+            $saldoCursor = round($saldoCursor + $receitasConta - $despesasConta - $compromissoMes, 2);
+            $despesasExibidas = round($despesasMes + $compromissoMes, 2);
+            $liquidoMes = round($receitasMes - $despesasMes, 2);
 
             $receitasPrevistas = round($receitasPrevistas + $receitasMes, 2);
             $despesasPrevistas = round($despesasPrevistas + $despesasMes, 2);
@@ -101,6 +103,7 @@ class ProjetorFluxoCaixa
                 'rotulo' => ucfirst($cursorMes->copy()->locale('pt_BR')->translatedFormat('F/Y')),
                 'receitas' => $receitasMes,
                 'despesas' => $despesasExibidas,
+                'liquido' => $liquidoMes,
                 'saldo_projetado' => $saldoCursor,
             ];
 
@@ -142,9 +145,63 @@ class ProjetorFluxoCaixa
     }
 
     /**
+     * @param  list<array{valor: float, data: Carbon|string}>  $compromissos
+     * @return array<string, float>
+     */
+    private function indexarCompromissosPorMes(array $compromissos): array
+    {
+        $porMes = [];
+
+        foreach ($compromissos as $compromisso) {
+            $data = $compromisso['data'] instanceof Carbon
+                ? $compromisso['data']->copy()->startOfDay()
+                : Carbon::parse($compromisso['data'])->startOfDay();
+            $chave = $data->format('Y-m');
+            $porMes[$chave] = round(($porMes[$chave] ?? 0) + (float) $compromisso['valor'], 2);
+        }
+
+        return $porMes;
+    }
+
+    /**
      * @return array{0: float, 1: float}
      */
-    private function pendenciasDoMesSemAtrasadasJaContadas(
+    private function pendenciasConsolidadasDoMes(
+        int $idUsuario,
+        Carbon $cursorMes,
+        Carbon $referencia,
+    ): array {
+        $ano = (int) $cursorMes->year;
+        $mes = (int) $cursorMes->month;
+        $pendenciasMes = $this->lancamentoRepository->somarPendenciasConsolidadasNoMes($idUsuario, $ano, $mes);
+        $receitasMes = $pendenciasMes['receitas'];
+        $despesasMes = $pendenciasMes['despesas'];
+
+        if (! $cursorMes->isSameMonth($referencia)) {
+            return [$receitasMes, $despesasMes];
+        }
+
+        $inicioMes = $cursorMes->copy()->startOfMonth();
+        if ($referencia->lte($inicioMes)) {
+            return [$receitasMes, $despesasMes];
+        }
+
+        $atrasadasNoMes = $this->lancamentoRepository->somarPendenciasConsolidadasNoPeriodo(
+            $idUsuario,
+            $inicioMes,
+            $referencia->copy()->subDay(),
+        );
+
+        return [
+            round(max(0, $receitasMes - $atrasadasNoMes['receitas']), 2),
+            round(max(0, $despesasMes - $atrasadasNoMes['despesas']), 2),
+        ];
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function pendenciasContaDoMes(
         int $idUsuario,
         Carbon $cursorMes,
         Carbon $referencia,
@@ -176,17 +233,16 @@ class ProjetorFluxoCaixa
         ];
     }
 
-    private function materializarRecorrenciasAte(int $idUsuario, Carbon $ate): void
+    private function materializarPrevistosAte(int $idUsuario, Carbon $ate): void
     {
         $cursor = Carbon::today()->startOfMonth();
         $fim = $ate->copy()->startOfMonth();
 
         while ($cursor->lte($fim)) {
-            $this->recorrenciaService->gerarParaMes(
-                $idUsuario,
-                (int) $cursor->year,
-                (int) $cursor->month,
-            );
+            $ano = (int) $cursor->year;
+            $mes = (int) $cursor->month;
+            $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
+            $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
             $cursor->addMonthNoOverflow();
         }
     }

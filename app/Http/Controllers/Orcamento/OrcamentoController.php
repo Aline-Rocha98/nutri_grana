@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers\Orcamento;
 
+use App\Enum\FormaPagamento;
+use App\Enum\ModalidadePagamentoOrcamento;
 use App\Enum\TipoOrcamento;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Orcamento\AtualizarOrcamentoRequest;
 use App\Http\Requests\Orcamento\CriarOrcamentoRequest;
+use App\Http\Resources\CartaoCredito\CartaoCreditoResource;
 use App\Http\Resources\Categoria\CategoriaResource;
+use App\Http\Resources\ContaBancaria\ContaBancariaResource;
 use App\Http\Resources\Orcamento\OrcamentoResource;
 use App\Http\Resources\Orcamento\OrcamentoServicoResource;
 use App\Models\Orcamento\Orcamento;
 use App\Models\Orcamento\OrcamentoServico;
+use App\Services\CartaoCredito\CartaoCreditoService;
 use App\Services\Categoria\CategoriaService;
+use App\Services\ContaBancaria\ContaBancariaService;
 use App\Services\Orcamento\OrcamentoService;
 use App\Services\Orcamento\OrcamentoServicoService;
 use Carbon\Carbon;
@@ -33,6 +39,8 @@ class OrcamentoController extends Controller
         private readonly OrcamentoService $orcamentoService,
         private readonly OrcamentoServicoService $orcamentoServicoService,
         private readonly CategoriaService $categoriaService,
+        private readonly ContaBancariaService $contaBancariaService,
+        private readonly CartaoCreditoService $cartaoCreditoService,
     ) {}
 
     public function index(Request $request, ?int $ano = null, ?int $mes = null): Response
@@ -59,10 +67,31 @@ class OrcamentoController extends Controller
         $orcamentos = [];
         $orcamentosServico = [];
         $categorias = [];
+        $contasBancarias = [];
+        $cartoesCredito = [];
 
         if ($tipoAtivo === TipoOrcamento::PorServico) {
             $orcamentosServico = OrcamentoServicoResource::collection(
                 $this->orcamentoServicoService->listarDoUsuario($idUsuario)
+            )->resolve();
+
+            $categorias = CategoriaResource::collection(
+                $this->categoriaService->listarPorUsuario($idUsuario)
+                    ->load('subcategorias')
+                    ->filter(fn ($categoria) => $categoria->tipo?->value === 'saida'
+                        && $categoria->arquivada?->value !== 'S'
+                        && $categoria->ehPrincipal())
+            )->resolve();
+
+            $contasBancarias = ContaBancariaResource::collection(
+                $this->contaBancariaService->listarPorUsuario($idUsuario)
+                    ->filter(fn ($conta) => $conta->arquivada?->value !== 'S')
+            )->resolve();
+
+            $cartoesCredito = CartaoCreditoResource::collection(
+                $this->cartaoCreditoService->listarPorUsuario($idUsuario)
+                    ->filter(fn ($cartao) => $cartao->arquivada?->value !== 'S')
+                    ->values()
             )->resolve();
         } else {
             $orcamentos = OrcamentoResource::collection(
@@ -86,9 +115,12 @@ class OrcamentoController extends Controller
             'orcamentos' => $orcamentos,
             'orcamentosServico' => $orcamentosServico,
             'categorias' => $categorias,
+            'contasBancarias' => $contasBancarias,
+            'cartoesCredito' => $cartoesCredito,
+            'formasPagamento' => FormaPagamento::opcoesParaSelect(),
+            'modalidadesPagamento' => ModalidadePagamentoOrcamento::opcoesParaSelect(),
             'tipoAtivo' => $tipoAtivo->value,
             'urlBase' => url('/orcamentos'),
-            'simulacaoOrcamentoServico' => $request->session()->get('simulacao_orcamento_servico'),
         ]);
     }
 

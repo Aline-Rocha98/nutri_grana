@@ -67,7 +67,6 @@ class HandleInertiaRequests extends Middleware
                 'orcamentosIndex' => route('orcamentos.index'),
                 'orcamentosCriar' => route('orcamentos.criar'),
                 'orcamentosServicoCriar' => route('orcamentos.servico.criar'),
-                'orcamentosServicoSimular' => route('orcamentos.servico.simular'),
                 'rendasIndex' => route('rendas.index'),
                 'rendasCriar' => route('rendas.criar'),
             ],

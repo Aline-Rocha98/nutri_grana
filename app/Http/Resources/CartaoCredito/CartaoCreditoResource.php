@@ -18,6 +18,8 @@ class CartaoCreditoResource extends JsonResource
             'nome' => $this->nome,
             'limite_total' => number_format((float) $this->limite_total, 2, ',', '.'),
             'limite_total_numero' => (float) $this->limite_total,
+            'limite_disponivel' => number_format((float) ($this->limite_disponivel ?? $this->limite_total), 2, ',', '.'),
+            'limite_disponivel_numero' => (float) ($this->limite_disponivel ?? $this->limite_total),
             'dia_fechamento' => (int) $this->dia_fechamento,
             'dia_fechamento_formatado' => FormatarDia::pad($this->dia_fechamento),
             'dia_vencimento' => (int) $this->dia_vencimento,

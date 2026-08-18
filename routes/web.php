@@ -98,10 +98,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/orcamentos/servico', [OrcamentoServicoController::class, 'criar'])
         ->name('orcamentos.servico.criar');
-    Route::post('/orcamentos/servico/simular', [OrcamentoServicoController::class, 'simular'])
-        ->name('orcamentos.servico.simular');
     Route::put('/orcamentos/servico/{orcamentoServico}', [OrcamentoServicoController::class, 'atualizar'])
         ->name('orcamentos.servico.atualizar');
+    Route::post('/orcamentos/servico/{orcamentoServico}/aprovar', [OrcamentoServicoController::class, 'aprovar'])
+        ->name('orcamentos.servico.aprovar');
+    Route::post('/orcamentos/servico/{orcamentoServico}/recusar', [OrcamentoServicoController::class, 'recusar'])
+        ->name('orcamentos.servico.recusar');
     Route::delete('/orcamentos/servico/{orcamentoServico}', [OrcamentoServicoController::class, 'excluir'])
         ->name('orcamentos.servico.excluir');
 });

@@ -4,8 +4,10 @@ namespace App\Repositories\CartaoCredito;
 
 use App\Enum\SituacaoFatura;
 use App\Enum\SituacaoLancamento;
+use App\Enum\TipoLancamento;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\FaturaCartao\FaturaCartao;
+use App\Models\Lancamento\Lancamento;
 use Illuminate\Support\Collection;
 
 class CartaoCreditoRepository
@@ -19,11 +21,32 @@ class CartaoCreditoRepository
             ->get();
 
         return $cartoes->each(function (CartaoCredito $cartao): void {
-            $cartao->setAttribute(
-                'tem_fatura_aberta',
-                $this->temFaturaAberta($cartao)
-            );
+            $usado = $this->somarUsoEmAberto((int) $cartao->id_cartao_credito);
+            $limiteDisponivel = round(max(0, (float) $cartao->limite_total - $usado), 2);
+
+            $cartao->setAttribute('tem_fatura_aberta', $this->temFaturaAberta($cartao));
+            $cartao->setAttribute('limite_usado', $usado);
+            $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
         });
+    }
+
+    public function somarUsoEmAberto(int $idCartaoCredito): float
+    {
+        return (float) Lancamento::query()
+            ->where('id_cartao_credito', $idCartaoCredito)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', 'N')
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->where(function ($query) {
+                $query->whereNull('id_fatura_cartao')
+                    ->orWhereHas('faturaCartao', function ($fatura) {
+                        $fatura->whereIn('situacao', [
+                            SituacaoFatura::Aberta,
+                            SituacaoFatura::Fechada,
+                        ]);
+                    });
+            })
+            ->sum('valor');
     }
 
     public function limparPadraoDoUsuario(int $idUsuario, ?int $excetoId = null): void

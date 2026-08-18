@@ -33,7 +33,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('faturas_cartao', 'id_fatura_cartao')
                 ->nullOnDelete();
-            $table->enum('situacao', ['pendente', 'pago', 'cancelado'])->default('pendente');
+            $table->enum('situacao', ['pendente', 'pago', 'cancelado', 'previsto', 'recebido'])->default('pendente');
             $table->foreignId('id_categoria')
                 ->nullable()
                 ->constrained('categorias', 'id_categoria')

@@ -2,6 +2,7 @@
 
 namespace App\Policies\Orcamento;
 
+use App\Enum\StatusOrcamentoServico;
 use App\Models\Orcamento\OrcamentoServico;
 use App\Models\Usuario\Usuario;
 
@@ -24,12 +25,25 @@ class OrcamentoServicoPolicy
 
     public function update(Usuario $usuario, OrcamentoServico $orcamentoServico): bool
     {
-        return $this->pertenceAoUsuario($usuario, $orcamentoServico);
+        return $this->pertenceAoUsuario($usuario, $orcamentoServico)
+            && $orcamentoServico->status === StatusOrcamentoServico::EmAnalise;
     }
 
     public function delete(Usuario $usuario, OrcamentoServico $orcamentoServico): bool
     {
         return $this->pertenceAoUsuario($usuario, $orcamentoServico);
+    }
+
+    public function approve(Usuario $usuario, OrcamentoServico $orcamentoServico): bool
+    {
+        return $this->pertenceAoUsuario($usuario, $orcamentoServico)
+            && $orcamentoServico->status === StatusOrcamentoServico::EmAnalise;
+    }
+
+    public function reject(Usuario $usuario, OrcamentoServico $orcamentoServico): bool
+    {
+        return $this->pertenceAoUsuario($usuario, $orcamentoServico)
+            && $orcamentoServico->status === StatusOrcamentoServico::EmAnalise;
     }
 
     private function pertenceAoUsuario(Usuario $usuario, OrcamentoServico $orcamentoServico): bool

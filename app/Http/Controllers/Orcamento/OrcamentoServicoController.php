@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Orcamento;
 
 use App\Enum\TipoOrcamento;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Orcamento\AprovarOrcamentoServicoRequest;
 use App\Http\Requests\Orcamento\AtualizarOrcamentoServicoRequest;
 use App\Http\Requests\Orcamento\CriarOrcamentoServicoRequest;
-use App\Http\Requests\Orcamento\SimularOrcamentoServicoRequest;
-use App\Http\Resources\Orcamento\OrcamentoServicoResource;
 use App\Models\Orcamento\OrcamentoServico;
 use App\Services\Orcamento\OrcamentoServicoService;
 use Exception;
@@ -36,7 +35,7 @@ class OrcamentoServicoController extends Controller
             DB::commit();
 
             return $this->redirecionarParaIndex()
-                ->with('sucesso', 'Orçamento por serviço criado com sucesso.');
+                ->with('sucesso', 'Cotação registrada com sucesso.');
         } catch (ValidationException $e) {
             DB::rollBack();
 
@@ -49,7 +48,7 @@ class OrcamentoServicoController extends Controller
 
             return redirect()
                 ->back()
-                ->with('erro', 'Erro ao criar orçamento por serviço.')
+                ->with('erro', 'Erro ao registrar a cotação.')
                 ->withInput();
         }
     }
@@ -70,7 +69,7 @@ class OrcamentoServicoController extends Controller
             DB::commit();
 
             return $this->redirecionarParaIndex()
-                ->with('sucesso', 'Orçamento por serviço atualizado com sucesso.');
+                ->with('sucesso', 'Cotação atualizada com sucesso.');
         } catch (ValidationException $e) {
             DB::rollBack();
 
@@ -83,7 +82,66 @@ class OrcamentoServicoController extends Controller
 
             return redirect()
                 ->back()
-                ->with('erro', 'Erro ao atualizar orçamento por serviço.');
+                ->with('erro', 'Erro ao atualizar a cotação.');
+        }
+    }
+
+    public function aprovar(
+        AprovarOrcamentoServicoRequest $request,
+        OrcamentoServico $orcamentoServico,
+    ): RedirectResponse {
+        $this->authorize('approve', $orcamentoServico);
+
+        try {
+            DB::beginTransaction();
+            $this->orcamentoServicoService->aprovar(
+                $orcamentoServico,
+                (int) Auth::id(),
+                $request->validated(),
+            );
+            DB::commit();
+
+            return $this->redirecionarParaIndex()
+                ->with('sucesso', 'Cotação aprovada. Os compromissos futuros foram gerados como previstos.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('erro', 'Erro ao aprovar a cotação.');
+        }
+    }
+
+    public function recusar(Request $request, OrcamentoServico $orcamentoServico): RedirectResponse
+    {
+        $this->authorize('reject', $orcamentoServico);
+
+        try {
+            DB::beginTransaction();
+            $this->orcamentoServicoService->recusar($orcamentoServico, (int) Auth::id());
+            DB::commit();
+
+            return $this->redirecionarParaIndex()
+                ->with('sucesso', 'Cotação recusada.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withErrors($e->errors());
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('erro', 'Erro ao recusar a cotação.');
         }
     }
 
@@ -97,59 +155,17 @@ class OrcamentoServicoController extends Controller
             DB::commit();
 
             return $this->redirecionarParaIndex()
-                ->with('sucesso', 'Orçamento por serviço excluído com sucesso.');
+                ->with('sucesso', 'Cotação excluída com sucesso.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return $this->redirecionarParaIndex()
+                ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
 
             return $this->redirecionarParaIndex()
-                ->with('erro', 'Erro ao excluir orçamento por serviço.');
-        }
-    }
-
-    public function simular(SimularOrcamentoServicoRequest $request): RedirectResponse
-    {
-        $this->authorize('create', OrcamentoServico::class);
-
-        try {
-            $simulacao = $this->orcamentoServicoService->simular(
-                (int) Auth::id(),
-                $request->validated(),
-            );
-
-            return $this->redirecionarParaIndex()
-                ->with('simulacao_orcamento_servico', [
-                    'descricao' => $request->input('descricao'),
-                    'valor' => number_format((float) $request->input('valor'), 2, ',', '.'),
-                    'valor_numero' => (float) $request->input('valor'),
-                    'data_orcamento' => $request->input('data_orcamento'),
-                    'data_validade' => $request->input('data_validade'),
-                    'observacao' => $request->input('observacao'),
-                    'viabilidade' => [
-                        'mensagem_principal' => $simulacao['mensagem_principal'],
-                        'mensagem_disponivel' => $simulacao['mensagem_disponivel'],
-                        'mensagem_alerta' => $simulacao['mensagem_alerta'],
-                        'pago_integralmente_agora' => $simulacao['pago_integralmente_agora'],
-                        'meses_ate_pagar' => $simulacao['meses_ate_pagar'],
-                        'compromete_fluxo' => $simulacao['compromete_fluxo'],
-                        'saldo_atual_contas' => $simulacao['saldo_atual_contas_formatado'],
-                        'saldo_disponivel_planejamento' => $simulacao['saldo_disponivel_planejamento_formatado'],
-                        'comparativo' => [
-                            'mes_rotulo' => $simulacao['comparativo']['mes_rotulo'],
-                            'saldo_sem_orcamento' => $simulacao['comparativo']['saldo_sem_orcamento_formatado'],
-                            'saldo_sem_orcamento_numero' => $simulacao['comparativo']['saldo_sem_orcamento'],
-                            'saldo_com_orcamento' => $simulacao['comparativo']['saldo_com_orcamento_formatado'],
-                            'saldo_com_orcamento_numero' => $simulacao['comparativo']['saldo_com_orcamento'],
-                        ],
-                    ],
-                ]);
-        } catch (ValidationException $e) {
-            return $this->redirecionarParaIndex()
-                ->withErrors($e->errors())
-                ->withInput();
-        } catch (Exception $e) {
-            return $this->redirecionarParaIndex()
-                ->with('erro', 'Erro ao simular o orçamento.')
-                ->withInput();
+                ->with('erro', 'Erro ao excluir a cotação.');
         }
     }
 
