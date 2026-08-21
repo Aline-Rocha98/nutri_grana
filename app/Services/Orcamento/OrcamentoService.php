@@ -9,6 +9,7 @@ use App\Models\Categoria\Categoria;
 use App\Models\Orcamento\Orcamento;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Repositories\Orcamento\OrcamentoRepository;
+use App\Support\Dashboard\DashboardCache;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
@@ -63,7 +64,11 @@ class OrcamentoService
 
         $orcamento->load('categoria');
 
-        return $this->anexarResumo($orcamento, $idUsuario);
+        $resumo = $this->anexarResumo($orcamento, $idUsuario);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $resumo;
     }
 
     public function atualizar(Orcamento $orcamento, int $idUsuario, array $dados): Orcamento
@@ -96,7 +101,11 @@ class OrcamentoService
 
         $atualizado->load('categoria');
 
-        return $this->anexarResumo($atualizado, $idUsuario);
+        $resumo = $this->anexarResumo($atualizado, $idUsuario);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $resumo;
     }
 
     public function excluir(Orcamento $orcamento, int $idUsuario): void
@@ -104,6 +113,8 @@ class OrcamentoService
         $this->garantirPropriedade($orcamento, $idUsuario);
 
         $this->orcamentoRepository->excluir($orcamento);
+
+        DashboardCache::invalidar($idUsuario);
     }
 
     public function anexarResumo(Orcamento $orcamento, int $idUsuario, ?Carbon $referencia = null): Orcamento

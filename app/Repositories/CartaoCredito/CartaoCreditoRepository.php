@@ -2,6 +2,7 @@
 
 namespace App\Repositories\CartaoCredito;
 
+use App\Enum\SimNao;
 use App\Enum\SituacaoFatura;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
@@ -27,6 +28,28 @@ class CartaoCreditoRepository
             $cartao->setAttribute('tem_fatura_aberta', $this->temFaturaAberta($cartao));
             $cartao->setAttribute('limite_usado', $usado);
             $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
+        });
+    }
+
+    public function listarParaDashboard(int $idUsuario): Collection
+    {
+        $cartoes = CartaoCredito::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('arquivada', SimNao::Nao)
+            ->orderBy('nome')
+            ->get();
+
+        return $cartoes->each(function (CartaoCredito $cartao): void {
+            $usado = $this->somarUsoEmAberto((int) $cartao->id_cartao_credito);
+            $limiteTotal = (float) $cartao->limite_total;
+            $limiteDisponivel = round(max(0, $limiteTotal - $usado), 2);
+            $percentual = $limiteTotal > 0
+                ? round(($usado / $limiteTotal) * 100, 1)
+                : 0.0;
+
+            $cartao->setAttribute('limite_usado', $usado);
+            $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
+            $cartao->setAttribute('percentual_utilizado', $percentual);
         });
     }
 

@@ -12,6 +12,7 @@ use App\Models\FaturaCartao\FaturaCartao;
 use App\Models\Lancamento\Lancamento;
 use App\Repositories\FaturaCartao\FaturaCartaoRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
+use App\Support\Dashboard\DashboardCache;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
@@ -109,11 +110,15 @@ class FaturaCartaoService
                 'data_pagamento' => $dataPagamento->toDateString(),
             ]);
 
-        return $this->faturaCartaoRepository->atualizar($fatura, [
+        $atualizada = $this->faturaCartaoRepository->atualizar($fatura, [
             'situacao' => SituacaoFatura::Paga,
             'id_conta_bancaria_pagamento' => $contaBancaria->id_conta_bancaria,
             'id_lancamento_pagamento' => $pagamento->id_lancamento,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizada;
     }
 
     public function temFaturaAberta(CartaoCredito $cartao): bool
