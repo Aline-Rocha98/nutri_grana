@@ -73,4 +73,15 @@ class FaturaCartaoRepository
             ->where('situacao', '!=', SituacaoLancamento::Cancelado)
             ->sum('valor');
     }
+
+    public function valorPorCompetencia(int $idCartao, int $ano, int $mes): float
+    {
+        $fatura = $this->buscarPorCompetencia($idCartao, $ano, $mes);
+
+        if (!$fatura) {
+            return 0.0;
+        }
+
+        return $this->valorTotal($fatura);
+    }
 }

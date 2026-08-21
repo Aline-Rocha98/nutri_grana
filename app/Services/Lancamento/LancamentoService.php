@@ -16,6 +16,7 @@ use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\FaturaCartao\FaturaCartaoService;
 use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
 use App\Services\Renda\RendaGeracaoService;
+use App\Support\Dashboard\DashboardCache;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -80,14 +81,16 @@ class LancamentoService
         }
 
         if ($ehRecorrente) {
-            return collect([$this->criarRecorrente($idUsuario, $dados)]);
+            $criados = collect([$this->criarRecorrente($idUsuario, $dados)]);
+        } elseif ($parcelas > 1) {
+            $criados = $this->criarParcelado($idUsuario, $dados, $parcelas);
+        } else {
+            $criados = collect([$this->criarSimples($idUsuario, $dados)]);
         }
 
-        if ($parcelas > 1) {
-            return $this->criarParcelado($idUsuario, $dados, $parcelas);
-        }
+        DashboardCache::invalidar($idUsuario);
 
-        return collect([$this->criarSimples($idUsuario, $dados)]);
+        return $criados;
     }
 
     public function atualizar(Lancamento $lancamento, int $idUsuario, array $dados): Lancamento
@@ -121,7 +124,11 @@ class LancamentoService
             $payload['data_pagamento'] = null;
         }
 
-        return $this->lancamentoRepository->atualizar($lancamento, $payload);
+        $atualizado = $this->lancamentoRepository->atualizar($lancamento, $payload);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizado;
     }
 
     public function alterarSituacao(Lancamento $lancamento, int $idUsuario, SituacaoLancamento $situacao): Lancamento
@@ -144,7 +151,11 @@ class LancamentoService
             $dados['data_pagamento'] = null;
         }
 
-        return $this->lancamentoRepository->atualizar($lancamento, $dados);
+        $atualizado = $this->lancamentoRepository->atualizar($lancamento, $dados);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizado;
     }
 
     public function confirmarReceita(Lancamento $lancamento, int $idUsuario, array $dados): Lancamento
@@ -163,11 +174,15 @@ class LancamentoService
             ]);
         }
 
-        return $this->lancamentoRepository->atualizar($lancamento, [
+        $atualizado = $this->lancamentoRepository->atualizar($lancamento, [
             'valor' => $dados['valor_recebido'],
             'data_pagamento' => $dados['data_recebimento'],
             'situacao' => SituacaoLancamento::Recebido,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizado;
     }
 
     public function excluir(Lancamento $lancamento, int $idUsuario, bool $futuras = false): void
@@ -186,6 +201,8 @@ class LancamentoService
                 );
             }
 
+            DashboardCache::invalidar($idUsuario);
+
             return;
         }
 
@@ -199,10 +216,14 @@ class LancamentoService
                 ['situacao' => SituacaoLancamento::Cancelado]
             );
 
+            DashboardCache::invalidar($idUsuario);
+
             return;
         }
 
         $this->lancamentoRepository->excluir($lancamento);
+
+        DashboardCache::invalidar($idUsuario);
     }
 
     private function criarSimples(int $idUsuario, array $dados): Lancamento

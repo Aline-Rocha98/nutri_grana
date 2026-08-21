@@ -13,13 +13,8 @@ use Illuminate\Support\Collection;
 
 class LancamentoRepository
 {
-    public function listarDoMes(
-        int $idUsuario,
-        int $ano,
-        int $mes,
-        array $filtros = [],
-        int $porPagina = 20,
-    ): LengthAwarePaginator {
+    public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
+    {
         $query = Lancamento::query()
             ->with(['categoria.pai', 'contaBancaria', 'cartaoCredito', 'pai'])
             ->ocorrenciasDoMes($idUsuario, $ano, $mes)
@@ -243,13 +238,8 @@ class LancamentoRepository
             ->update(['situacao' => SituacaoLancamento::Cancelado]);
     }
 
-    public function somarDespesasDasCategoriasNoMes(
-        int $idUsuario,
-        array $idsCategorias,
-        int $ano,
-        int $mes,
-        ?int $excetoIdLancamento = null,
-    ): float {
+    public function somarDespesasDasCategoriasNoMes(int $idUsuario, array $idsCategorias, int $ano, int $mes, ?int $excetoIdLancamento = null): float 
+    {
         if ($idsCategorias === []) {
             return 0.0;
         }
@@ -271,12 +261,47 @@ class LancamentoRepository
             ->sum('valor');
     }
 
-    public function somarPendenciasEmContasNoPeriodo(
-        int $idUsuario,
-        Carbon $inicio,
-        Carbon $fim,
-        bool $incluirAtrasadas = false,
-    ): array {
+    public function despesasAgrupadasPorCategoriaNoMes(int $idUsuario, int $ano, int $mes): Collection
+    {
+        $inicio = sprintf('%04d-%02d-01', $ano, $mes);
+        $fim = date('Y-m-t', strtotime($inicio));
+
+        $linhas = Lancamento::query()
+            ->where('lancamentos.id_usuario', $idUsuario)
+            ->where('lancamentos.tipo', TipoLancamento::Despesa)
+            ->where('lancamentos.eh_recorrencia', SimNao::Nao)
+            ->where('lancamentos.situacao', '!=', SituacaoLancamento::Cancelado)
+            ->whereNotNull('lancamentos.id_categoria')
+            ->whereBetween('lancamentos.data_vencimento', [$inicio, $fim])
+            ->join('categorias', 'categorias.id_categoria', '=', 'lancamentos.id_categoria')
+            ->leftJoin('categorias as pais', 'pais.id_categoria', '=', 'categorias.id_categoria_pai')
+            ->selectRaw('
+                COALESCE(pais.id_categoria, categorias.id_categoria) as id_categoria,
+                COALESCE(pais.nome, categorias.nome) as nome,
+                COALESCE(pais.cor, categorias.cor) as cor,
+                COALESCE(pais.icone, categorias.icone) as icone,
+                SUM(lancamentos.valor) as total
+            ')
+            ->groupByRaw('
+                COALESCE(pais.id_categoria, categorias.id_categoria),
+                COALESCE(pais.nome, categorias.nome),
+                COALESCE(pais.cor, categorias.cor),
+                COALESCE(pais.icone, categorias.icone)
+            ')
+            ->orderByDesc('total')
+            ->get();
+
+        return $linhas->map(fn ($linha) => (object) [
+            'id_categoria' => (int) $linha->id_categoria,
+            'nome' => (string) $linha->nome,
+            'cor' => $linha->cor,
+            'icone' => $linha->icone,
+            'valor' => round((float) $linha->total, 2),
+        ]);
+    }
+
+    public function somarPendenciasEmContasNoPeriodo(int $idUsuario, Carbon $inicio, Carbon $fim, bool $incluirAtrasadas = false): array 
+    {
         $linhas = Lancamento::query()
             ->where('id_usuario', $idUsuario)
             ->where('eh_recorrencia', SimNao::Nao)
@@ -345,11 +370,8 @@ class LancamentoRepository
             ->sum('valor');
     }
 
-    public function somarPendenciasEmCartoesNoPeriodo(
-        int $idUsuario,
-        Carbon $inicio,
-        Carbon $fim,
-    ): array {
+    public function somarPendenciasEmCartoesNoPeriodo(int $idUsuario, Carbon $inicio, Carbon $fim): array 
+    {
         $linhas = Lancamento::query()
             ->where('id_usuario', $idUsuario)
             ->where('eh_recorrencia', SimNao::Nao)
@@ -388,11 +410,8 @@ class LancamentoRepository
         ];
     }
 
-    public function somarPendenciasConsolidadasNoPeriodo(
-        int $idUsuario,
-        Carbon $inicio,
-        Carbon $fim,
-    ): array {
+    public function somarPendenciasConsolidadasNoPeriodo(int $idUsuario, Carbon $inicio, Carbon $fim): array 
+    {
         $conta = $this->somarPendenciasEmContasNoPeriodo($idUsuario, $inicio, $fim);
         $cartao = $this->somarPendenciasEmCartoesNoPeriodo($idUsuario, $inicio, $fim);
 

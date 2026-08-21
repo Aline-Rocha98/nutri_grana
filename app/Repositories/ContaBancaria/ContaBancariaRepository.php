@@ -32,6 +32,21 @@ class ContaBancariaRepository
         });
     }
 
+    public function listarParaDashboard(int $idUsuario): Collection
+    {
+        $contas = ContaBancaria::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('arquivada', SimNao::Nao)
+            ->where('exibir_resumo', SimNao::Sim)
+            ->orderBy('nome')
+            ->get();
+
+        return $contas->each(function (ContaBancaria $conta): void {
+            $movimentado = $this->saldoMovimentado((int) $conta->id_conta_bancaria);
+            $conta->setAttribute('saldo_atual', (float) $conta->saldo_inicial + $movimentado);
+        });
+    }
+
     public function buscarParaUsuario(int $id, int $idUsuario): ?ContaBancaria
     {
         return ContaBancaria::query()

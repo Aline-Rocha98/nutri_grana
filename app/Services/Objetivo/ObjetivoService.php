@@ -5,6 +5,7 @@ namespace App\Services\Objetivo;
 use App\Enum\SimNao;
 use App\Models\Objetivo\Objetivo;
 use App\Repositories\Objetivo\ObjetivoRepository;
+use App\Support\Dashboard\DashboardCache;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 
@@ -41,7 +42,11 @@ class ObjetivoService
 
         $objetivo->setAttribute('valor_guardado', 0);
 
-        return $this->anexarResumo($objetivo);
+        $resumo = $this->anexarResumo($objetivo);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $resumo;
     }
 
     public function atualizar(Objetivo $objetivo, int $idUsuario, array $dados): Objetivo
@@ -57,7 +62,11 @@ class ObjetivoService
 
         $atualizado->loadSum('aportes as valor_guardado', 'valor');
 
-        return $this->anexarResumo($atualizado);
+        $resumo = $this->anexarResumo($atualizado);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $resumo;
     }
 
     public function excluir(Objetivo $objetivo, int $idUsuario): void
@@ -65,6 +74,8 @@ class ObjetivoService
         $this->garantirPropriedade($objetivo, $idUsuario);
 
         $this->objetivoRepository->excluir($objetivo);
+
+        DashboardCache::invalidar($idUsuario);
     }
 
     public function anexarResumo(Objetivo $objetivo): Objetivo

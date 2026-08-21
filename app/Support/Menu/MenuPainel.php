@@ -9,6 +9,7 @@ class MenuPainel
 {
     private const ICONES_MATERIAL = [
         'home' => 'grid_view',
+        'dashboard' => 'dashboard',
         'financeiro' => 'account_balance_wallet',
         'objetivos' => 'flag',
         'orcamentos' => 'donut_large',
@@ -24,6 +25,13 @@ class MenuPainel
                 'rotulo' => 'Home',
                 'icone' => 'home',
                 'rota' => 'home',
+            ],
+            [
+                'tipo' => 'link',
+                'id' => 'dashboard',
+                'rotulo' => 'Dashboard',
+                'icone' => 'dashboard',
+                'rota' => 'dashboard',
             ],
             [
                 'tipo' => 'grupo',

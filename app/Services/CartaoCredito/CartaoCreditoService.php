@@ -5,6 +5,7 @@ namespace App\Services\CartaoCredito;
 use App\Enum\SimNao;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Repositories\CartaoCredito\CartaoCreditoRepository;
+use App\Support\Dashboard\DashboardCache;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +29,7 @@ class CartaoCreditoService
             $this->cartaoCreditoRepository->limparPadraoDoUsuario($idUsuario);
         }
 
-        return $this->cartaoCreditoRepository->criar([
+        $cartao = $this->cartaoCreditoRepository->criar([
             'id_usuario' => $idUsuario,
             'nome' => $dados['nome'],
             'limite_total' => $dados['limite_total'],
@@ -38,6 +39,10 @@ class CartaoCreditoService
             'padrao' => $padrao,
             'arquivada' => SimNao::Nao,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $cartao;
     }
 
     public function atualizar(CartaoCredito $cartaoCredito, int $idUsuario, array $dados): CartaoCredito
@@ -64,16 +69,24 @@ class CartaoCreditoService
             }
         }
 
-        return $this->cartaoCreditoRepository->atualizar($cartaoCredito, $dadosAtualizacao);
+        $atualizado = $this->cartaoCreditoRepository->atualizar($cartaoCredito, $dadosAtualizacao);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizado;
     }
 
     public function arquivar(CartaoCredito $cartaoCredito, int $idUsuario, SimNao $arquivada = SimNao::Sim): CartaoCredito
     {
         $this->garantirPropriedade($cartaoCredito, $idUsuario);
 
-        return $this->cartaoCreditoRepository->atualizar($cartaoCredito, [
+        $atualizado = $this->cartaoCreditoRepository->atualizar($cartaoCredito, [
             'arquivada' => $arquivada,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizado;
     }
 
     public function excluir(CartaoCredito $cartaoCredito, int $idUsuario): void
@@ -87,6 +100,8 @@ class CartaoCreditoService
         }
 
         $this->cartaoCreditoRepository->excluir($cartaoCredito);
+
+        DashboardCache::invalidar($idUsuario);
     }
 
     private function garantirPropriedade(CartaoCredito $cartaoCredito, int $idUsuario): void

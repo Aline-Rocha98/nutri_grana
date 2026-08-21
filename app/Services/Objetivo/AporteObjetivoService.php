@@ -13,6 +13,7 @@ use App\Models\Objetivo\Objetivo;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Repositories\Objetivo\AporteObjetivoRepository;
+use App\Support\Dashboard\DashboardCache;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -45,10 +46,14 @@ class AporteObjetivoService
             ]);
         }
 
-        return match ($tipo) {
+        $aporte = match ($tipo) {
             TipoAporteObjetivo::Manual => $this->registrarAporteManual($objetivo, $idUsuario, $dados, $valor),
             TipoAporteObjetivo::ContaBancaria => $this->registrarAporteComConta($objetivo, $idUsuario, $dados, $valor),
         };
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $aporte;
     }
 
     private function registrarAporteManual(Objetivo $objetivo, int $idUsuario, array $dados, float $valor): AporteObjetivo 

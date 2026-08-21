@@ -5,6 +5,7 @@ namespace App\Services\ContaBancaria;
 use App\Enum\SimNao;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
+use App\Support\Dashboard\DashboardCache;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +30,7 @@ class ContaBancariaService
             $this->contaBancariaRepository->limparPadraoDescontoDoUsuario($idUsuario);
         }
 
-        return $this->contaBancariaRepository->criar([
+        $conta = $this->contaBancariaRepository->criar([
             'id_usuario' => $idUsuario,
             'nome' => $dados['nome'],
             'saldo_inicial' => $dados['saldo_inicial'],
@@ -38,6 +39,10 @@ class ContaBancariaService
             'padrao_desconto' => $padraoDesconto,
             'exibir_resumo' => $exibirResumo,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $conta;
     }
 
     public function atualizar(ContaBancaria $contaBancaria, int $idUsuario, array $dados): ContaBancaria
@@ -69,16 +74,24 @@ class ContaBancariaService
             $dadosAtualizacao['exibir_resumo'] = $dados['exibir_resumo'];
         }
 
-        return $this->contaBancariaRepository->atualizar($contaBancaria, $dadosAtualizacao);
+        $atualizada = $this->contaBancariaRepository->atualizar($contaBancaria, $dadosAtualizacao);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizada;
     }
 
     public function arquivar(ContaBancaria $contaBancaria, int $idUsuario, SimNao $arquivada = SimNao::Sim): ContaBancaria
     {
         $this->garantirPropriedade($contaBancaria, $idUsuario);
 
-        return $this->contaBancariaRepository->atualizar($contaBancaria, [
+        $atualizada = $this->contaBancariaRepository->atualizar($contaBancaria, [
             'arquivada' => $arquivada,
         ]);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizada;
     }
 
     public function excluir(ContaBancaria $contaBancaria, int $idUsuario): void
@@ -92,6 +105,8 @@ class ContaBancariaService
         }
 
         $this->contaBancariaRepository->excluir($contaBancaria);
+
+        DashboardCache::invalidar($idUsuario);
     }
 
     private function garantirPropriedade(ContaBancaria $contaBancaria, int $idUsuario): void

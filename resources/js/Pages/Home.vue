@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
+import BarraProgresso from '@/Components/BarraProgresso.vue';
 
 defineProps({
     usuario: {
@@ -79,17 +80,21 @@ function classeSituacao(situacao) {
                             <span>{{ objetivo.percentual_atual }}%</span>
                             <span>R$ {{ objetivo.valor_guardado }} / R$ {{ objetivo.valor_meta }}</span>
                         </div>
-                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div
-                                class="h-full rounded-full bg-[#1fa67e]"
-                                :style="{ width: `${Math.min(100, objetivo.percentual_atual)}%` }"
-                            />
+                        <div class="mt-2">
+                            <BarraProgresso :percentual="objetivo.percentual_atual" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Link
+                    href="/dashboard"
+                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center hover:border-[#1fa67e]/40 transition"
+                >
+                    <h4 class="font-semibold text-gray-800">Dashboard</h4>
+                    <p class="mt-2 text-sm text-gray-500">Resumo financeiro e gráficos</p>
+                </Link>
                 <Link
                     :href="urlLancamentos"
                     class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 text-center hover:border-[#1fa67e]/40 transition"

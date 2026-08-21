@@ -3,6 +3,7 @@
 use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
 use App\Http\Controllers\Categoria\CategoriaController;
 use App\Http\Controllers\ContaBancaria\ContaBancariaController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\FaturaCartao\FaturaCartaoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Lancamento\LancamentoController;
@@ -19,7 +20,8 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
-    Route::redirect('/dashboard', '/home');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/dados', [DashboardController::class, 'dados'])->name('dashboard.dados');
 
     // Usuário
     Route::redirect('/profile', '/usuario/perfil');
