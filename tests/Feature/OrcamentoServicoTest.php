@@ -250,6 +250,48 @@ class OrcamentoServicoTest extends TestCase
         );
     }
 
+    public function test_listagem_nao_quebra_com_cotacao_aprovada_ou_expirada(): void
+    {
+        $usuario = Usuario::factory()->create();
+        $conta = $this->criarConta($usuario, 5000);
+
+        OrcamentoServico::query()->create([
+            'id_usuario' => $usuario->id_usuario,
+            'descricao' => 'Móveis aprovados',
+            'valor' => 1000,
+            'data_orcamento' => now()->toDateString(),
+            'data_validade' => now()->addMonth()->toDateString(),
+            'status' => StatusOrcamentoServico::Aprovada,
+            'forma_pagamento' => FormaPagamento::ContaBancaria,
+            'id_conta_bancaria' => $conta->id_conta_bancaria,
+            'data_aprovacao' => now(),
+        ]);
+
+        OrcamentoServico::query()->create([
+            'id_usuario' => $usuario->id_usuario,
+            'descricao' => 'Reforma expirada',
+            'valor' => 2000,
+            'data_orcamento' => now()->subMonths(2)->toDateString(),
+            'data_validade' => now()->subDay()->toDateString(),
+            'status' => StatusOrcamentoServico::Expirada,
+            'forma_pagamento' => FormaPagamento::ContaBancaria,
+            'id_conta_bancaria' => $conta->id_conta_bancaria,
+        ]);
+
+        $response = $this
+            ->actingAs($usuario)
+            ->get('/orcamentos?tipo=por_servico');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('orcamentosServico', 2)
+            ->has('orcamentosServico.0.liquido_medio_mensal')
+            ->has('orcamentosServico.0.cenarios')
+            ->has('orcamentosServico.1.liquido_medio_mensal')
+            ->has('orcamentosServico.1.cenarios')
+        );
+    }
+
     public function test_cotacao_sem_id_conta_usa_conta_padrao_na_simulacao(): void
     {
         $usuario = Usuario::factory()->create();
