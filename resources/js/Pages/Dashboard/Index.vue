@@ -43,7 +43,7 @@ const opcoesWidgets = [
     { id: 'cartoes', rotulo: 'Cartões' },
     { id: 'categorias', rotulo: 'Categorias' },
     { id: 'receitas_despesas', rotulo: 'Receitas x despesas' },
-    { id: 'metas', rotulo: 'Metas' },
+    { id: 'metas', rotulo: 'Objetivos' },
 ];
 
 const widgets = reactive({});
@@ -204,7 +204,6 @@ onMounted(() => {
                         :carregando="carregando && !payload.metas"
                     />
                 </div>
-
                 <ReceitasDespesasChart
                     v-if="widgets.receitas_despesas"
                     :dados="payload.receitas_despesas"

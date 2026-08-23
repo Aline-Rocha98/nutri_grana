@@ -181,6 +181,8 @@ class OrcamentoServicoService
     ): OrcamentoServico {
         $referencia = ($referencia ?? Carbon::today())->copy()->startOfDay();
 
+        $this->anexarAtributosSimulacaoPadrao($orcamento, $referencia);
+
         if ($orcamento->status === StatusOrcamentoServico::EmAnalise) {
             $forma = $orcamento->forma_pagamento instanceof FormaPagamento
                 ? $orcamento->forma_pagamento
@@ -238,6 +240,27 @@ class OrcamentoServicoService
     {
         if ((int) $orcamento->id_usuario !== $idUsuario) {
             throw new AuthorizationException('Esta cotação não pertence ao usuário autenticado.');
+        }
+    }
+
+    private function anexarAtributosSimulacaoPadrao(OrcamentoServico $orcamento, Carbon $referencia): void
+    {
+        $expirado = $orcamento->status === StatusOrcamentoServico::Expirada
+            || ($orcamento->data_validade?->copy()->startOfDay()->lt($referencia) ?? false);
+
+        foreach ([
+            'cenarios' => [],
+            'compromissos_gerados' => 0,
+            'pode_assumir_compromisso' => false,
+            'resumo_compromisso' => null,
+            'liquido_medio_mensal' => 0.0,
+            'receita_prevista_mensal' => 0.0,
+            'saldo_atual_contas' => 0.0,
+            'saldo_conta_selecionada' => null,
+            'limite_disponivel_cartao' => null,
+            'expirado' => $expirado,
+        ] as $chave => $valor) {
+            $orcamento->setAttribute($chave, $valor);
         }
     }
 

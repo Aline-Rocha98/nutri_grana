@@ -17,7 +17,7 @@ defineProps({
     <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 h-full">
         <h3 class="font-semibold text-gray-800">Cartões</h3>
 
-        <div v-if="carregando" class="mt-4 space-y-4">
+        <div v-if="carregando" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div v-for="n in 2" :key="n" class="h-28 rounded-xl bg-gray-100 animate-pulse" />
         </div>
 
@@ -26,7 +26,7 @@ defineProps({
                 Nenhum cartão ativo cadastrado.
             </div>
 
-            <div v-else class="mt-4 space-y-4">
+            <div v-else class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
                     v-for="cartao in dados.itens"
                     :key="cartao.id"
