@@ -28,6 +28,7 @@ class LancamentoResource extends JsonResource
 
         return [
             'id' => $this->id_lancamento,
+            'chave' => $this->getRouteKey(),
             'descricao' => $this->descricao,
             'valor' => number_format((float) $this->valor, 2, ',', '.'),
             'valor_numero' => (float) $this->valor,

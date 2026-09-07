@@ -11,6 +11,7 @@ class RendaResource extends JsonResource
     {
         return [
             'id' => $this->id_renda,
+            'chave' => $this->getRouteKey(),
             'descricao' => $this->descricao,
             'valor_esperado' => number_format((float) $this->valor_esperado, 2, ',', '.'),
             'valor_esperado_numero' => (float) $this->valor_esperado,

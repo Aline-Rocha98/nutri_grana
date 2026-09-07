@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Orcamento;
 use App\Enum\FormaPagamento;
 use App\Enum\ModalidadePagamentoOrcamento;
 use App\Enum\TipoOrcamento;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Orcamento\AtualizarOrcamentoRequest;
 use App\Http\Requests\Orcamento\CriarOrcamentoRequest;
@@ -34,6 +35,7 @@ use Inertia\Response;
 class OrcamentoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly OrcamentoService $orcamentoService,
@@ -144,6 +146,7 @@ class OrcamentoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -172,6 +175,7 @@ class OrcamentoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -197,6 +201,7 @@ class OrcamentoController extends Controller
                 ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return $this->redirecionarParaIndex($request, TipoOrcamento::PorCategoria)
                 ->with('erro', 'Erro ao excluir orçamento.');

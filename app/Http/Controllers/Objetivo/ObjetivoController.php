@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Objetivo;
 
 use App\Enum\TipoAporteObjetivo;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Objetivo\AtualizarObjetivoRequest;
 use App\Http\Requests\Objetivo\CriarAporteObjetivoRequest;
@@ -25,6 +26,7 @@ use Inertia\Response;
 class ObjetivoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly ObjetivoService $objetivoService,
@@ -69,6 +71,7 @@ class ObjetivoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -98,6 +101,7 @@ class ObjetivoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -125,6 +129,7 @@ class ObjetivoController extends Controller
                 ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('objetivos.index')
@@ -157,6 +162,7 @@ class ObjetivoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()

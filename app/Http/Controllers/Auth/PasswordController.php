@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enum\SecurityEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\UpdatePasswordRequest;
+use App\Support\Security\SecurityAuditor;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
-    public function update(Request $request): RedirectResponse
+    public function update(UpdatePasswordRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
-        ]);
+        $user = $request->user();
+        $user->senha = $request->validated('password');
+        $user->save();
 
-        $request->user()->update([
-            'senha' => $validated['password'],
+        SecurityAuditor::log(SecurityEvent::PasswordChanged, [
+            'id_usuario' => $user->getAuthIdentifier(),
+            'via' => 'profile',
         ]);
 
         return back()->with('status', 'password-updated');

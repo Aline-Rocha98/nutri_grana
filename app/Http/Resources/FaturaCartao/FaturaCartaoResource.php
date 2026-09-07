@@ -13,6 +13,7 @@ class FaturaCartaoResource extends JsonResource
 
         return [
             'id' => $this->id_fatura_cartao,
+            'chave' => $this->getRouteKey(),
             'id_cartao_credito' => $this->id_cartao_credito,
             'cartao_nome' => $this->cartaoCredito?->nome,
             'ano' => $this->ano,

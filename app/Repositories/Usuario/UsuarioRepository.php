@@ -11,6 +11,11 @@ class UsuarioRepository
 {
     public function atualizar(Usuario $usuario, array $dados): Usuario
     {
+        if (array_key_exists('senha', $dados)) {
+            $usuario->senha = $dados['senha'];
+            unset($dados['senha']);
+        }
+
         $usuario->fill($dados);
         $usuario->save();
 

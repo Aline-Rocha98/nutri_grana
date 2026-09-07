@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Renda;
 
 use App\Enum\FrequenciaRecorrencia;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Renda\AtualizarRendaRequest;
 use App\Http\Requests\Renda\CriarRendaRequest;
@@ -23,6 +24,7 @@ use Inertia\Response;
 class RendaController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly RendaService $rendaService,
@@ -67,6 +69,7 @@ class RendaController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -96,6 +99,7 @@ class RendaController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -117,6 +121,7 @@ class RendaController extends Controller
                 ->with('sucesso', 'Renda excluída com sucesso.');
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('rendas.index')

@@ -13,8 +13,7 @@ class CriarContaBancariaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // return $this->user()?->can('create', ContaBancaria::class) ?? false;
+        return $this->user()?->can('create', ContaBancaria::class) ?? false;
     }
 
     public function rules(): array

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Categoria;
 use App\Data\IconesCategoria;
 use App\Enum\SimNao;
 use App\Enum\TipoCategoria;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Categoria\ArquivarCategoriaRequest;
 use App\Http\Requests\Categoria\AtualizarCategoriaRequest;
@@ -24,6 +25,7 @@ use Inertia\Response;
 class CategoriaController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly CategoriaService $categoriaService,
@@ -44,6 +46,8 @@ class CategoriaController extends Controller
 
     public function criarCategoria(CriarCategoriaRequest $request): RedirectResponse
     {
+        $this->authorize('create', Categoria::class);
+
         try {
             DB::beginTransaction();
             $this->categoriaService->criar((int) Auth::id(), $request->validated());
@@ -60,6 +64,7 @@ class CategoriaController extends Controller
                 ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('categorias.index')
@@ -69,6 +74,8 @@ class CategoriaController extends Controller
 
     public function atualizarCategoria(AtualizarCategoriaRequest $request, Categoria $categoria): RedirectResponse
     {
+        $this->authorize('update', $categoria);
+
         try {
             DB::beginTransaction();
             $this->categoriaService->atualizar($categoria, (int) Auth::id(), $request->validated());
@@ -85,6 +92,7 @@ class CategoriaController extends Controller
                 ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('categorias.index')
@@ -94,6 +102,8 @@ class CategoriaController extends Controller
 
     public function arquivarCategoria(ArquivarCategoriaRequest $request, Categoria $categoria): RedirectResponse
     {
+        $this->authorize('update', $categoria);
+
         try {
             DB::beginTransaction();
             $arquivada = SimNao::from($request->validated('arquivada'));
@@ -113,6 +123,7 @@ class CategoriaController extends Controller
                 ->with('sucesso', $mensagem);
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('categorias.index')
@@ -122,6 +133,8 @@ class CategoriaController extends Controller
 
     public function excluirCategoria(Categoria $categoria): RedirectResponse
     {
+        $this->authorize('delete', $categoria);
+
         try {
             DB::beginTransaction();
             $this->categoriaService->excluir($categoria, (int) Auth::id());
@@ -138,6 +151,7 @@ class CategoriaController extends Controller
                 ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('categorias.index')

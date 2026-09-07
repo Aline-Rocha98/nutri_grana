@@ -6,6 +6,7 @@ use App\Enum\FormaPagamento;
 use App\Enum\FrequenciaRecorrencia;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lancamento\AtualizarLancamentoRequest;
 use App\Http\Requests\Lancamento\ConfirmarReceitaRequest;
@@ -32,6 +33,7 @@ use Inertia\Response;
 class LancamentoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly LancamentoService $lancamentoService,
@@ -123,6 +125,7 @@ class LancamentoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -159,6 +162,7 @@ class LancamentoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -195,6 +199,7 @@ class LancamentoController extends Controller
                 ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -227,6 +232,7 @@ class LancamentoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -252,6 +258,7 @@ class LancamentoController extends Controller
                 ->with('sucesso', 'Lançamento excluído.');
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()

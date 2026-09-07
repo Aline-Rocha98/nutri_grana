@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CartaoCredito;
 use App\Data\BancosSugeridos;
 use App\Enum\BandeiraCartaoCredito;
 use App\Enum\SimNao;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CartaoCredito\ArquivarCartaoCreditoRequest;
 use App\Http\Requests\CartaoCredito\AtualizarCartaoCreditoRequest;
@@ -24,6 +25,7 @@ use Inertia\Response;
 class CartaoCreditoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly CartaoCreditoService $cartaoCreditoService,
@@ -44,6 +46,8 @@ class CartaoCreditoController extends Controller
 
     public function criarCartaoCredito(CriarCartaoCreditoRequest $request): RedirectResponse
     {
+        $this->authorize('create', CartaoCredito::class);
+
         try {
             DB::beginTransaction();
             $this->cartaoCreditoService->criar((int) Auth::id(), $request->validated());
@@ -60,6 +64,7 @@ class CartaoCreditoController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('cartoes-credito.index')
@@ -69,6 +74,8 @@ class CartaoCreditoController extends Controller
 
     public function atualizarCartaoCredito(AtualizarCartaoCreditoRequest $request, CartaoCredito $cartaoCredito): RedirectResponse
     {
+        $this->authorize('update', $cartaoCredito);
+
         try {
             DB::beginTransaction();
             $this->cartaoCreditoService->atualizar($cartaoCredito, (int) Auth::id(), $request->validated());
@@ -85,6 +92,7 @@ class CartaoCreditoController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('cartoes-credito.index')
@@ -94,6 +102,8 @@ class CartaoCreditoController extends Controller
 
     public function arquivarCartaoCredito(ArquivarCartaoCreditoRequest $request, CartaoCredito $cartaoCredito): RedirectResponse
     {
+        $this->authorize('update', $cartaoCredito);
+
         try {
             DB::beginTransaction();
             $arquivada = SimNao::from($request->validated('arquivada'));
@@ -113,6 +123,7 @@ class CartaoCreditoController extends Controller
                 ->with('sucesso', $mensagem);
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('cartoes-credito.index')
@@ -122,6 +133,8 @@ class CartaoCreditoController extends Controller
 
     public function excluirCartaoCredito(CartaoCredito $cartaoCredito): RedirectResponse
     {
+        $this->authorize('delete', $cartaoCredito);
+
         try {
             DB::beginTransaction();
             $this->cartaoCreditoService->excluir($cartaoCredito, (int) Auth::id());
@@ -138,6 +151,7 @@ class CartaoCreditoController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('cartoes-credito.index')
