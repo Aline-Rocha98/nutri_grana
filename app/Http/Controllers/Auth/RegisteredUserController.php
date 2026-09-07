@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enum\MotivosControleFinanceiro;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureAbsoluteSessionTimeout;
+use App\Http\Requests\Auth\StoreRegisteredUserRequest;
 use App\Models\Usuario\Usuario;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,36 +22,28 @@ class RegisteredUserController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreRegisteredUserRequest $request): RedirectResponse
     {
-        $request->validate([
-            'nome' => ['required', 'string', 'max:100'],
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:100',
-                Rule::unique(Usuario::class, 'email'),
-            ],
-            'data_nascimento' => ['required', 'date', 'before:today'],
-            'motivo_controle_financeiro' => ['required', Rule::enum(MotivosControleFinanceiro::class)],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ], [
-            'email.unique' => __('validation.usuario.email.unique'),
+        $dados = $request->safe()->only([
+            'nome',
+            'email',
+            'data_nascimento',
+            'motivo_controle_financeiro',
         ]);
 
-        $user = Usuario::create([
-            'nome' => $request->nome,
-            'email' => $request->email,
-            'data_nascimento' => $request->data_nascimento,
-            'motivo_controle_financeiro' => $request->motivo_controle_financeiro,
-            'senha' => $request->password,
-        ]);
+        $user = new Usuario($dados);
+        $user->senha = $request->validated('password');
+        $user->save();
 
         event(new Registered($user));
 
         Auth::login($user);
+
+        $request->session()->regenerate();
+        $request->session()->put(
+            EnsureAbsoluteSessionTimeout::SESSION_LOGIN_AT,
+            now()->getTimestamp()
+        );
 
         return redirect(route('home', absolute: false));
     }

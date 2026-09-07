@@ -21,11 +21,17 @@ class UsuarioFactory extends Factory
         return [
             'nome' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'senha' => static::$password ??= 'password',
-            'email_verificado' => 'S',
             'data_nascimento' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
             'motivo_controle_financeiro' => MotivosControleFinanceiro::ORGANIZAR_GASTOS->value,
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Usuario $usuario) {
+            $usuario->senha = static::$password ??= 'password';
+            $usuario->forceFill(['email_verificado' => 'S']);
+        });
     }
 }

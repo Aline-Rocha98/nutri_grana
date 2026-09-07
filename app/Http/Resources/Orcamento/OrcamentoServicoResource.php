@@ -13,6 +13,7 @@ class OrcamentoServicoResource extends JsonResource
 
         return [
             'id' => $this->id_orcamento_servico,
+            'chave' => $this->getRouteKey(),
             'descricao' => $this->descricao,
             'fornecedor' => $this->fornecedor,
             'valor' => number_format((float) $this->valor, 2, ',', '.'),

@@ -13,6 +13,7 @@ class CategoriaResource extends JsonResource
 
         return [
             'id' => $this->id_categoria,
+            'chave' => $this->getRouteKey(),
             'id_categoria_pai' => $this->id_categoria_pai,
             'nivel' => $this->nivel,
             'nome' => $this->nome,

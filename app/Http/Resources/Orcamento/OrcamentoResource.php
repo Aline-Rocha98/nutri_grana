@@ -11,6 +11,7 @@ class OrcamentoResource extends JsonResource
     {
         return [
             'id' => $this->id_orcamento,
+            'chave' => $this->getRouteKey(),
             'tipo' => $this->tipo?->value,
             'tipo_rotulo' => $this->tipo?->rotulo(),
             'id_categoria' => $this->id_categoria,

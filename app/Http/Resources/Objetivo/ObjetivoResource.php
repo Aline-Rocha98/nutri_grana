@@ -15,6 +15,7 @@ class ObjetivoResource extends JsonResource
 
         return [
             'id' => $this->id_objetivo,
+            'chave' => $this->getRouteKey(),
             'descricao' => $this->descricao,
             'valor_meta' => number_format((float) $this->valor_meta, 2, ',', '.'),
             'valor_meta_numero' => (float) $this->valor_meta,

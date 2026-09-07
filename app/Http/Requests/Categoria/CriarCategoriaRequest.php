@@ -5,6 +5,7 @@ namespace App\Http\Requests\Categoria;
 use App\Data\IconesCategoria;
 use App\Enum\SimNao;
 use App\Enum\TipoCategoria;
+use App\Models\Categoria\Categoria;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class CriarCategoriaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Categoria::class) ?? false;
     }
 
     protected function prepareForValidation(): void

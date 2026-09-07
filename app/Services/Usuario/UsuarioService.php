@@ -2,12 +2,13 @@
 
 namespace App\Services\Usuario;
 
+use App\Enum\SecurityEvent;
 use App\Mail\CodigoAlteracaoSenhaMail;
 use App\Models\Usuario\Usuario;
 use App\Repositories\Usuario\UsuarioRepository;
+use App\Support\Security\SecurityAuditor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -67,6 +68,11 @@ class UsuarioService
         $this->usuarioRepository->marcarCodigoComoUsado($registro);
         $this->usuarioRepository->invalidarCodigosAlteracaoSenha((int) $usuario->id_usuario);
         $this->usuarioRepository->limparTokensResetSenha($usuario->email);
+
+        SecurityAuditor::log(SecurityEvent::PasswordChanged, [
+            'id_usuario' => (int) $usuario->id_usuario,
+            'via' => 'email_code',
+        ]);
     }
 
     public function excluirConta(Usuario $usuario): void
@@ -75,17 +81,13 @@ class UsuarioService
         $email = $usuario->email;
         $fotoPerfil = $usuario->foto_perfil;
 
-        Log::info('Exclusão de conta iniciada', [
-            'id_usuario' => $idUsuario,
-        ]);
-
         $this->removerArquivoFoto($fotoPerfil);
         $this->usuarioRepository->invalidarCodigosAlteracaoSenha($idUsuario);
         $this->usuarioRepository->limparTokensResetSenha($email);
         $this->usuarioRepository->limparSessoesDoUsuario($idUsuario);
         $this->usuarioRepository->excluir($usuario);
 
-        Log::info('Exclusão de conta concluída', [
+        SecurityAuditor::log(SecurityEvent::AccountDeleted, [
             'id_usuario' => $idUsuario,
         ]);
     }

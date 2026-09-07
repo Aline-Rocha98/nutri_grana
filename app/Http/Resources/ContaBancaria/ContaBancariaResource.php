@@ -12,6 +12,7 @@ class ContaBancariaResource extends JsonResource
     {
         return [
             'id' => $this->id_conta_bancaria,
+            'chave' => $this->getRouteKey(),
             'nome' => $this->nome,
             'saldo_inicial' => number_format((float) $this->saldo_inicial, 2, ',', '.'),
             'saldo_inicial_numero' => (float) $this->saldo_inicial,

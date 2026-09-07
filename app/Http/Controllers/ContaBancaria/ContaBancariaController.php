@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ContaBancaria;
 
 use App\Data\BancosSugeridos;
 use App\Enum\TipoContaBancaria;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ContaBancaria\AtualizarContaBancariaRequest;
 use App\Http\Requests\ContaBancaria\CriarContaBancariaRequest;
@@ -22,6 +23,7 @@ use Inertia\Response;
 class ContaBancariaController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly ContaBancariaService $contaBancariaService,
@@ -42,6 +44,8 @@ class ContaBancariaController extends Controller
 
     public function criarContaBancaria(CriarContaBancariaRequest $request): RedirectResponse
     {
+        $this->authorize('create', ContaBancaria::class);
+
         try {
             DB::beginTransaction();
             $this->contaBancariaService->criar((int) Auth::id(), $request->validated());
@@ -58,6 +62,7 @@ class ContaBancariaController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('contas-bancarias.index')
@@ -67,6 +72,8 @@ class ContaBancariaController extends Controller
 
     public function atualizarContaBancaria(AtualizarContaBancariaRequest $request, ContaBancaria $contaBancaria): RedirectResponse
     {
+        $this->authorize('update', $contaBancaria);
+
         try {
             DB::beginTransaction();
             $this->contaBancariaService->atualizar($contaBancaria, (int) Auth::id(), $request->validated());
@@ -83,6 +90,7 @@ class ContaBancariaController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('contas-bancarias.index')
@@ -92,6 +100,8 @@ class ContaBancariaController extends Controller
 
     public function excluirContaBancaria(ContaBancaria $contaBancaria): RedirectResponse
     {
+        $this->authorize('delete', $contaBancaria);
+
         try {
             DB::beginTransaction();
             $this->contaBancariaService->excluir($contaBancaria, (int) Auth::id());
@@ -108,6 +118,7 @@ class ContaBancariaController extends Controller
                 ->with('erro', $e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->route('contas-bancarias.index')

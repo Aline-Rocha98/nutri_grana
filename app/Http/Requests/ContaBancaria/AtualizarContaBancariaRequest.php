@@ -12,10 +12,9 @@ class AtualizarContaBancariaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // $contaBancaria = $this->route('contaBancaria');
+        $contaBancaria = $this->route('contaBancaria');
 
-        // return $contaBancaria && ($this->user()?->can('update', $contaBancaria) ?? false);
+        return $contaBancaria && ($this->user()?->can('update', $contaBancaria) ?? false);
     }
 
     public function rules(): array

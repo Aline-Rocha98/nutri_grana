@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Orcamento;
 
 use App\Enum\TipoOrcamento;
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Orcamento\AprovarOrcamentoServicoRequest;
 use App\Http\Requests\Orcamento\AtualizarOrcamentoServicoRequest;
@@ -20,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 class OrcamentoServicoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly OrcamentoServicoService $orcamentoServicoService,
@@ -45,6 +47,7 @@ class OrcamentoServicoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -79,6 +82,7 @@ class OrcamentoServicoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -112,6 +116,7 @@ class OrcamentoServicoController extends Controller
                 ->withInput();
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -138,6 +143,7 @@ class OrcamentoServicoController extends Controller
                 ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()
@@ -163,6 +169,7 @@ class OrcamentoServicoController extends Controller
                 ->with('erro', collect($e->errors())->flatten()->first());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return $this->redirecionarParaIndex()
                 ->with('erro', 'Erro ao excluir a cotação.');

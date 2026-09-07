@@ -4,6 +4,7 @@ namespace App\Services\Lancamento;
 
 use App\Enum\FormaPagamento;
 use App\Enum\FrequenciaRecorrencia;
+use App\Enum\SecurityEvent;
 use App\Enum\SimNao;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
@@ -17,6 +18,7 @@ use App\Services\FaturaCartao\FaturaCartaoService;
 use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
 use App\Services\Renda\RendaGeracaoService;
 use App\Support\Dashboard\DashboardCache;
+use App\Support\Security\SecurityAuditor;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -90,6 +92,11 @@ class LancamentoService
 
         DashboardCache::invalidar($idUsuario);
 
+        SecurityAuditor::log(SecurityEvent::TransactionCreated, [
+            'id_usuario' => $idUsuario,
+            'ids_lancamento' => $criados->pluck('id_lancamento')->all(),
+        ]);
+
         return $criados;
     }
 
@@ -127,6 +134,11 @@ class LancamentoService
         $atualizado = $this->lancamentoRepository->atualizar($lancamento, $payload);
 
         DashboardCache::invalidar($idUsuario);
+
+        SecurityAuditor::log(SecurityEvent::TransactionUpdated, [
+            'id_usuario' => $idUsuario,
+            'id_lancamento' => (int) $atualizado->id_lancamento,
+        ]);
 
         return $atualizado;
     }
@@ -189,6 +201,8 @@ class LancamentoService
     {
         $this->garantirPropriedade($lancamento, $idUsuario);
 
+        $idLancamento = (int) $lancamento->id_lancamento;
+
         if ($lancamento->ehPaiRecorrencia()) {
             $this->lancamentoRepository->atualizar($lancamento, [
                 'situacao' => SituacaoLancamento::Cancelado,
@@ -202,6 +216,12 @@ class LancamentoService
             }
 
             DashboardCache::invalidar($idUsuario);
+
+            SecurityAuditor::log(SecurityEvent::TransactionDeleted, [
+                'id_usuario' => $idUsuario,
+                'id_lancamento' => $idLancamento,
+                'modo' => 'cancelar_recorrencia_pai',
+            ]);
 
             return;
         }
@@ -218,12 +238,24 @@ class LancamentoService
 
             DashboardCache::invalidar($idUsuario);
 
+            SecurityAuditor::log(SecurityEvent::TransactionDeleted, [
+                'id_usuario' => $idUsuario,
+                'id_lancamento' => $idLancamento,
+                'modo' => 'cancelar_futuras',
+            ]);
+
             return;
         }
 
         $this->lancamentoRepository->excluir($lancamento);
 
         DashboardCache::invalidar($idUsuario);
+
+        SecurityAuditor::log(SecurityEvent::TransactionDeleted, [
+            'id_usuario' => $idUsuario,
+            'id_lancamento' => $idLancamento,
+            'modo' => 'excluir',
+        ]);
     }
 
     private function criarSimples(int $idUsuario, array $dados): Lancamento

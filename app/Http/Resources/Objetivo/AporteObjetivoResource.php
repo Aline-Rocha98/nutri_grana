@@ -11,6 +11,7 @@ class AporteObjetivoResource extends JsonResource
     {
         return [
             'id' => $this->id_aporte_objetivo,
+            'chave' => $this->getRouteKey(),
             'tipo' => $this->tipo?->value,
             'tipo_rotulo' => $this->tipo?->rotulo(),
             'valor' => number_format((float) $this->valor, 2, ',', '.'),

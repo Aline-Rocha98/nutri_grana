@@ -15,6 +15,7 @@ class CartaoCreditoResource extends JsonResource
 
         return [
             'id' => $this->id_cartao_credito,
+            'chave' => $this->getRouteKey(),
             'nome' => $this->nome,
             'limite_total' => number_format((float) $this->limite_total, 2, ',', '.'),
             'limite_total_numero' => (float) $this->limite_total,

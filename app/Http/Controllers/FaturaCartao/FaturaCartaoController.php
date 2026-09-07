@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\FaturaCartao;
 
+use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FaturaCartao\BaixarFaturaCartaoRequest;
 use App\Http\Resources\ContaBancaria\ContaBancariaResource;
@@ -25,6 +26,7 @@ use Inertia\Response;
 class FaturaCartaoController extends Controller
 {
     use AuthorizesRequests;
+    use RethrowsAuthorizationExceptions;
 
     public function __construct(
         private readonly FaturaCartaoService $faturaCartaoService,
@@ -111,6 +113,7 @@ class FaturaCartaoController extends Controller
                 ->withErrors($e->errors());
         } catch (Exception $e) {
             DB::rollBack();
+            $this->rethrowIfAuthorization($e);
 
             return redirect()
                 ->back()

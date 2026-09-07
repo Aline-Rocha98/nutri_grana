@@ -4,6 +4,7 @@ namespace App\Http\Requests\CartaoCredito;
 
 use App\Enum\BandeiraCartaoCredito;
 use App\Enum\SimNao;
+use App\Models\CartaoCredito\CartaoCredito;
 use App\Support\Data\Valor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +13,7 @@ class CriarCartaoCreditoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', CartaoCredito::class) ?? false;
     }
 
     public function rules(): array

@@ -12,10 +12,9 @@ class AtualizarCartaoCreditoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
-        // $cartaoCredito = $this->route('cartaoCredito');
+        $cartaoCredito = $this->route('cartaoCredito');
 
-        // return $cartaoCredito && ($this->user()?->can('update', $cartaoCredito) ?? false);
+        return $cartaoCredito && ($this->user()?->can('update', $cartaoCredito) ?? false);
     }
 
     public function rules(): array
