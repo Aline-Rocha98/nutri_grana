@@ -31,10 +31,10 @@ class SecurityHardeningTest extends TestCase
 
         $response->assertSessionHasErrors('email');
         $this->assertGuest();
-        $this->assertStringContainsString(
-            'Muitas tentativas',
-            collect(session('errors')->get('email'))->first() ?? ''
-        );
+
+        $message = collect(session('errors')->get('email'))->first() ?? '';
+        $this->assertStringContainsString('Muitas tentativas', $message);
+        $this->assertMatchesRegularExpression('/\d+\s+segundos/', $message);
     }
 
     public function test_absolute_session_timeout_logs_user_out(): void
