@@ -1,8 +1,26 @@
 # NutriGrana
 
+[![Laravel CI](https://github.com/Aline-Pereira98/nutri_grana/actions/workflows/ci.yml/badge.svg)](https://github.com/Aline-Pereira98/nutri_grana/actions/workflows/ci.yml)
+
 Personal finance management MVP: income and expense tracking, bank accounts, credit cards, budgets, goals, and cash-flow forecasting.
 
-Core stack: **Laravel 12 + Inertia.js + Vue 3 + MySQL/SQLite + Tailwind CSS**.
+Core stack: **PHP 8.2 + Laravel 12 + Inertia.js + Vue 3 + MySQL/SQLite + Tailwind CSS**.
+
+---
+
+## Screenshots
+
+### Dashboard
+![Dashboard](docs/assets/Dashboard.png)
+
+### Transactions
+![Transactions](docs/assets/lancamentos.png)
+
+### Service budget
+![Service budget](docs/assets/orcamento_por_servico.png)
+
+### Goals
+![Goals](docs/assets/objetivos.png)
 
 ---
 
@@ -178,6 +196,39 @@ database/migrations/ # versioned schema
 ```
 
 Main modules: `Usuario`, `ContaBancaria`, `CartaoCredito`, `FaturaCartao`, `Categoria`, `Renda`, `Lancamento`, `Orcamento` / `OrcamentoServico`, `Objetivo`, `Dashboard`.
+
+---
+
+## CI/CD and Git workflow
+
+Versioning follows a simple promotion model with GitHub Actions.
+
+### Branches
+
+| Branch | Role |
+|--------|------|
+| `main` | Stable / production-ready |
+| `release` | Integration and pre-production validation |
+| feature branches | Day-to-day work; merged via pull requests |
+
+Typical flow: `feature/*` → PR into `release` → CI → promote `release` → `main`.
+
+### Continuous Integration
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`Laravel CI`)
+
+Runs on pull requests targeting `release` or `main` and:
+
+- Sets up PHP 8.3 and Node 20
+- Installs Composer and npm dependencies (with cache)
+- Builds frontend assets (`npm run build`)
+- Runs the test suite (`php artisan test`)
+
+### Continuous Delivery (release promotion)
+
+Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml) (`Release to Main`)
+
+On push to `release` (or manual `workflow_dispatch`), the pipeline opens or updates a PR from `release` into `main`, so promotion only happens after review and a green CI check.
 
 ---
 
