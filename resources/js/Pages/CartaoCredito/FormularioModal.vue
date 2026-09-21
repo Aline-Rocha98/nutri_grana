@@ -129,57 +129,57 @@ function salvar() {
 <template>
     <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-ng-ink">
                 {{ editando ? 'Editar cartão' : 'Novo cartão' }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">Preencha os dados do cartão de crédito manual.</p>
+            <p class="mt-1 text-sm text-ng-ink-muted">Preencha os dados do cartão de crédito manual.</p>
 
             <div class="mt-6 space-y-4">
                 <div class="relative" @focusout="fecharSugestoes">
-                    <label for="nome-cartao" class="block text-sm font-medium text-gray-500">Nome do cartão</label>
+                    <label for="nome-cartao" class="block text-sm font-medium text-ng-ink-muted">Nome do cartão</label>
                     <div class="relative mt-1">
                         <input
                             id="nome-cartao"
                             v-model="formulario.nome"
                             type="text"
-                            class="block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e] pr-12"
+                            class="block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e] pr-12"
                             autocomplete="off"
                             @click="abrirSugestoes"
                             @input="abrirSugestoes"
                             @keydown.escape.stop="fecharSugestoes"
                         >
                         <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gray-100">
+                            <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-ng-card-muted">
                                 <img
                                     v-if="logoSelecionada"
                                     :src="logoSelecionada"
                                     :alt="formulario.nome"
                                     class="h-full w-full object-cover"
                                 >
-                                <span v-else class="material-symbols-outlined text-[18px] text-gray-400">credit_card</span>
+                                <span v-else class="material-symbols-outlined text-[18px] text-ng-ink-subtle">credit_card</span>
                             </span>
                         </span>
                     </div>
 
                     <div
                         v-show="sugestoesAbertas && bancosFiltrados.length > 0"
-                        class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                        class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-ng-line bg-ng-card shadow-lg"
                     >
                         <ul class="max-h-56 overflow-y-auto py-1">
                             <li v-for="banco in bancosFiltrados" :key="banco.nome">
                                 <button
                                     type="button"
-                                    class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50 transition"
+                                    class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-ng-ink hover:bg-ng-brand-soft transition"
                                     @mousedown.prevent="selecionarBanco(banco)"
                                 >
-                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100">
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-card-muted">
                                         <img
                                             v-if="banco.logo"
                                             :src="banco.logo"
                                             :alt="banco.nome"
                                             class="h-full w-full object-cover"
                                         >
-                                        <span v-else class="material-symbols-outlined text-[18px] text-gray-500">credit_card</span>
+                                        <span v-else class="material-symbols-outlined text-[18px] text-ng-ink-muted">credit_card</span>
                                     </span>
                                     <span>{{ banco.nome }}</span>
                                 </button>
@@ -192,7 +192,7 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="limite-total" class="block text-sm font-medium text-gray-500">
+                    <label for="limite-total" class="block text-sm font-medium text-ng-ink-muted">
                         Limite total
                     </label>
                     <input
@@ -200,7 +200,7 @@ function salvar() {
                         :value="formulario.limite_total"
                         type="text"
                         inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="0,00"
                         @input="formulario.limite_total = aoDigitarMoeda($event)"
                     >
@@ -211,13 +211,13 @@ function salvar() {
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                        <label for="dia-fechamento" class="block text-sm font-medium text-gray-500">
+                        <label for="dia-fechamento" class="block text-sm font-medium text-ng-ink-muted">
                             Dia de fechamento
                         </label>
                         <select
                             id="dia-fechamento"
                             v-model.number="formulario.dia_fechamento"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option
                                 v-for="opcao in diasDoMes"
@@ -233,13 +233,13 @@ function salvar() {
                     </div>
 
                     <div>
-                        <label for="dia-vencimento" class="block text-sm font-medium text-gray-500">
+                        <label for="dia-vencimento" class="block text-sm font-medium text-ng-ink-muted">
                             Dia de vencimento
                         </label>
                         <select
                             id="dia-vencimento"
                             v-model.number="formulario.dia_vencimento"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option
                                 v-for="opcao in diasDoMes"
@@ -256,13 +256,13 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="bandeira-cartao" class="block text-sm font-medium text-gray-500">
+                    <label for="bandeira-cartao" class="block text-sm font-medium text-ng-ink-muted">
                         Bandeira
                     </label>
                     <select
                         id="bandeira-cartao"
                         v-model="formulario.bandeira"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option
                             v-for="opcao in bandeiras"
@@ -277,24 +277,24 @@ function salvar() {
                     </p>
                 </div>
 
-                <div class="divide-y divide-gray-100 rounded-xl border border-gray-100">
+                <div class="divide-y divide-ng-line rounded-xl border border-ng-line">
                     <div class="flex items-center justify-between gap-4 px-4 py-3">
                         <div class="flex items-center gap-3 min-w-0">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ng-card-muted text-ng-ink-muted">
                                 <span class="material-symbols-outlined text-[20px]">credit_card</span>
                             </span>
-                            <span class="text-sm text-gray-800">Cartão padrão</span>
+                            <span class="text-sm text-ng-ink">Cartão padrão</span>
                         </div>
                         <button
                             type="button"
                             role="switch"
                             class="relative h-6 w-11 shrink-0 rounded-full transition"
-                            :class="estaAtivo('padrao') ? 'bg-[#1fa67e]' : 'bg-gray-200'"
+                            :class="estaAtivo('padrao') ? 'bg-[#1fa67e]' : 'bg-zinc-300 dark:bg-white/15'"
                             :aria-checked="estaAtivo('padrao')"
                             @click="toggleSimNao('padrao')"
                         >
                             <span
-                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition"
+                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-ng-card shadow transition"
                                 :class="estaAtivo('padrao') ? 'translate-x-5' : 'translate-x-0'"
                             />
                         </button>
@@ -305,7 +305,7 @@ function salvar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

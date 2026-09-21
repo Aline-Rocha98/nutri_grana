@@ -137,45 +137,45 @@ function salvar() {
 <template>
     <Modal :aberto="aberto" max-largura="lg">
         <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-ng-ink">
                 {{ editando ? 'Editar cotação' : 'Nova cotação' }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 Registre a proposta e a forma de pagamento prevista para simular o impacto no fluxo.
             </p>
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="descricao-cotacao" class="block text-sm font-medium text-gray-500">Descrição</label>
+                    <label for="descricao-cotacao" class="block text-sm font-medium text-ng-ink-muted">Descrição</label>
                     <input
                         id="descricao-cotacao"
                         v-model="formulario.descricao"
                         type="text"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="Ex.: Pintura do apartamento"
                     >
                     <p v-if="formulario.errors.descricao" class="mt-2 text-sm text-red-600">{{ formulario.errors.descricao }}</p>
                 </div>
 
                 <div>
-                    <label for="fornecedor-cotacao" class="block text-sm font-medium text-gray-500">Fornecedor</label>
+                    <label for="fornecedor-cotacao" class="block text-sm font-medium text-ng-ink-muted">Fornecedor</label>
                     <input
                         id="fornecedor-cotacao"
                         v-model="formulario.fornecedor"
                         type="text"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="Ex.: Loja de móveis XYZ"
                     >
                 </div>
 
                 <div>
-                    <label for="valor-cotacao" class="block text-sm font-medium text-gray-500">Valor estimado</label>
+                    <label for="valor-cotacao" class="block text-sm font-medium text-ng-ink-muted">Valor estimado</label>
                     <input
                         id="valor-cotacao"
                         :value="formulario.valor"
                         type="text"
                         inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="0,00"
                         @input="formulario.valor = aoDigitarMoeda($event)"
                     >
@@ -184,36 +184,36 @@ function salvar() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="data-cotacao" class="block text-sm font-medium text-gray-500">Data da cotação</label>
+                        <label for="data-cotacao" class="block text-sm font-medium text-ng-ink-muted">Data da cotação</label>
                         <input
                             id="data-cotacao"
                             v-model="formulario.data_orcamento"
                             type="date"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                         <p v-if="formulario.errors.data_orcamento" class="mt-2 text-sm text-red-600">{{ formulario.errors.data_orcamento }}</p>
                     </div>
                     <div>
-                        <label for="validade-cotacao" class="block text-sm font-medium text-gray-500">Validade</label>
+                        <label for="validade-cotacao" class="block text-sm font-medium text-ng-ink-muted">Validade</label>
                         <input
                             id="validade-cotacao"
                             v-model="formulario.data_validade"
                             type="date"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                         <p v-if="formulario.errors.data_validade" class="mt-2 text-sm text-red-600">{{ formulario.errors.data_validade }}</p>
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Pagamento previsto</p>
+                <div class="rounded-xl border border-ng-line bg-ng-card-muted/50 p-4 space-y-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Pagamento previsto</p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-500">Modalidade</label>
+                            <label class="block text-sm font-medium text-ng-ink-muted">Modalidade</label>
                             <select
                                 v-model="formulario.modalidade_pagamento"
-                                class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                                class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             >
                                 <option v-for="opcao in modalidadesPagamento" :key="opcao.valor" :value="opcao.valor">
                                     {{ opcao.rotulo }}
@@ -224,10 +224,10 @@ function salvar() {
                             </p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500">Forma</label>
+                            <label class="block text-sm font-medium text-ng-ink-muted">Forma</label>
                             <select
                                 v-model="formulario.forma_pagamento"
-                                class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                                class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             >
                                 <option v-for="opcao in formasPagamento" :key="opcao.valor" :value="opcao.valor">
                                     {{ opcao.valor === 'conta_bancaria' ? 'PIX' : opcao.rotulo }}
@@ -240,16 +240,16 @@ function salvar() {
                     </div>
 
                     <div v-if="pagamentoConta">
-                        <label class="block text-sm font-medium text-gray-500">Conta bancária</label>
+                        <label class="block text-sm font-medium text-ng-ink-muted">Conta bancária</label>
                         <select
                             v-model.number="formulario.id_conta_bancaria"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option v-for="conta in contasBancarias" :key="conta.id" :value="Number(conta.id)">
                                 {{ conta.nome }}
                             </option>
                         </select>
-                        <p v-if="contaSelecionada" class="mt-1 text-xs text-gray-500">
+                        <p v-if="contaSelecionada" class="mt-1 text-xs text-ng-ink-muted">
                             Saldo disponível nesta conta: R$ {{ contaSelecionada.saldo_atual }}
                         </p>
                         <p v-if="formulario.errors.id_conta_bancaria" class="mt-1 text-sm text-red-600">
@@ -258,19 +258,19 @@ function salvar() {
                     </div>
 
                     <div v-if="pagamentoCartao">
-                        <label class="block text-sm font-medium text-gray-500">Cartão de crédito</label>
+                        <label class="block text-sm font-medium text-ng-ink-muted">Cartão de crédito</label>
                         <select
                             v-model.number="formulario.id_cartao_credito"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option v-for="cartao in cartoesCredito" :key="cartao.id" :value="Number(cartao.id)">
                                 {{ cartao.nome }}
                             </option>
                         </select>
-                        <p v-if="cartaoSelecionado" class="mt-1 text-xs text-gray-500">
+                        <p v-if="cartaoSelecionado" class="mt-1 text-xs text-ng-ink-muted">
                             Limite disponível: R$ {{ cartaoSelecionado.limite_disponivel }}
                         </p>
-                        <p class="mt-1 text-xs text-gray-500">
+                        <p class="mt-1 text-xs text-ng-ink-muted">
                             O limite do cartão é usado apenas na validação, não entra como saldo em conta.
                         </p>
                         <p v-if="formulario.errors.id_cartao_credito" class="mt-1 text-sm text-red-600">
@@ -281,22 +281,22 @@ function salvar() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="categoria-cotacao" class="block text-sm font-medium text-gray-500">Categoria</label>
+                        <label for="categoria-cotacao" class="block text-sm font-medium text-ng-ink-muted">Categoria</label>
                         <select
                             id="categoria-cotacao"
                             v-model="formulario.id_categoria"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option :value="null">Selecione...</option>
                             <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nome }}</option>
                         </select>
                     </div>
                     <div>
-                        <label for="subcategoria-cotacao" class="block text-sm font-medium text-gray-500">Subcategoria</label>
+                        <label for="subcategoria-cotacao" class="block text-sm font-medium text-ng-ink-muted">Subcategoria</label>
                         <select
                             id="subcategoria-cotacao"
                             v-model="formulario.id_subcategoria"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             :disabled="!formulario.id_categoria"
                         >
                             <option :value="null">Selecione...</option>
@@ -306,12 +306,12 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="observacao-cotacao" class="block text-sm font-medium text-gray-500">Observação</label>
+                    <label for="observacao-cotacao" class="block text-sm font-medium text-ng-ink-muted">Observação</label>
                     <textarea
                         id="observacao-cotacao"
                         v-model="formulario.observacao"
                         rows="3"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="Condições, detalhes da proposta..."
                     />
                 </div>
@@ -320,7 +320,7 @@ function salvar() {
             <div class="mt-6 flex flex-wrap justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

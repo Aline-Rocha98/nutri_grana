@@ -56,36 +56,45 @@ function confirmarPagamento() {
                 <Link :href="urlVoltar" class="text-sm text-[#1fa67e] hover:underline">
                     ← Voltar aos cartões
                 </Link>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight mt-1">
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight mt-1">
                     Faturas · {{ cartao.nome }}
                 </h2>
             </div>
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Em aberto</h3>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Em aberto</h3>
                 </div>
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div
                         v-for="fatura in abertas"
                         :key="fatura.id"
                         class="flex items-center gap-4 px-6 py-4"
                     >
                         <div class="min-w-0 flex-1">
-                            <p class="font-semibold text-gray-900">{{ fatura.competencia }}</p>
-                            <p class="text-sm text-gray-500">
+                            <p class="font-semibold text-ng-ink">{{ fatura.competencia }}</p>
+                            <p class="text-sm text-ng-ink-muted">
                                 Fecha {{ fatura.data_fechamento_formatada }}
                                 · Vence {{ fatura.data_vencimento_formatada }}
-                                · {{ fatura.situacao_rotulo }}
+                                ·
+                                <span
+                                    :class="{
+                                        'ng-badge ng-badge--brand': fatura.situacao === 'paga',
+                                        'ng-badge ng-badge--amber': fatura.situacao === 'fechada',
+                                        'ng-badge ng-badge--sky': fatura.situacao === 'aberta',
+                                    }"
+                                >
+                                    {{ fatura.situacao_rotulo }}
+                                </span>
                             </p>
                         </div>
                         <p class="font-semibold text-red-600 shrink-0">R$ {{ fatura.valor_total }}</p>
                         <div class="flex items-center gap-2 shrink-0">
                             <Link
                                 :href="fatura.url_detalhe"
-                                class="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                                class="rounded-lg px-3 py-1.5 text-sm text-ng-ink-muted hover:bg-ng-brand-soft"
                             >
                                 Detalhe
                             </Link>
@@ -101,7 +110,7 @@ function confirmarPagamento() {
                     </div>
                     <div
                         v-if="abertas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-gray-500"
+                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhuma fatura em aberto.
                     </div>
@@ -110,25 +119,27 @@ function confirmarPagamento() {
 
             <div
                 v-if="pagas.length > 0"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 opacity-90"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-90"
             >
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Pagas</h3>
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Pagas</h3>
                 </div>
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div
                         v-for="fatura in pagas"
                         :key="fatura.id"
                         class="flex items-center gap-4 px-6 py-4"
                     >
                         <div class="min-w-0 flex-1">
-                            <p class="font-semibold text-gray-900">{{ fatura.competencia }}</p>
-                            <p class="text-sm text-gray-500">{{ fatura.situacao_rotulo }}</p>
+                            <p class="font-semibold text-ng-ink">{{ fatura.competencia }}</p>
+                            <p class="text-sm text-ng-ink-muted">
+                                <span class="ng-badge ng-badge--brand">{{ fatura.situacao_rotulo }}</span>
+                            </p>
                         </div>
-                        <p class="font-semibold text-gray-500">R$ {{ fatura.valor_total }}</p>
+                        <p class="font-semibold text-ng-ink-muted">R$ {{ fatura.valor_total }}</p>
                         <Link
                             :href="fatura.url_detalhe"
-                            class="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                            class="rounded-lg px-3 py-1.5 text-sm text-ng-ink-muted hover:bg-ng-brand-soft"
                         >
                             Detalhe
                         </Link>
@@ -139,17 +150,17 @@ function confirmarPagamento() {
 
         <Modal :aberto="modalAberto" max-largura="md">
             <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900">Pagar fatura</h3>
-                <p v-if="faturaAtual" class="mt-1 text-sm text-gray-500">
+                <h3 class="text-lg font-semibold text-ng-ink">Pagar fatura</h3>
+                <p v-if="faturaAtual" class="mt-1 text-sm text-ng-ink-muted">
                     {{ faturaAtual.competencia }} · R$ {{ faturaAtual.valor_total }}
                 </p>
 
                 <form class="mt-4 space-y-4" @submit.prevent="confirmarPagamento">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Conta para débito</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Conta para débito</label>
                         <select
                             v-model="form.id_conta_bancaria"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
                             <option v-for="c in contasBancarias" :key="c.id" :value="c.id">{{ c.nome }}</option>
@@ -159,17 +170,17 @@ function confirmarPagamento() {
                         </p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Data do pagamento</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Data do pagamento</label>
                         <input
                             v-model="form.data_pagamento"
                             type="date"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                     </div>
                     <div class="flex justify-end gap-3">
                         <button
                             type="button"
-                            class="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                            class="rounded-lg px-4 py-2 text-sm text-ng-ink-muted hover:bg-ng-brand-soft"
                             @click="fecharModal"
                         >
                             Cancelar

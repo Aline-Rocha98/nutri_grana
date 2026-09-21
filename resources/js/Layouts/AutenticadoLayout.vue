@@ -10,17 +10,17 @@ defineProps({
 </script>
 
 <template>
-    <div class="font-sans antialiased bg-[#0c2e24] min-h-screen">
+    <div class="ng-page font-sans antialiased">
         <div class="flex min-h-screen gap-3 p-3">
             <BarraLateral />
 
             <div class="flex min-w-0 flex-1 flex-col">
                 <header
                     v-if="titulo || $slots.cabecalho"
-                    class="mb-3 rounded-2xl bg-white/95 px-6 py-4 shadow-sm border border-white/20"
+                    class="ng-header mb-3 rounded-2xl px-6 py-4"
                 >
                     <slot name="cabecalho">
-                        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        <h2 class="font-semibold text-xl text-ng-ink leading-tight tracking-tight">
                             {{ titulo }}
                         </h2>
                     </slot>

@@ -41,7 +41,7 @@ const emit = defineEmits(['confirmar', 'cancelar']);
             <div class="flex items-start gap-3">
                 <div
                     class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                    :class="perigo ? 'bg-red-50 text-red-600' : 'bg-[#e8f7f1] text-[#1fa67e]'"
+                    :class="perigo ? 'ng-tint ng-tint--red' : 'ng-tint ng-tint--brand'"
                 >
                     <span class="material-symbols-outlined text-[22px]">
                         {{ perigo ? 'warning' : 'help' }}
@@ -49,10 +49,10 @@ const emit = defineEmits(['confirmar', 'cancelar']);
                 </div>
 
                 <div class="min-w-0 flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900">
+                    <h3 class="text-lg font-semibold text-ng-ink">
                         {{ titulo }}
                     </h3>
-                    <p class="mt-2 text-sm text-gray-600 whitespace-pre-line">
+                    <p class="mt-2 text-sm text-ng-ink-muted whitespace-pre-line">
                         {{ mensagem }}
                     </p>
                 </div>
@@ -61,7 +61,7 @@ const emit = defineEmits(['confirmar', 'cancelar']);
             <div class="mt-6 flex justify-end gap-2">
                 <button
                     type="button"
-                    class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
+                    class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft transition disabled:opacity-60"
                     :disabled="processando"
                     @click="emit('cancelar')"
                 >
@@ -69,8 +69,7 @@ const emit = defineEmits(['confirmar', 'cancelar']);
                 </button>
                 <button
                     type="button"
-                    class="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition disabled:opacity-60"
-                    :class="perigo ? 'bg-red-600 hover:bg-red-700' : 'bg-[#1fa67e] hover:bg-[#198a68]'"
+                    :class="perigo ? 'ng-btn-danger' : 'rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#198a68] disabled:opacity-60'"
                     :disabled="processando"
                     @click="emit('confirmar')"
                 >

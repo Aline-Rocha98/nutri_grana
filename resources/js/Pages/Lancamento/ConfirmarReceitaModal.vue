@@ -74,8 +74,8 @@ function confirmar() {
 <template>
     <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="confirmar">
-            <h2 class="text-lg font-semibold text-gray-900">Confirmar receita?</h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <h2 class="text-lg font-semibold text-ng-ink">Confirmar receita?</h2>
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 Informe o valor realmente recebido para atualizar o lançamento.
             </p>
 
@@ -98,11 +98,11 @@ function confirmar() {
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="valor-recebido" class="block text-sm font-medium text-gray-500">
+                    <label for="valor-recebido" class="block text-sm font-medium text-ng-ink-muted">
                         Valor recebido
                     </label>
                     <div class="relative mt-1">
-                        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-ng-ink-muted">
                             R$
                         </span>
                         <input
@@ -110,7 +110,7 @@ function confirmar() {
                             :value="formulario.valor_recebido"
                             type="text"
                             inputmode="numeric"
-                            class="block w-full rounded-lg border-gray-200 pl-10 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="block w-full rounded-lg border-ng-line-strong pl-10 shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             placeholder="0,00"
                             @input="formulario.valor_recebido = aoDigitarMoeda($event)"
                         >
@@ -121,14 +121,14 @@ function confirmar() {
                 </div>
 
                 <div>
-                    <label for="data-recebimento" class="block text-sm font-medium text-gray-500">
+                    <label for="data-recebimento" class="block text-sm font-medium text-ng-ink-muted">
                         Data recebimento
                     </label>
                     <input
                         id="data-recebimento"
                         v-model="formulario.data_recebimento"
                         type="date"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                     <p v-if="formulario.errors.data_recebimento" class="mt-2 text-sm text-red-600">
                         {{ formulario.errors.data_recebimento }}
@@ -139,7 +139,7 @@ function confirmar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

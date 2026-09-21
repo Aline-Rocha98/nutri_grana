@@ -2,6 +2,494 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    color-scheme: light;
+
+    --ng-page: #f4f4f5;
+    --ng-page-accent: #e4e4e7;
+    --ng-card: #ffffff;
+    --ng-card-muted: #fafafa;
+    --ng-raised: #ffffff;
+    --ng-sidebar: #111111;
+    --ng-ink: #18181b;
+    --ng-ink-secondary: #3f3f46;
+    --ng-ink-muted: #71717a;
+    --ng-ink-subtle: #a1a1aa;
+    --ng-line: rgba(24, 24, 27, 0.08);
+    --ng-line-strong: rgba(24, 24, 27, 0.12);
+    --ng-overlay: rgba(0, 0, 0, 0.45);
+    --ng-input: #fafafa;
+    --ng-input-border: #e4e4e7;
+    --ng-brand: #1fa67e;
+    --ng-brand-hover: #198a68;
+    --ng-brand-soft: rgba(31, 166, 126, 0.12);
+    --ng-header: rgba(255, 255, 255, 0.92);
+    --ng-glow: transparent;
+}
+
+.dark {
+    color-scheme: dark;
+
+    --ng-page: #0a0a0a;
+    --ng-page-accent: #121212;
+    --ng-card: #141414;
+    --ng-card-muted: #1a1a1a;
+    --ng-raised: #1c1c1c;
+    --ng-sidebar: #0f0f0f;
+    --ng-ink: #fafafa;
+    --ng-ink-secondary: #e4e4e7;
+    --ng-ink-muted: #a1a1aa;
+    --ng-ink-subtle: #71717a;
+    --ng-line: rgba(255, 255, 255, 0.05);
+    --ng-line-strong: rgba(255, 255, 255, 0.09);
+    --ng-overlay: rgba(0, 0, 0, 0.65);
+    --ng-input: rgba(255, 255, 255, 0.04);
+    --ng-input-border: rgba(255, 255, 255, 0.1);
+    --ng-brand: #1fa67e;
+    --ng-brand-hover: #22c08a;
+    --ng-brand-soft: rgba(31, 166, 126, 0.16);
+    --ng-header: rgba(20, 20, 20, 0.88);
+    --ng-glow: radial-gradient(120% 80% at 10% 0%, rgba(31, 166, 126, 0.08), transparent 45%),
+        radial-gradient(90% 60% at 90% 10%, rgba(99, 102, 241, 0.06), transparent 40%);
+}
+
+@layer base {
+    html {
+        @apply antialiased;
+    }
+
+    body {
+        background-color: var(--ng-page);
+        color: var(--ng-ink);
+        transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    ::selection {
+        background-color: var(--ng-brand-soft);
+        color: var(--ng-ink);
+    }
+
+    input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+    select,
+    textarea {
+        background-color: var(--ng-input);
+        color: var(--ng-ink);
+        border-color: var(--ng-input-border);
+    }
+
+    select {
+        color-scheme: inherit;
+    }
+
+    .dark select {
+        background-color: #1a1a1a;
+        color: #fafafa;
+    }
+
+    .dark input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+    .dark textarea {
+        background-color: #1a1a1a;
+        color: #fafafa;
+    }
+
+    /* Options do select nativo (Windows/Chrome): fundo sólido + texto legível */
+    select option,
+    select optgroup {
+        background-color: #ffffff !important;
+        color: #18181b !important;
+    }
+
+    .dark select option,
+    .dark select optgroup {
+        background-color: #1a1a1a !important;
+        color: #fafafa !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--ng-ink-subtle);
+    }
+}
+
+@layer components {
+    .ng-page {
+        background-color: var(--ng-page);
+        background-image: var(--ng-glow);
+        color: var(--ng-ink);
+        min-height: 100vh;
+    }
+
+    .ng-card {
+        background-color: var(--ng-card);
+        border: 1px solid var(--ng-line);
+        border-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        color: var(--ng-ink);
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .dark .ng-card {
+        box-shadow: none;
+    }
+
+    .ng-card-muted {
+        background-color: var(--ng-card-muted);
+        border: 1px solid var(--ng-line);
+        border-radius: 0.75rem;
+    }
+
+    .ng-header {
+        background-color: var(--ng-header);
+        border: 1px solid var(--ng-line);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .ng-sidebar {
+        background-color: var(--ng-sidebar);
+        border: 1px solid var(--ng-line);
+        color: #d4d4d8;
+    }
+
+    .ng-input {
+        background-color: var(--ng-raised);
+        border-color: var(--ng-input-border);
+        color: var(--ng-ink);
+    }
+
+    .dark .ng-input {
+        background-color: #1a1a1a;
+    }
+
+    .ng-input:focus {
+        border-color: var(--ng-line-strong);
+        --tw-ring-color: rgba(255, 255, 255, 0.08);
+    }
+
+    :root:not(.dark) .ng-input:focus {
+        border-color: var(--ng-brand);
+        --tw-ring-color: var(--ng-brand);
+    }
+
+    .ng-input:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .ng-btn-primary {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white transition disabled:opacity-60;
+        background-color: var(--ng-brand);
+    }
+
+    .ng-btn-primary:hover:not(:disabled) {
+        background-color: var(--ng-brand-hover);
+    }
+
+    .ng-btn-ghost {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-widest transition;
+        border-color: var(--ng-line-strong);
+        color: var(--ng-ink-secondary);
+        background-color: transparent;
+    }
+
+    .ng-btn-ghost:hover:not(:disabled) {
+        background-color: var(--ng-brand-soft);
+    }
+
+    .ng-btn-danger {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-500 px-3 py-1.5 text-sm font-medium text-red-500 transition disabled:opacity-60;
+        background-color: transparent;
+    }
+
+    .ng-btn-danger:hover:not(:disabled) {
+        @apply bg-red-500 text-white;
+    }
+
+    .ng-btn-danger--lg {
+        @apply px-4 py-2.5 text-xs font-semibold uppercase tracking-widest;
+    }
+
+    .ng-toggle {
+        @apply relative h-6 w-11 shrink-0 rounded-full transition;
+    }
+
+    .ng-toggle--on {
+        background-color: var(--ng-brand);
+    }
+
+    .ng-toggle--off {
+        background-color: #3f3f46;
+    }
+
+    .dark .ng-toggle--off {
+        background-color: #3f3f46;
+    }
+
+    .ng-toggle__knob {
+        @apply absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition;
+    }
+
+    .ng-divider {
+        border-color: var(--ng-line);
+    }
+
+    .ng-text-muted {
+        color: var(--ng-ink-muted);
+    }
+
+    .ng-text-subtle {
+        color: var(--ng-ink-subtle);
+    }
+
+    .ng-badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tracking-wide;
+        border: 1px solid transparent;
+        line-height: 1.25;
+    }
+
+    .ng-badge--emerald {
+        background-color: rgba(16, 185, 129, 0.14);
+        color: #059669;
+        border-color: rgba(16, 185, 129, 0.22);
+    }
+
+    .dark .ng-badge--emerald {
+        background-color: rgba(16, 185, 129, 0.16);
+        color: #6ee7b7;
+        border-color: rgba(16, 185, 129, 0.28);
+    }
+
+    .ng-badge--brand {
+        background-color: rgba(31, 166, 126, 0.14);
+        color: #198a68;
+        border-color: rgba(31, 166, 126, 0.24);
+    }
+
+    .dark .ng-badge--brand {
+        background-color: rgba(31, 166, 126, 0.18);
+        color: #5eead4;
+        border-color: rgba(31, 166, 126, 0.3);
+    }
+
+    .ng-badge--sky {
+        background-color: rgba(14, 165, 233, 0.14);
+        color: #0284c7;
+        border-color: rgba(14, 165, 233, 0.22);
+    }
+
+    .dark .ng-badge--sky {
+        background-color: rgba(56, 189, 248, 0.16);
+        color: #7dd3fc;
+        border-color: rgba(56, 189, 248, 0.28);
+    }
+
+    .ng-badge--blue {
+        background-color: rgba(59, 130, 246, 0.14);
+        color: #2563eb;
+        border-color: rgba(59, 130, 246, 0.22);
+    }
+
+    .dark .ng-badge--blue {
+        background-color: rgba(96, 165, 250, 0.16);
+        color: #93c5fd;
+        border-color: rgba(96, 165, 250, 0.28);
+    }
+
+    .ng-badge--indigo {
+        background-color: rgba(99, 102, 241, 0.14);
+        color: #4f46e5;
+        border-color: rgba(99, 102, 241, 0.22);
+    }
+
+    .dark .ng-badge--indigo {
+        background-color: rgba(129, 140, 248, 0.16);
+        color: #a5b4fc;
+        border-color: rgba(129, 140, 248, 0.28);
+    }
+
+    .ng-badge--amber {
+        background-color: rgba(245, 158, 11, 0.14);
+        color: #b45309;
+        border-color: rgba(245, 158, 11, 0.24);
+    }
+
+    .dark .ng-badge--amber {
+        background-color: rgba(251, 191, 36, 0.16);
+        color: #fcd34d;
+        border-color: rgba(251, 191, 36, 0.28);
+    }
+
+    .ng-badge--orange {
+        background-color: rgba(249, 115, 22, 0.14);
+        color: #c2410c;
+        border-color: rgba(249, 115, 22, 0.24);
+    }
+
+    .dark .ng-badge--orange {
+        background-color: rgba(251, 146, 60, 0.16);
+        color: #fdba74;
+        border-color: rgba(251, 146, 60, 0.28);
+    }
+
+    .ng-badge--red {
+        background-color: rgba(239, 68, 68, 0.14);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.24);
+    }
+
+    .dark .ng-badge--red {
+        background-color: rgba(248, 113, 113, 0.16);
+        color: #fca5a5;
+        border-color: rgba(248, 113, 113, 0.28);
+    }
+
+    .ng-badge--zinc {
+        background-color: rgba(113, 113, 122, 0.12);
+        color: #52525b;
+        border-color: rgba(113, 113, 122, 0.18);
+    }
+
+    .dark .ng-badge--zinc {
+        background-color: rgba(161, 161, 170, 0.12);
+        color: #a1a1aa;
+        border-color: rgba(161, 161, 170, 0.2);
+    }
+
+    .ng-tint {
+        background-color: transparent;
+        color: inherit;
+    }
+
+    .ng-tint--brand {
+        background-color: rgba(31, 166, 126, 0.14);
+        color: #1fa67e;
+    }
+
+    .dark .ng-tint--brand {
+        background-color: rgba(31, 166, 126, 0.18);
+        color: #5eead4;
+    }
+
+    .ng-tint--red {
+        background-color: rgba(239, 68, 68, 0.14);
+        color: #dc2626;
+    }
+
+    .dark .ng-tint--red {
+        background-color: rgba(248, 113, 113, 0.16);
+        color: #fca5a5;
+    }
+
+    .ng-tint--emerald {
+        background-color: rgba(16, 185, 129, 0.14);
+        color: #059669;
+    }
+
+    .dark .ng-tint--emerald {
+        background-color: rgba(16, 185, 129, 0.16);
+        color: #6ee7b7;
+    }
+
+    .ng-tint--amber {
+        background-color: rgba(245, 158, 11, 0.14);
+        color: #b45309;
+    }
+
+    .dark .ng-tint--amber {
+        background-color: rgba(251, 191, 36, 0.16);
+        color: #fcd34d;
+    }
+
+    .ng-tint--sky {
+        background-color: rgba(14, 165, 233, 0.14);
+        color: #0284c7;
+    }
+
+    .dark .ng-tint--sky {
+        background-color: rgba(56, 189, 248, 0.16);
+        color: #7dd3fc;
+    }
+
+    /* Alertas / banners tint */
+    .ng-alert {
+        @apply flex items-start gap-3 rounded-2xl px-4 py-4 text-sm leading-relaxed;
+        border: 1px solid transparent;
+    }
+
+    .ng-alert__icon {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white;
+    }
+
+    .ng-alert__icon .material-symbols-outlined {
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .ng-alert--warning {
+        background-color: #fef9e7;
+        border-color: rgba(245, 158, 11, 0.18);
+        color: #3d3426;
+    }
+
+    .ng-alert--warning .ng-alert__icon {
+        background-color: #f59e0b;
+    }
+
+    .dark .ng-alert--warning {
+        background-color: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.22);
+        color: #fde68a;
+    }
+
+    .ng-alert--success {
+        background-color: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #065f46;
+    }
+
+    .ng-alert--success .ng-alert__icon {
+        background-color: #10b981;
+    }
+
+    .dark .ng-alert--success {
+        background-color: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.22);
+        color: #6ee7b7;
+    }
+
+    .ng-alert--info {
+        background-color: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+        color: #1e3a8a;
+    }
+
+    .ng-alert--info .ng-alert__icon {
+        background-color: #3b82f6;
+    }
+
+    .dark .ng-alert--info {
+        background-color: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.22);
+        color: #93c5fd;
+    }
+
+    .ng-alert--danger {
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #7f1d1d;
+    }
+
+    .ng-alert--danger .ng-alert__icon {
+        background-color: #ef4444;
+    }
+
+    .dark .ng-alert--danger {
+        background-color: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.22);
+        color: #fca5a5;
+    }
+}
+
 .barra-lateral {
     width: 5rem;
 }

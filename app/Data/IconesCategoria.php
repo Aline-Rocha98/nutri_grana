@@ -4,9 +4,6 @@ namespace App\Data;
 
 final class IconesCategoria
 {
-    /**
-     * @return list<string>
-     */
     public static function todos(): array
     {
         return [
@@ -34,9 +31,6 @@ final class IconesCategoria
         ];
     }
 
-    /**
-     * @return list<array{valor: string, rotulo: string}>
-     */
     public static function opcoesParaSelect(): array
     {
         return array_map(

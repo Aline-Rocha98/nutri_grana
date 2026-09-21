@@ -5,6 +5,7 @@ import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/Objetivo/FormularioModal.vue';
 import AporteModal from '@/Pages/Objetivo/AporteModal.vue';
+import { BADGE, badgeSituacaoObjetivo } from '@/Helpers/badge';
 
 const props = defineProps({
     objetivos: {
@@ -52,13 +53,7 @@ watch(
 );
 
 function classeSituacao(situacao) {
-    return {
-        adiantado: 'bg-emerald-50 text-emerald-700',
-        em_dia: 'bg-sky-50 text-sky-700',
-        atrasado: 'bg-amber-50 text-amber-700',
-        concluido: 'bg-[#1fa67e]/10 text-[#198a68]',
-        vencido: 'bg-red-50 text-red-700',
-    }[situacao] ?? 'bg-gray-50 text-gray-600';
+    return badgeSituacaoObjetivo(situacao);
 }
 
 function abrirCriar() {
@@ -137,7 +132,7 @@ const mensagemExclusao = computed(() => {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
                     Objetivos
                 </h2>
                 <button
@@ -152,9 +147,9 @@ const mensagemExclusao = computed(() => {
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div v-if="objetivos.length === 0" class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-10 text-center">
-                <span class="material-symbols-outlined text-4xl text-gray-300">flag</span>
-                <p class="mt-3 text-gray-600">Você ainda não cadastrou nenhum objetivo.</p>
+            <div v-if="objetivos.length === 0" class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-10 text-center">
+                <span class="material-symbols-outlined text-4xl text-ng-ink-subtle">flag</span>
+                <p class="mt-3 text-ng-ink-muted">Você ainda não cadastrou nenhum objetivo.</p>
                 <button
                     type="button"
                     class="mt-4 inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#198a68] transition"
@@ -167,26 +162,23 @@ const mensagemExclusao = computed(() => {
             <div
                 v-for="objetivo in objetivos"
                 :key="objetivo.id"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ objetivo.descricao }}</h3>
-                            <span
-                                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                :class="classeSituacao(objetivo.situacao_ritmo)"
-                            >
+                            <h3 class="text-lg font-semibold text-ng-ink">{{ objetivo.descricao }}</h3>
+                            <span :class="classeSituacao(objetivo.situacao_ritmo)">
                                 {{ objetivo.situacao_ritmo_rotulo }}
                             </span>
                             <span
                                 v-if="objetivo.exibir_dashboard === 'S'"
-                                class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                                :class="BADGE.zinc"
                             >
                                 No dashboard
                             </span>
                         </div>
-                        <p class="mt-1 text-sm text-gray-500">
+                        <p class="mt-1 text-sm text-ng-ink-muted">
                             Meta até {{ objetivo.data_limite_formatada }}
                         </p>
                     </div>
@@ -202,14 +194,14 @@ const mensagemExclusao = computed(() => {
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                            class="inline-flex items-center rounded-lg border border-ng-line-strong px-3 py-1.5 text-sm text-ng-ink-secondary hover:bg-ng-brand-soft transition"
                             @click="abrirEditar(objetivo)"
                         >
                             Editar
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
+                            class="ng-btn-danger"
                             @click="pedirExclusao(objetivo)"
                         >
                             Excluir
@@ -219,12 +211,12 @@ const mensagemExclusao = computed(() => {
 
                 <div class="mt-5">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="font-medium text-gray-700">{{ objetivo.percentual_atual }}% concluído</span>
-                        <span class="text-gray-500">
+                        <span class="font-medium text-ng-ink-secondary">{{ objetivo.percentual_atual }}% concluído</span>
+                        <span class="text-ng-ink-muted">
                             R$ {{ objetivo.valor_guardado }} de R$ {{ objetivo.valor_meta }}
                         </span>
                     </div>
-                    <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-ng-card-muted">
                         <div
                             class="h-full rounded-full bg-[#1fa67e] transition-all"
                             :style="{ width: `${Math.min(100, objetivo.percentual_atual)}%` }"
@@ -233,31 +225,31 @@ const mensagemExclusao = computed(() => {
                 </div>
 
                 <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Guardado</p>
-                        <p class="mt-1 text-base font-semibold text-gray-900">R$ {{ objetivo.valor_guardado }}</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Guardado</p>
+                        <p class="mt-1 text-base font-semibold text-ng-ink">R$ {{ objetivo.valor_guardado }}</p>
                     </div>
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Falta</p>
-                        <p class="mt-1 text-base font-semibold text-gray-900">R$ {{ objetivo.valor_faltante }}</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Falta</p>
+                        <p class="mt-1 text-base font-semibold text-ng-ink">R$ {{ objetivo.valor_faltante }}</p>
                     </div>
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Depósito mensal sugerido</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Depósito mensal sugerido</p>
                         <p class="mt-1 text-base font-semibold text-[#1fa67e]">
                             R$ {{ objetivo.deposito_mensal_sugerido }}
                         </p>
                     </div>
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Esperado hoje</p>
-                        <p class="mt-1 text-base font-semibold text-gray-900">
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Esperado hoje</p>
+                        <p class="mt-1 text-base font-semibold text-ng-ink">
                             R$ {{ objetivo.valor_esperado_hoje }}
                         </p>
                     </div>
                 </div>
 
-                <div v-if="objetivo.aportes?.length" class="mt-5 border-t border-gray-100 pt-4">
+                <div v-if="objetivo.aportes?.length" class="mt-5 border-t border-ng-line pt-4">
                     <span
-                        class="cursor-pointer text-sm font-medium text-gray-700 hover:text-[#1fa67e]"
+                        class="cursor-pointer text-sm font-medium text-ng-ink-secondary hover:text-[#1fa67e]"
                         role="button"
                         tabindex="0"
                         @click="alternarAportes(objetivo)"
@@ -272,16 +264,16 @@ const mensagemExclusao = computed(() => {
                         <li
                             v-for="aporte in objetivo.aportes"
                             :key="aporte.id"
-                            class="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600"
+                            class="flex flex-wrap items-center justify-between gap-2 text-sm text-ng-ink-muted"
                         >
                             <span>
                                 {{ aporte.data_aporte_formatada }} —
                                 {{ aporte.tipo_rotulo }}
-                                <span v-if="aporte.conta_bancaria_nome" class="text-gray-400">
+                                <span v-if="aporte.conta_bancaria_nome" class="text-ng-ink-subtle">
                                     ({{ aporte.conta_bancaria_nome }})
                                 </span>
                             </span>
-                            <span class="font-medium text-gray-800">R$ {{ aporte.valor }}</span>
+                            <span class="font-medium text-ng-ink">R$ {{ aporte.valor }}</span>
                         </li>
                     </ul>
                 </div>

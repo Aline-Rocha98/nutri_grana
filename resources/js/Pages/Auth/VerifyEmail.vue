@@ -24,9 +24,9 @@ function reenviar() {
     <Head title="Verificar e-mail" />
 
     <ConvidadoLayout>
-        <div class="bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-md p-8 border border-white/20 text-center space-y-4">
-            <h1 class="text-xl font-semibold text-gray-900">Verifique seu e-mail</h1>
-            <p class="text-sm text-gray-600">
+        <div class="bg-ng-card/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-md p-8 border border-ng-line text-center space-y-4">
+            <h1 class="text-xl font-semibold text-ng-ink">Verifique seu e-mail</h1>
+            <p class="text-sm text-ng-ink-muted">
                 Obrigado por se cadastrar. Antes de começar, verifique seu e-mail clicando no link enviado.
             </p>
             <p v-if="status === 'verification-link-sent'" class="text-sm text-green-600">

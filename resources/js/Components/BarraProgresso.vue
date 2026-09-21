@@ -16,9 +16,9 @@ defineProps({
 </script>
 
 <template>
-    <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+    <div class="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10">
         <div
-            class="h-full rounded-full transition-all"
+            class="h-full rounded-full transition-all duration-500 ease-smooth"
             :class="ultrapassado ? 'bg-red-500' : ''"
             :style="ultrapassado ? { width: `${Math.min(100, percentual)}%` } : { width: `${Math.min(100, percentual)}%`, backgroundColor: cor }"
         />

@@ -8,22 +8,6 @@ use Carbon\Carbon;
 
 class CalculadoraViabilidadeOrcamentoServico
 {
-    /**
-     * @param  array<string, mixed>  $projecaoSem
-     * @param  array<string, mixed>  $projecaoCom
-     * @param  array{
-     *     modalidade: ModalidadePagamentoOrcamento,
-     *     forma: FormaPagamento,
-     *     total_parcelas: int,
-     *     valor_parcela: float,
-     *     limite_disponivel_cartao?: float|null,
-     *     limite_total_cartao?: float|null,
-     *     cartao_nome?: string|null,
-     *     consome_limite_cartao?: bool,
-     *     ultrapassa_limite_cartao?: bool
-     * }  $contextoPagamento
-     * @return array<string, mixed>
-     */
     public function montarResumo(
         float $valorOrcamento,
         array $projecaoSem,
@@ -124,14 +108,6 @@ class CalculadoraViabilidadeOrcamentoServico
         ];
     }
 
-    /**
-     * @param  list<array{
-     *     total_parcelas: int,
-     *     projecao_com: array<string, mixed>,
-     *     contexto: array<string, mixed>
-     * }>  $cenarios
-     * @return array<string, mixed>
-     */
     public function simularCenarios(
         float $valorOrcamento,
         array $projecaoSem,
@@ -259,9 +235,6 @@ class CalculadoraViabilidadeOrcamentoServico
         ];
     }
 
-    /**
-     * @param  list<array{liquido?: float, receitas: float, despesas: float}>  $meses
-     */
     public function mediaLiquidaMensal(array $meses): float
     {
         if ($meses === []) {
@@ -285,9 +258,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return round(array_sum($comMovimento) / count($comMovimento), 2);
     }
 
-    /**
-     * @param  list<array{receitas: float}>  $meses
-     */
     public function mediaReceitasMensal(array $meses): float
     {
         if ($meses === []) {
@@ -327,9 +297,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return $valorParcela <= $liquidoMedio;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $cenarios
-     */
     private function avaliarPodeAssumir(
         array $cenarios,
         ModalidadePagamentoOrcamento $modalidade,
@@ -352,10 +319,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return false;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $cenarios
-     * @return array<string, mixed>|null
-     */
     private function cenarioReferencia(
         array $cenarios,
         ModalidadePagamentoOrcamento $modalidade,
@@ -377,9 +340,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return $cenarios[array_key_last($cenarios)];
     }
 
-    /**
-     * @param  array<string, mixed>|null  $cenario
-     */
     private function montarResumoCompromisso(
         bool $podeAssumir,
         ModalidadePagamentoOrcamento $modalidade,
@@ -414,9 +374,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return 'Não é recomendado assumir este compromisso com a forma de pagamento escolhida.';
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $cenarios
-     */
     private function escolherCenarioRecomendado(array $cenarios): ?int
     {
         $melhor = null;
@@ -439,9 +396,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return $melhor;
     }
 
-    /**
-     * @param  list<array{saldo_projetado: float}>  $meses
-     */
     private function estimarMesesAtePagar(float $valorOrcamento, array $meses): ?int
     {
         if ($valorOrcamento <= 0) {
@@ -457,9 +411,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return null;
     }
 
-    /**
-     * @param  list<array{saldo_projetado: float}>  $meses
-     */
     private function estimarMesesAtePagarParcela(float $valorParcela, array $meses): ?int
     {
         if ($valorParcela <= 0) {
@@ -475,9 +426,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return null;
     }
 
-    /**
-     * @param  list<array{saldo_projetado: float}>  $meses
-     */
     private function algumMesNegativo(array $meses): bool
     {
         foreach ($meses as $mes) {
@@ -489,9 +437,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return false;
     }
 
-    /**
-     * @param  list<array{saldo_projetado: float}>  $meses
-     */
     private function mesAtualNegativo(array $meses): bool
     {
         if ($meses === []) {
@@ -501,9 +446,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return (float) ($meses[0]['saldo_projetado'] ?? 0) < 0;
     }
 
-    /**
-     * @param  list<array{saldo_projetado: float}>  $meses
-     */
     private function mesesSeguintesNegativos(array $meses): bool
     {
         foreach (array_slice($meses, 1) as $mes) {
@@ -539,10 +481,6 @@ class CalculadoraViabilidadeOrcamentoServico
         return 'Ok';
     }
 
-    /**
-     * @param  list<array{rotulo: string, saldo_projetado: float}>  $meses
-     * @return array{rotulo: string, saldo_projetado: float}|null
-     */
     private function ultimoMes(array $meses): ?array
     {
         if ($meses === []) {

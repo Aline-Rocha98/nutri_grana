@@ -33,10 +33,10 @@ watch(
         <div
             v-show="aberto"
             class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 py-6 sm:px-0"
-            style="background-color: rgba(0, 0, 0, 0.55)"
+            style="background-color: var(--ng-overlay)"
         >
             <div
-                class="relative mb-6 w-full overflow-hidden rounded-lg bg-white shadow-2xl sm:mx-auto sm:w-full"
+                class="ng-card relative mb-6 w-full overflow-hidden shadow-2xl sm:mx-auto sm:w-full"
                 :class="classesMax[maxLargura] ?? classesMax['2xl']"
             >
                 <slot />

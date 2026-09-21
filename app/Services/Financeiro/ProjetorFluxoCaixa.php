@@ -10,11 +10,6 @@ use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Renda\RendaGeracaoService;
 use Carbon\Carbon;
 
-/**
- * Projeta o fluxo de caixa com base no saldo atual das contas
- * e nos lançamentos abertos previstos (pendente/previsto),
- * sem criar compromisso novo.
- */
 class ProjetorFluxoCaixa
 {
     public const HORIZONTE_MAXIMO_MESES = 12;
@@ -26,25 +21,6 @@ class ProjetorFluxoCaixa
         private readonly RendaGeracaoService $rendaGeracaoService,
     ) {}
 
-    /**
-     * @param  list<array{valor: float, data: Carbon|string}>  $compromissos
-     * @return array{
-     *     saldo_atual_contas: float,
-     *     receitas_previstas: float,
-     *     despesas_previstas: float,
-     *     saldo_disponivel_planejamento: float,
-     *     meses: list<array{
-     *         ano: int,
-     *         mes: int,
-     *         rotulo: string,
-     *         receitas: float,
-     *         despesas: float,
-     *         saldo_projetado: float
-     *     }>,
-     *     saldo_projetado_final: float,
-     *     horizonte_ate: string
-     * }
-     */
     public function projetar(
         int $idUsuario,
         ?Carbon $ate = null,
@@ -144,10 +120,6 @@ class ProjetorFluxoCaixa
         return $ate->lte($limiteMaximo) ? $ate : $limiteMaximo;
     }
 
-    /**
-     * @param  list<array{valor: float, data: Carbon|string}>  $compromissos
-     * @return array<string, float>
-     */
     private function indexarCompromissosPorMes(array $compromissos): array
     {
         $porMes = [];
@@ -163,9 +135,6 @@ class ProjetorFluxoCaixa
         return $porMes;
     }
 
-    /**
-     * @return array{0: float, 1: float}
-     */
     private function pendenciasConsolidadasDoMes(
         int $idUsuario,
         Carbon $cursorMes,
@@ -197,10 +166,7 @@ class ProjetorFluxoCaixa
             round(max(0, $despesasMes - $atrasadasNoMes['despesas']), 2),
         ];
     }
-
-    /**
-     * @return array{0: float, 1: float}
-     */
+    
     private function pendenciasContaDoMes(
         int $idUsuario,
         Carbon $cursorMes,

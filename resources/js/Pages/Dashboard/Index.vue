@@ -139,17 +139,17 @@ onMounted(() => {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Dashboard</h2>
-                <span class="text-sm text-gray-500">{{ dataHoje }}</span>
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Dashboard</h2>
+                <span class="text-sm text-ng-ink-muted">{{ dataHoje }}</span>
             </div>
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6">
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
                 <h3 class="text-lg font-semibold text-[#1fa67e]">
                     Olá, {{ usuario.nome }}!
                 </h3>
-                <p class="mt-2 text-gray-600">
+                <p class="mt-2 text-ng-ink-muted">
                     Veja o panorama das suas finanças. Escolha abaixo o que deseja exibir.
                 </p>
                 <div class="mt-4">
@@ -163,12 +163,16 @@ onMounted(() => {
 
             <div
                 v-if="erro"
-                class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700"
+                class="ng-alert ng-alert--danger"
+                role="alert"
             >
-                {{ erro }}
+                <span class="ng-alert__icon" aria-hidden="true">
+                    <span class="material-symbols-outlined">priority_high</span>
+                </span>
+                <p class="min-w-0">{{ erro }}</p>
             </div>
 
-            <div v-if="!widgetsAtivos.length" class="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500">
+            <div v-if="!widgetsAtivos.length" class="bg-ng-card rounded-2xl border border-ng-line p-8 text-center text-ng-ink-muted">
                 Ative ao menos um card em “Exibir” para carregar os dados.
             </div>
 

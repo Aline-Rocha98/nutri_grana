@@ -5,6 +5,7 @@ import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/Lancamento/FormularioModal.vue';
 import ConfirmarReceitaModal from '@/Pages/Lancamento/ConfirmarReceitaModal.vue';
+import { badgeSituacaoLancamento } from '@/Helpers/badge';
 
 const props = defineProps({
     ano: { type: Number, required: true },
@@ -186,7 +187,7 @@ const mensagemExclusao = computed(() => {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Lançamentos</h2>
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Lançamentos</h2>
                 <button
                     type="button"
                     class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
@@ -200,14 +201,14 @@ const mensagemExclusao = computed(() => {
 
         <div class="p-6 lg:p-8 space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <p class="flex items-center gap-1 text-sm text-gray-500">
+                <div class="bg-ng-card rounded-2xl border border-ng-line p-5 shadow-sm">
+                    <p class="flex items-center gap-1 text-sm text-ng-ink-muted">
                         Receitas
                         <span
                             class="group relative inline-flex cursor-help"
                             tabindex="0"
                         >
-                            <span class="material-symbols-outlined text-[16px] text-gray-400">help</span>
+                            <span class="material-symbols-outlined text-[16px] text-ng-ink-subtle">help</span>
                             <span
                                 class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg bg-gray-800 px-2.5 py-1.5 text-center text-xs font-normal text-white shadow-lg group-hover:block group-focus:block"
                             >
@@ -219,14 +220,14 @@ const mensagemExclusao = computed(() => {
                         R$ {{ formatarMoeda(totais.receitas) }}
                     </p>
                 </div>
-                <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <p class="flex items-center gap-1 text-sm text-gray-500">
+                <div class="bg-ng-card rounded-2xl border border-ng-line p-5 shadow-sm">
+                    <p class="flex items-center gap-1 text-sm text-ng-ink-muted">
                         Despesas
                         <span
                             class="group relative inline-flex cursor-help"
                             tabindex="0"
                         >
-                            <span class="material-symbols-outlined text-[16px] text-gray-400">help</span>
+                            <span class="material-symbols-outlined text-[16px] text-ng-ink-subtle">help</span>
                             <span
                                 class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg bg-gray-800 px-2.5 py-1.5 text-center text-xs font-normal text-white shadow-lg group-hover:block group-focus:block"
                             >
@@ -238,14 +239,14 @@ const mensagemExclusao = computed(() => {
                         R$ {{ formatarMoeda(totais.despesas) }}
                     </p>
                 </div>
-                <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <p class="flex items-center gap-1 text-sm text-gray-500">
+                <div class="bg-ng-card rounded-2xl border border-ng-line p-5 shadow-sm">
+                    <p class="flex items-center gap-1 text-sm text-ng-ink-muted">
                         Saldo do mês
                         <span
                             class="group relative inline-flex cursor-help"
                             tabindex="0"
                         >
-                            <span class="material-symbols-outlined text-[16px] text-gray-400">help</span>
+                            <span class="material-symbols-outlined text-[16px] text-ng-ink-subtle">help</span>
                             <span
                                 class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-56 -translate-x-1/2 rounded-lg bg-gray-800 px-2.5 py-1.5 text-center text-xs font-normal text-white shadow-lg group-hover:block group-focus:block"
                             >
@@ -262,21 +263,21 @@ const mensagemExclusao = computed(() => {
                 </div>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
                 <div class="flex items-center justify-center gap-6 px-4 py-4">
                     <button
                         type="button"
-                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        class="rounded-lg p-1.5 text-ng-ink-muted hover:bg-ng-brand-soft"
                         @click="mesAnterior"
                     >
                         <span class="material-symbols-outlined">chevron_left</span>
                     </button>
-                    <p class="min-w-[3rem] text-center text-base font-semibold text-gray-800">
+                    <p class="min-w-[3rem] text-center text-base font-semibold text-ng-ink">
                         {{ siglaMes }}
                     </p>
                     <button
                         type="button"
-                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        class="rounded-lg p-1.5 text-ng-ink-muted hover:bg-ng-brand-soft"
                         @click="proximoMes"
                     >
                         <span class="material-symbols-outlined">chevron_right</span>
@@ -287,13 +288,11 @@ const mensagemExclusao = computed(() => {
                     <div
                         v-for="item in lista"
                         :key="item.id"
-                        class="flex items-center gap-4 rounded-2xl border border-gray-100 px-4 py-3 hover:bg-gray-50/80 transition"
+                        class="flex items-center gap-4 rounded-2xl border border-ng-line px-4 py-3 hover:bg-ng-brand-soft/80 transition"
                     >
                         <div
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                            :class="item.tipo === 'receita'
-                                ? 'bg-[#e8f7f1] text-[#1fa67e]'
-                                : 'bg-red-50 text-red-600'"
+                            :class="item.tipo === 'receita' ? 'ng-tint ng-tint--brand' : 'ng-tint ng-tint--red'"
                         >
                             <span class="material-symbols-outlined text-[20px]">
                                 {{ item.tipo === 'receita' ? 'trending_up' : 'trending_down' }}
@@ -301,21 +300,14 @@ const mensagemExclusao = computed(() => {
                         </div>
 
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-gray-900">{{ item.descricao }}</p>
-                            <p class="text-sm text-gray-500">
+                            <p class="truncate font-semibold text-ng-ink">{{ item.descricao }}</p>
+                            <p class="text-sm text-ng-ink-muted">
                                 {{ item.data_vencimento_formatada }}
                                 <span v-if="item.categoria_nome"> · {{ item.categoria_nome }}</span>
                                 <span v-if="item.conta_bancaria_nome"> · {{ item.conta_bancaria_nome }}</span>
                                 <span v-if="item.cartao_credito_nome"> · {{ item.cartao_credito_nome }}</span>
                                 ·
-                                <span
-                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                                    :class="{
-                                        'bg-orange-50 text-orange-600 font-medium': item.situacao === 'pendente' || item.situacao === 'previsto',
-                                        'bg-[#e8f7f1] text-[#1fa67e] font-medium': item.situacao === 'pago' || item.situacao === 'recebido',
-                                        'bg-gray-100 text-gray-500': item.situacao !== 'pendente' && item.situacao !== 'previsto' && item.situacao !== 'pago' && item.situacao !== 'recebido',
-                                    }"
-                                >
+                                <span :class="badgeSituacaoLancamento(item.situacao)">
                                     {{ item.situacao_rotulo }}
                                 </span>
                             </p>
@@ -334,7 +326,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-if="!item.eh_renda"
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 :title="item.situacao === 'pago' ? 'Marcar pendente' : 'Marcar pago'"
                                 @click="marcarPago(item)"
                             >
@@ -345,7 +337,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-else-if="item.situacao === 'previsto'"
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 title="Confirmar receita"
                                 @click="abrirEditar(item)"
                             >
@@ -353,7 +345,7 @@ const mensagemExclusao = computed(() => {
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 :title="item.eh_renda && item.situacao === 'previsto' ? 'Confirmar receita' : 'Editar'"
                                 @click="abrirEditar(item)"
                             >
@@ -361,7 +353,7 @@ const mensagemExclusao = computed(() => {
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                 title="Excluir"
                                 @click="pedirExclusao(item)"
                             >
@@ -372,7 +364,7 @@ const mensagemExclusao = computed(() => {
 
                     <div
                         v-if="lista.length === 0"
-                        class="rounded-2xl border border-dashed border-gray-200 px-6 py-10 text-center text-sm text-gray-500"
+                        class="rounded-2xl border border-dashed border-ng-line-strong px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhum lançamento em {{ nomeMes }}/{{ ano }}.
                     </div>
@@ -380,7 +372,7 @@ const mensagemExclusao = computed(() => {
 
                 <div
                     v-if="links.length > 3"
-                    class="flex flex-wrap items-center justify-center gap-1 border-t border-gray-100 px-4 py-3"
+                    class="flex flex-wrap items-center justify-center gap-1 border-t border-ng-line px-4 py-3"
                 >
                     <button
                         v-for="(link, idx) in links"
@@ -390,8 +382,8 @@ const mensagemExclusao = computed(() => {
                         :class="link.active
                             ? 'bg-[#1fa67e] text-white'
                             : link.url
-                                ? 'text-gray-600 hover:bg-gray-100'
-                                : 'text-gray-300 cursor-not-allowed'"
+                                ? 'text-ng-ink-muted hover:bg-ng-brand-soft'
+                                : 'text-ng-ink-subtle cursor-not-allowed'"
                         :disabled="!link.url"
                         v-html="link.label"
                         @click="irPagina(link.url)"

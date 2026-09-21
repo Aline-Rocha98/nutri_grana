@@ -114,7 +114,7 @@ const totalEsperado = computed(() =>
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Rendas</h2>
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Rendas</h2>
                 <button
                     type="button"
                     class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
@@ -127,47 +127,41 @@ const totalEsperado = computed(() =>
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div
-                class="flex items-center gap-3 rounded-lg bg-[#fff9e6] px-4 py-4"
-                role="status"
-            >
-                <span
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400 text-white"
-                    aria-hidden="true"
-                >
-                    <span class="material-symbols-outlined text-[18px] leading-none">priority_high</span>
+            <div class="ng-alert ng-alert--warning" role="status">
+                <span class="ng-alert__icon" aria-hidden="true">
+                    <span class="material-symbols-outlined">priority_high</span>
                 </span>
-                <p class="min-w-0 text-sm leading-relaxed text-[#3d3426]">
+                <p class="min-w-0">
                     <span class="font-semibold">Atenção:</span>
                     Como o valor de algumas rendas pode mudar como Salário, cadastre o valor médio de recebimento para que seja usado como previsão na sua saúde financeira.
                 </p>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6">
-                <p class="text-sm font-medium text-gray-500">Total esperado mensal</p>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
+                <p class="text-sm font-medium text-ng-ink-muted">Total esperado mensal</p>
                 <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
                     R$ {{ formatarMoeda(totalEsperado) }}
                 </p>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Minhas rendas</h3>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Minhas rendas</h3>
                 </div>
 
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div
                         v-for="renda in rendas"
                         :key="renda.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition"
+                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f7f1] text-[#1fa67e]">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ng-brand-soft text-[#1fa67e]">
                             <span class="material-symbols-outlined text-[22px]">payments</span>
                         </div>
 
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-gray-900">{{ renda.descricao }}</p>
-                            <p class="text-sm text-gray-500">
+                            <p class="truncate font-semibold text-ng-ink">{{ renda.descricao }}</p>
+                            <p class="text-sm text-ng-ink-muted">
                                 {{ renda.frequencia_rotulo }}
                                 · dia {{ renda.dia_esperado }}
                                 <span v-if="renda.conta_bancaria_nome">
@@ -185,7 +179,7 @@ const totalEsperado = computed(() =>
                         <div class="flex items-center gap-1 shrink-0">
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 title="Editar"
                                 @click="abrirEditar(renda)"
                             >
@@ -193,7 +187,7 @@ const totalEsperado = computed(() =>
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                 title="Excluir"
                                 @click="pedirExclusao(renda)"
                             >
@@ -204,7 +198,7 @@ const totalEsperado = computed(() =>
 
                     <div
                         v-if="rendas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-gray-500"
+                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhuma renda cadastrada. Clique em <strong>Nova renda</strong> para começar.
                     </div>

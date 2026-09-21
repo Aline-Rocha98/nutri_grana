@@ -130,10 +130,10 @@ function salvar() {
 <template>
     <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-ng-ink">
                 {{ tituloModal }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 {{ ehSubcategoria
                     ? 'Defina o nome e o ícone da subcategoria.'
                     : 'Defina o nome, tipo e ícone da categoria.' }}
@@ -141,14 +141,14 @@ function salvar() {
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="nome-categoria" class="block text-sm font-medium text-gray-500">
+                    <label for="nome-categoria" class="block text-sm font-medium text-ng-ink-muted">
                         Nome
                     </label>
                     <input
                         id="nome-categoria"
                         v-model="formulario.nome"
                         type="text"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         maxlength="100"
                     >
                     <p v-if="formulario.errors.nome" class="mt-2 text-sm text-red-600">
@@ -157,13 +157,13 @@ function salvar() {
                 </div>
 
                 <div v-if="!editando">
-                    <label for="categoria-pai" class="block text-sm font-medium text-gray-500">
+                    <label for="categoria-pai" class="block text-sm font-medium text-ng-ink-muted">
                         Categoria principal (opcional)
                     </label>
                     <select
                         id="categoria-pai"
                         v-model="formulario.id_categoria_pai"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option :value="null">Nenhuma — criar como categoria principal</option>
                         <option
@@ -180,18 +180,18 @@ function salvar() {
                 </div>
 
                 <div v-else-if="ehSubcategoria && categoriaPaiInicial">
-                    <span class="block text-sm font-medium text-gray-500">Categoria principal</span>
-                    <p class="mt-1 text-sm font-medium text-gray-900">{{ categoriaPaiInicial.nome }}</p>
+                    <span class="block text-sm font-medium text-ng-ink-muted">Categoria principal</span>
+                    <p class="mt-1 text-sm font-medium text-ng-ink">{{ categoriaPaiInicial.nome }}</p>
                 </div>
 
                 <div>
-                    <label for="tipo-categoria" class="block text-sm font-medium text-gray-500">
+                    <label for="tipo-categoria" class="block text-sm font-medium text-ng-ink-muted">
                         Tipo
                     </label>
                     <select
                         id="tipo-categoria"
                         v-model="formulario.tipo"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-gray-50 disabled:text-gray-500"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-ng-input disabled:text-ng-ink-muted"
                         :disabled="ehSubcategoria"
                     >
                         <option
@@ -202,7 +202,7 @@ function salvar() {
                             {{ opcao.rotulo === 'Saída' ? 'Despesa' : opcao.rotulo }}
                         </option>
                     </select>
-                    <p v-if="ehSubcategoria" class="mt-1 text-xs text-gray-400">
+                    <p v-if="ehSubcategoria" class="mt-1 text-xs text-ng-ink-subtle">
                         O tipo é herdado da categoria principal.
                     </p>
                     <p v-if="formulario.errors.tipo" class="mt-2 text-sm text-red-600">
@@ -211,7 +211,7 @@ function salvar() {
                 </div>
 
                 <div>
-                    <span class="block text-sm font-medium text-gray-500">Ícone</span>
+                    <span class="block text-sm font-medium text-ng-ink-muted">Ícone</span>
                     <div class="mt-2 grid grid-cols-7 gap-2">
                         <button
                             v-for="opcao in icones"
@@ -219,8 +219,8 @@ function salvar() {
                             type="button"
                             class="flex h-10 w-10 items-center justify-center rounded-lg border transition"
                             :class="formulario.icone === opcao.valor
-                                ? 'border-[#1fa67e] bg-[#e8f7f1] text-[#1fa67e]'
-                                : 'border-gray-200 text-gray-500 hover:bg-gray-50'"
+                                ? 'border-[#1fa67e] bg-ng-brand-soft text-[#1fa67e]'
+                                : 'border-ng-line-strong text-ng-ink-muted hover:bg-ng-brand-soft'"
                             :title="opcao.valor"
                             @click="formulario.icone = opcao.valor"
                         >
@@ -236,7 +236,7 @@ function salvar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

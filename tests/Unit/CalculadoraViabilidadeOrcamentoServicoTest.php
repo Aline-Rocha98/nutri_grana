@@ -100,9 +100,6 @@ class CalculadoraViabilidadeOrcamentoServicoTest extends TestCase
         $this->assertStringContainsString('3x', $resumo['mensagem_principal']);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function projecaoBase(float $saldoAtual, float $disponivel, float $saldoFinal): array
     {
         return [

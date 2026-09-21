@@ -4,9 +4,6 @@ namespace App\Data;
 
 final class BancosSugeridos
 {
-    /**
-     * @return list<array{nome: string, logo: string|null}>
-     */
     public static function todos(): array
     {
         return [

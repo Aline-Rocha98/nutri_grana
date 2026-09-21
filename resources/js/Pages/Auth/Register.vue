@@ -33,47 +33,47 @@ function enviar() {
     <Head title="Criar conta" />
 
     <ConvidadoLayout>
-        <div class="bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-lg p-8 border border-white/20">
+        <div class="bg-ng-card/95 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-lg p-8 border border-ng-line">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-[#1fa67e]">NutriGrana</h1>
-                <p class="text-gray-500 text-sm mt-2">Crie sua conta e organize suas finanças</p>
+                <p class="text-ng-ink-muted text-sm mt-2">Crie sua conta e organize suas finanças</p>
             </div>
 
             <form class="space-y-5" @submit.prevent="enviar">
                 <div>
-                    <label for="nome" class="block text-sm font-medium text-gray-600">Nome</label>
+                    <label for="nome" class="block text-sm font-medium text-ng-ink-muted">Nome</label>
                     <input
                         id="nome"
                         v-model="formulario.nome"
                         type="text"
                         autofocus
                         autocomplete="name"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                     <p v-if="formulario.errors.nome" class="mt-1 text-sm text-red-600">{{ formulario.errors.nome }}</p>
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-600">Email</label>
+                    <label for="email" class="block text-sm font-medium text-ng-ink-muted">Email</label>
                     <input
                         id="email"
                         v-model="formulario.email"
                         type="email"
                         autocomplete="username"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                     <p v-if="formulario.errors.email" class="mt-1 text-sm text-red-600">{{ formulario.errors.email }}</p>
                 </div>
 
                 <div>
-                    <label for="data_nascimento" class="block text-sm font-medium text-gray-600">
+                    <label for="data_nascimento" class="block text-sm font-medium text-ng-ink-muted">
                         Data de nascimento
                     </label>
                     <input
                         id="data_nascimento"
                         v-model="formulario.data_nascimento"
                         type="date"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                     <p v-if="formulario.errors.data_nascimento" class="mt-1 text-sm text-red-600">
                         {{ formulario.errors.data_nascimento }}
@@ -81,13 +81,13 @@ function enviar() {
                 </div>
 
                 <div>
-                    <label for="motivo_controle_financeiro" class="block text-sm font-medium text-gray-600">
+                    <label for="motivo_controle_financeiro" class="block text-sm font-medium text-ng-ink-muted">
                         Por que deseja controlar suas finanças?
                     </label>
                     <select
                         id="motivo_controle_financeiro"
                         v-model="formulario.motivo_controle_financeiro"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                         <option value="">Selecione uma opção</option>
                         <option
@@ -104,13 +104,13 @@ function enviar() {
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-600">Senha</label>
+                    <label for="password" class="block text-sm font-medium text-ng-ink-muted">Senha</label>
                     <input
                         id="password"
                         v-model="formulario.password"
                         type="password"
                         autocomplete="new-password"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                     <p v-if="formulario.errors.password" class="mt-1 text-sm text-red-600">
                         {{ formulario.errors.password }}
@@ -118,7 +118,7 @@ function enviar() {
                 </div>
 
                 <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-gray-600">
+                    <label for="password_confirmation" class="block text-sm font-medium text-ng-ink-muted">
                         Confirmar senha
                     </label>
                     <input
@@ -126,7 +126,7 @@ function enviar() {
                         v-model="formulario.password_confirmation"
                         type="password"
                         autocomplete="new-password"
-                        class="mt-1 w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
+                        class="mt-1 w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e] shadow-sm"
                     >
                 </div>
 
@@ -138,7 +138,7 @@ function enviar() {
                     Criar conta
                 </button>
 
-                <div class="text-center text-sm text-gray-500 mt-4">
+                <div class="text-center text-sm text-ng-ink-muted mt-4">
                     Já tem conta?
                     <Link :href="rotas.login" class="text-[#1fa67e] font-semibold hover:underline">
                         Entrar
