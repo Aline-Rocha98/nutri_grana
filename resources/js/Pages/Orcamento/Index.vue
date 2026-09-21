@@ -6,6 +6,7 @@ import Modal from '@/Components/Modal.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
 import FormularioModal from '@/Pages/Orcamento/FormularioModal.vue';
 import FormularioServicoModal from '@/Pages/Orcamento/FormularioServicoModal.vue';
+import { BADGE, badgeStatusCotacao } from '@/Helpers/badge';
 
 const props = defineProps({
     ano: {
@@ -242,13 +243,7 @@ const tituloPagina = computed(() => {
 });
 
 function classeStatus(status) {
-    return {
-        em_analise: 'bg-blue-50 text-blue-700',
-        aprovada: 'bg-emerald-50 text-emerald-700',
-        recusada: 'bg-red-50 text-red-700',
-        expirada: 'bg-gray-100 text-gray-600',
-        concluida: 'bg-indigo-50 text-indigo-700',
-    }[status] ?? 'bg-gray-100 text-gray-600';
+    return badgeStatusCotacao(status);
 }
 
 function abrirAprovar(item, cenario = null) {
@@ -363,10 +358,10 @@ const saldoContaDetalhe = computed(() => {
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    <h2 class="font-semibold text-xl text-ng-ink leading-tight">
                         {{ ehPorServico ? 'Orçamentos por serviço' : 'Orçamentos por categoria' }}
                     </h2>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <p class="mt-1 text-sm text-ng-ink-muted">
                         <template v-if="ehPorServico">
                             Avalie orçamentos para saber se convém assumir compromissos com eles
                         </template>
@@ -389,22 +384,22 @@ const saldoContaDetalhe = computed(() => {
         <div class="p-6 lg:p-8 space-y-6">
             <div
                 v-if="!ehPorServico"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line"
             >
                 <div class="flex items-center justify-center gap-6 px-4 py-1">
                     <button
                         type="button"
-                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        class="rounded-lg p-1.5 text-ng-ink-muted hover:bg-ng-brand-soft"
                         @click="mesAnterior"
                     >
                         <span class="material-symbols-outlined">chevron_left</span>
                     </button>
-                    <p class="min-w-[3rem] text-center text-base font-semibold text-gray-800">
+                    <p class="min-w-[3rem] text-center text-base font-semibold text-ng-ink">
                         {{ siglaMes }}
                     </p>
                     <button
                         type="button"
-                        class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                        class="rounded-lg p-1.5 text-ng-ink-muted hover:bg-ng-brand-soft"
                         @click="proximoMes"
                     >
                         <span class="material-symbols-outlined">chevron_right</span>
@@ -415,11 +410,11 @@ const saldoContaDetalhe = computed(() => {
             <template v-if="ehPorServico">
                 <div
                     v-if="orcamentosServico.length === 0"
-                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-10 text-center"
+                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-10 text-center"
                 >
-                    <span class="material-symbols-outlined text-4xl text-gray-300">request_quote</span>
-                    <p class="mt-3 text-gray-600">Você ainda não registrou uma cotação.</p>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <span class="material-symbols-outlined text-4xl text-ng-ink-subtle">request_quote</span>
+                    <p class="mt-3 text-ng-ink-muted">Você ainda não registrou uma cotação.</p>
+                    <p class="mt-1 text-sm text-ng-ink-muted">
                         Simule o impacto antes de decidir assumir compromissos com eles.
                     </p>
                     <button
@@ -438,23 +433,20 @@ const saldoContaDetalhe = computed(() => {
                     <div
                         v-for="item in orcamentosServico"
                         :key="item.id"
-                        class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6"
+                        class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6"
                     >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[#1fa67e]">
+                                    <span class="ng-tint ng-tint--brand flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
                                         <span class="material-symbols-outlined text-[20px]">request_quote</span>
                                     </span>
-                                    <h3 class="text-lg font-semibold text-gray-900">{{ item.descricao }}</h3>
-                                    <span
-                                        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                        :class="classeStatus(item.status)"
-                                    >
+                                    <h3 class="text-lg font-semibold text-ng-ink">{{ item.descricao }}</h3>
+                                    <span :class="classeStatus(item.status)">
                                         {{ item.status_rotulo }}
                                     </span>
                                 </div>
-                                <p class="mt-1 text-sm text-gray-500">
+                                <p class="mt-1 text-sm text-ng-ink-muted">
                                     R$ {{ item.valor }}
                                     <template v-if="item.fornecedor"> · {{ item.fornecedor }}</template>
                                     <template v-if="item.categoria_nome"> · {{ item.categoria_nome }}</template>
@@ -466,7 +458,7 @@ const saldoContaDetalhe = computed(() => {
                                 <button
                                     v-if="item.status === 'em_analise'"
                                     type="button"
-                                    class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                                    class="inline-flex items-center rounded-lg border border-ng-line-strong px-3 py-1.5 text-sm text-ng-ink-secondary hover:bg-ng-brand-soft transition"
                                     @click="abrirEditarServico(item)"
                                 >
                                     Editar
@@ -481,7 +473,7 @@ const saldoContaDetalhe = computed(() => {
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
+                                    class="ng-btn-danger"
                                     @click="pedirExclusao(item, true)"
                                 >
                                     Excluir
@@ -489,7 +481,7 @@ const saldoContaDetalhe = computed(() => {
                             </div>
                         </div>
 
-                        <div v-if="item.status === 'aprovada'" class="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                        <div v-if="item.status === 'aprovada'" class="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
                             Aprovada em {{ item.data_aprovacao_formatada }} ·
                             {{ item.total_parcelas > 1 ? `${item.total_parcelas}x` : 'À vista' }}
                             via {{ item.forma_pagamento === 'cartao_credito' ? item.cartao_credito_nome : item.conta_bancaria_nome }}
@@ -498,10 +490,10 @@ const saldoContaDetalhe = computed(() => {
 
                         <div v-else-if="item.status === 'em_analise'" class="mt-5 space-y-4">
                             <div
-                                class="rounded-xl px-4 py-3 text-sm"
+                                class="rounded-xl border px-4 py-3 text-sm"
                                 :class="item.pode_assumir_compromisso
-                                    ? 'bg-emerald-50 text-emerald-800'
-                                    : 'bg-amber-50 text-amber-900'"
+                                    ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                    : 'border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300'"
                             >
                                 <p v-if="item.resumo_compromisso" class="mt-1">
                                     {{ item.resumo_compromisso }}
@@ -526,12 +518,12 @@ const saldoContaDetalhe = computed(() => {
                                 </button>
                             </div>
 
-                            <p v-if="item.observacao" class="text-sm text-gray-500 border-t border-gray-100 pt-3">
+                            <p v-if="item.observacao" class="text-sm text-ng-ink-muted border-t border-ng-line pt-3">
                                 {{ item.observacao }}
                             </p>
                         </div>
 
-                        <p v-else-if="item.observacao" class="mt-5 text-sm text-gray-500">
+                        <p v-else-if="item.observacao" class="mt-5 text-sm text-ng-ink-muted">
                             {{ item.observacao }}
                         </p>
                     </div>
@@ -541,11 +533,11 @@ const saldoContaDetalhe = computed(() => {
             <template v-else>
                 <div
                     v-if="orcamentos.length === 0"
-                    class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-10 text-center"
+                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-10 text-center"
                 >
-                    <span class="material-symbols-outlined text-4xl text-gray-300">account_balance_wallet</span>
-                    <p class="mt-3 text-gray-600">Você ainda não definiu um orçamento por categoria.</p>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <span class="material-symbols-outlined text-4xl text-ng-ink-subtle">account_balance_wallet</span>
+                    <p class="mt-3 text-ng-ink-muted">Você ainda não definiu um orçamento por categoria.</p>
+                    <p class="mt-1 text-sm text-ng-ink-muted">
                         Escolha uma categoria, como Alimentação, e um limite mensal para acompanhar seus gastos.
                     </p>
                     <button
@@ -564,7 +556,7 @@ const saldoContaDetalhe = computed(() => {
                     <div
                         v-for="orcamento in orcamentos"
                         :key="orcamento.id"
-                        class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6"
+                        class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6"
                     >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0">
@@ -577,23 +569,23 @@ const saldoContaDetalhe = computed(() => {
                                             {{ orcamento.categoria_icone || 'category' }}
                                         </span>
                                     </span>
-                                    <h3 class="text-lg font-semibold text-gray-900">
+                                    <h3 class="text-lg font-semibold text-ng-ink">
                                         {{ orcamento.categoria_nome }}
                                     </h3>
                                     <span
                                         v-if="orcamento.ultrapassado"
-                                        class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700"
+                                        :class="BADGE.red"
                                     >
                                         Ultrapassado
                                     </span>
                                     <span
                                         v-if="orcamento.exibir_dashboard === 'S'"
-                                        class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                                        :class="BADGE.zinc"
                                     >
                                         No dashboard
                                     </span>
                                 </div>
-                                <p class="mt-1 text-sm text-gray-500">
+                                <p class="mt-1 text-sm text-ng-ink-muted">
                                     Limite mensal de R$ {{ orcamento.valor_mensal }}
                                 </p>
                             </div>
@@ -601,14 +593,14 @@ const saldoContaDetalhe = computed(() => {
                             <div class="flex flex-wrap items-center gap-2">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                                    class="inline-flex items-center rounded-lg border border-ng-line-strong px-3 py-1.5 text-sm text-ng-ink-secondary hover:bg-ng-brand-soft transition"
                                     @click="abrirEditar(orcamento)"
                                 >
                                     Editar
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
+                                    class="ng-btn-danger"
                                     @click="pedirExclusao(orcamento, false)"
                                 >
                                     Excluir
@@ -620,15 +612,15 @@ const saldoContaDetalhe = computed(() => {
                             <div class="flex items-center justify-between text-sm">
                                 <span
                                     class="font-medium"
-                                    :class="orcamento.ultrapassado ? 'text-red-700' : 'text-gray-700'"
+                                    :class="orcamento.ultrapassado ? 'text-red-700' : 'text-ng-ink-secondary'"
                                 >
                                     {{ orcamento.percentual }}% usado
                                 </span>
-                                <span :class="orcamento.ultrapassado ? 'text-red-600 font-medium' : 'text-gray-500'">
+                                <span :class="orcamento.ultrapassado ? 'text-red-600 font-medium' : 'text-ng-ink-muted'">
                                     R$ {{ orcamento.texto_progresso }}
                                 </span>
                             </div>
-                            <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-ng-card-muted">
                                 <div
                                     class="h-full rounded-full transition-all"
                                     :class="orcamento.ultrapassado ? 'bg-red-500' : 'bg-[#1fa67e]'"
@@ -638,7 +630,7 @@ const saldoContaDetalhe = computed(() => {
                             <p v-if="orcamento.ultrapassado" class="mt-2 text-sm text-red-600">
                                 Você ultrapassou R$ {{ orcamento.valor_excedente }} neste mês.
                             </p>
-                            <p v-else class="mt-2 text-sm text-gray-500">
+                            <p v-else class="mt-2 text-sm text-ng-ink-muted">
                                 Ainda restam R$ {{ orcamento.valor_restante }} neste mês.
                             </p>
                         </div>
@@ -671,14 +663,14 @@ const saldoContaDetalhe = computed(() => {
             <div v-if="cotacaoDetalhe" class="p-6">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Detalhe da simulação</h2>
-                        <p class="mt-1 text-sm text-gray-500">
+                        <h2 class="text-lg font-semibold text-ng-ink">Detalhe da simulação</h2>
+                        <p class="mt-1 text-sm text-ng-ink-muted">
                             {{ cotacaoDetalhe.descricao }} · R$ {{ cotacaoDetalhe.valor }}
                         </p>
                     </div>
                     <button
                         type="button"
-                        class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        class="rounded-lg p-1.5 text-ng-ink-subtle hover:bg-ng-brand-soft hover:text-ng-ink-muted"
                         @click="fecharDetalhe"
                     >
                         <span class="material-symbols-outlined">close</span>
@@ -686,42 +678,42 @@ const saldoContaDetalhe = computed(() => {
                 </div>
 
                 <div class="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs text-gray-500">Modalidade</p>
-                        <p class="mt-1 font-semibold text-gray-900">{{ cotacaoDetalhe.modalidade_pagamento_rotulo }}</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs text-ng-ink-muted">Modalidade</p>
+                        <p class="mt-1 font-semibold text-ng-ink">{{ cotacaoDetalhe.modalidade_pagamento_rotulo }}</p>
                     </div>
 
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs text-gray-500">Forma</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs text-ng-ink-muted">Forma</p>
                         <template v-if="detalheEhCartao">
-                            <p class="mt-1 font-semibold text-gray-900 leading-snug">Crédito {{ cotacaoDetalhe.cartao_credito_nome ?? '' }}</p>
+                            <p class="mt-1 font-semibold text-ng-ink leading-snug">Crédito {{ cotacaoDetalhe.cartao_credito_nome ?? '' }}</p>
                         </template>
                         <template v-else-if="detalheEhConta">
-                            <p class="mt-1 font-semibold text-gray-900 leading-snug">PIX {{ cotacaoDetalhe.conta_bancaria_nome ?? '' }}</p>
+                            <p class="mt-1 font-semibold text-ng-ink leading-snug">PIX {{ cotacaoDetalhe.conta_bancaria_nome ?? '' }}</p>
                         </template>
                     </div>
 
-                    <div v-if="detalheEhCartao" class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs text-gray-500">Limite disponível</p>
-                        <p class="mt-1 font-semibold text-gray-900">R$ {{ cotacaoDetalhe.limite_disponivel_cartao ?? '0,00' }}</p>
+                    <div v-if="detalheEhCartao" class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs text-ng-ink-muted">Limite disponível</p>
+                        <p class="mt-1 font-semibold text-ng-ink">R$ {{ cotacaoDetalhe.limite_disponivel_cartao ?? '0,00' }}</p>
                     </div>
-                    <div v-else-if="detalheEhConta" class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs text-gray-500">Saldo disponível</p>
-                        <p class="mt-1 font-semibold text-gray-900">R$ {{ saldoContaDetalhe ?? '0,00' }}</p>
+                    <div v-else-if="detalheEhConta" class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs text-ng-ink-muted">Saldo disponível</p>
+                        <p class="mt-1 font-semibold text-ng-ink">R$ {{ saldoContaDetalhe ?? '0,00' }}</p>
                     </div>
 
-                    <div class="rounded-xl bg-gray-50 px-4 py-3">
-                        <p class="text-xs text-gray-500">Receita prevista/mês</p>
-                        <p class="mt-1 font-semibold text-gray-900">R$ {{ cotacaoDetalhe.receita_prevista_mensal ?? '0,00' }}</p>
+                    <div class="rounded-xl bg-ng-input px-4 py-3">
+                        <p class="text-xs text-ng-ink-muted">Receita prevista/mês</p>
+                        <p class="mt-1 font-semibold text-ng-ink">R$ {{ cotacaoDetalhe.receita_prevista_mensal ?? '0,00' }}</p>
                     </div>
                 </div>
 
                 <div
                     v-if="cotacaoDetalhe.cenarios?.length"
-                    class="mt-6 overflow-x-auto rounded-xl border border-gray-100"
+                    class="mt-6 overflow-x-auto rounded-xl border border-ng-line"
                 >
                     <table class="min-w-full text-sm">
-                        <thead class="bg-gray-50 text-left text-xs text-gray-500">
+                        <thead class="bg-ng-input text-left text-xs text-ng-ink-muted">
                             <tr>
                                 <th class="px-3 py-2">Opção</th>
                                 <th class="px-3 py-2">Status</th>
@@ -732,10 +724,10 @@ const saldoContaDetalhe = computed(() => {
                             <tr
                                 v-for="cenario in cenariosVisiveis"
                                 :key="cenario.rotulo"
-                                class="border-t border-gray-100"
+                                class="border-t border-ng-line"
                                 :class="cenario.recomendado ? 'bg-emerald-50/50' : ''"
                             >
-                                <td class="px-3 py-2 font-medium text-gray-900">
+                                <td class="px-3 py-2 font-medium text-ng-ink">
                                     {{ cenario.rotulo }}
                                     <span v-if="cenario.recomendado" class="ml-1 text-xs text-emerald-700">recomendado</span>
                                 </td>
@@ -745,7 +737,7 @@ const saldoContaDetalhe = computed(() => {
                                     </span>
                                 </td>
                                 <td class="px-3 py-2">
-                                    <span :class="cenario.viavel ? 'text-emerald-700' : 'text-gray-400'">
+                                    <span :class="cenario.viavel ? 'text-emerald-700' : 'text-ng-ink-subtle'">
                                         {{ cenario.viavel ? 'Sim' : 'Não' }}
                                     </span>
                                 </td>
@@ -765,7 +757,7 @@ const saldoContaDetalhe = computed(() => {
                 <button
                     v-else-if="temParcelasExtras && mostrarParcelasExtras"
                     type="button"
-                    class="mt-3 text-sm font-medium text-gray-500 hover:underline"
+                    class="mt-3 text-sm font-medium text-ng-ink-muted hover:underline"
                     @click="mostrarParcelasExtras = false"
                 >
                     Mostrar menos
@@ -774,7 +766,7 @@ const saldoContaDetalhe = computed(() => {
                 <div class="mt-6 flex justify-end">
                     <button
                         type="button"
-                        class="px-4 py-2 text-sm text-gray-700 border rounded-lg hover:bg-gray-50"
+                        class="px-4 py-2 text-sm text-ng-ink-secondary border rounded-lg hover:bg-ng-brand-soft"
                         @click="fecharDetalhe"
                     >
                         Fechar
@@ -785,18 +777,18 @@ const saldoContaDetalhe = computed(() => {
 
         <Modal :aberto="modalAprovarAberto" max-largura="md">
             <form class="p-6" @submit.prevent="confirmarAprovacao">
-                <h2 class="text-lg font-semibold text-gray-900">Aprovar cotação</h2>
-                <p class="mt-1 text-sm text-gray-500">
+                <h2 class="text-lg font-semibold text-ng-ink">Aprovar cotação</h2>
+                <p class="mt-1 text-sm text-ng-ink-muted">
                     {{ cotacaoParaAprovar?.descricao }} · R$ {{ cotacaoParaAprovar?.valor }}
                     <template v-if="cenarioSelecionado"> · {{ cenarioSelecionado.rotulo }}</template>
                 </p>
 
                 <div class="mt-5 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-500">Forma de pagamento</label>
+                        <label class="block text-sm font-medium text-ng-ink-muted">Forma de pagamento</label>
                         <select
                             v-model="formularioAprovacao.forma_pagamento"
-                            class="mt-1 block w-full rounded-lg border-gray-200"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong"
                         >
                             <option v-for="opcao in formasPagamento" :key="opcao.valor" :value="opcao.valor">
                                 {{ opcao.valor === 'conta_bancaria' ? 'PIX / conta bancária' : opcao.rotulo }}
@@ -805,8 +797,8 @@ const saldoContaDetalhe = computed(() => {
                     </div>
 
                     <div v-if="aprovacaoConta">
-                        <label class="block text-sm font-medium text-gray-500">Conta bancária</label>
-                        <select v-model="formularioAprovacao.id_conta_bancaria" class="mt-1 block w-full rounded-lg border-gray-200">
+                        <label class="block text-sm font-medium text-ng-ink-muted">Conta bancária</label>
+                        <select v-model="formularioAprovacao.id_conta_bancaria" class="mt-1 block w-full rounded-lg border-ng-line-strong">
                             <option v-for="conta in contasBancarias" :key="conta.id" :value="conta.id">
                                 {{ conta.nome }}
                             </option>
@@ -817,13 +809,13 @@ const saldoContaDetalhe = computed(() => {
                     </div>
 
                     <div v-if="aprovacaoCartao">
-                        <label class="block text-sm font-medium text-gray-500">Cartão de crédito</label>
-                        <select v-model="formularioAprovacao.id_cartao_credito" class="mt-1 block w-full rounded-lg border-gray-200">
+                        <label class="block text-sm font-medium text-ng-ink-muted">Cartão de crédito</label>
+                        <select v-model="formularioAprovacao.id_cartao_credito" class="mt-1 block w-full rounded-lg border-ng-line-strong">
                             <option v-for="cartao in cartoesCredito" :key="cartao.id" :value="cartao.id">
                                 {{ cartao.nome }} · limite disp. R$ {{ cartao.limite_disponivel }}
                             </option>
                         </select>
-                        <p class="mt-1 text-xs text-gray-500">
+                        <p class="mt-1 text-xs text-ng-ink-muted">
                             O limite do cartão será verificado na aprovação (não é saldo em conta).
                         </p>
                         <p v-if="formularioAprovacao.errors.id_cartao_credito" class="mt-1 text-sm text-red-600">
@@ -833,28 +825,28 @@ const saldoContaDetalhe = computed(() => {
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-500">Modalidade</label>
-                            <select v-model="formularioAprovacao.modalidade_pagamento" class="mt-1 block w-full rounded-lg border-gray-200">
+                            <label class="block text-sm font-medium text-ng-ink-muted">Modalidade</label>
+                            <select v-model="formularioAprovacao.modalidade_pagamento" class="mt-1 block w-full rounded-lg border-ng-line-strong">
                                 <option v-for="opcao in modalidadesPagamento" :key="opcao.valor" :value="opcao.valor">
                                     {{ opcao.rotulo }}
                                 </option>
                             </select>
                         </div>
                         <div v-if="aprovacaoParcelada">
-                            <label class="block text-sm font-medium text-gray-500">Parcelas</label>
+                            <label class="block text-sm font-medium text-ng-ink-muted">Parcelas</label>
                             <input
                                 v-model.number="formularioAprovacao.total_parcelas"
                                 type="number"
                                 min="2"
                                 max="48"
-                                class="mt-1 block w-full rounded-lg border-gray-200"
+                                class="mt-1 block w-full rounded-lg border-ng-line-strong"
                             >
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" class="px-4 py-2 text-sm text-gray-700 border rounded-lg" @click="fecharAprovar">
+                    <button type="button" class="px-4 py-2 text-sm text-ng-ink-secondary border rounded-lg" @click="fecharAprovar">
                         Cancelar
                     </button>
                     <button

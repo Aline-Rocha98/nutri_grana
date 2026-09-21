@@ -14,34 +14,34 @@ defineProps({
 </script>
 
 <template>
-    <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6 h-full">
-        <h3 class="font-semibold text-gray-800">Contas</h3>
+    <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 h-full">
+        <h3 class="font-semibold text-ng-ink">Contas</h3>
 
         <div v-if="carregando" class="mt-4 space-y-3">
-            <div v-for="n in 3" :key="n" class="h-10 rounded-lg bg-gray-100 animate-pulse" />
+            <div v-for="n in 3" :key="n" class="h-10 rounded-lg bg-ng-card-muted animate-pulse" />
         </div>
 
         <template v-else-if="dados">
-            <div v-if="!dados.itens?.length" class="mt-4 text-sm text-gray-500">
+            <div v-if="!dados.itens?.length" class="mt-4 text-sm text-ng-ink-muted">
                 Nenhuma conta marcada para o resumo.
             </div>
 
-            <ul v-else class="mt-4 divide-y divide-gray-100">
+            <ul v-else class="mt-4 divide-y divide-ng-line">
                 <li
                     v-for="conta in dados.itens"
                     :key="conta.id"
                     class="flex items-center justify-between py-3 gap-3"
                 >
-                    <span class="font-medium text-gray-800 truncate">{{ conta.nome }}</span>
-                    <span class="text-gray-700 whitespace-nowrap">R$ {{ conta.saldo }}</span>
+                    <span class="font-medium text-ng-ink truncate">{{ conta.nome }}</span>
+                    <span class="text-ng-ink-secondary whitespace-nowrap">R$ {{ conta.saldo }}</span>
                 </li>
             </ul>
 
             <div
                 v-if="dados.itens?.length"
-                class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between"
+                class="mt-4 pt-4 border-t border-ng-line flex items-center justify-between"
             >
-                <span class="font-semibold text-gray-800">Total</span>
+                <span class="font-semibold text-ng-ink">Total</span>
                 <span class="font-semibold text-[#1fa67e]">
                     R$ {{ dados.total?.saldo ?? formatarNumeroParaMoeda(0) }}
                 </span>

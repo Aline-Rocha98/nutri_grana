@@ -9,16 +9,6 @@ use Carbon\Carbon;
 
 class MontadorCompromissosOrcamentoServico
 {
-    /**
-     * @return array{
-     *     compromissos: list<array{valor: float, data: Carbon, parcela: int}>,
-     *     valor_parcela: float,
-     *     total_parcelas: int,
-     *     data_ultimo_compromisso: Carbon,
-     *     consome_limite_cartao: bool,
-     *     valor_limite_cartao: float
-     * }
-     */
     public function montar(array $dados, ?CartaoCredito $cartao = null, ?Carbon $referencia = null): array
     {
         $referencia = ($referencia ?? Carbon::today())->copy()->startOfDay();
@@ -65,9 +55,6 @@ class MontadorCompromissosOrcamentoServico
         ];
     }
 
-    /**
-     * @return list<float>
-     */
     public function distribuirParcelas(float $valorTotal, int $parcelas): array
     {
         if ($parcelas <= 1) {

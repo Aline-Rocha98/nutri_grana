@@ -3,6 +3,9 @@ import { computed, ref, watch } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import { useTema } from '@/Composables/useTema';
+
+const { escuro, alternarTema } = useTema();
 
 const props = defineProps({
     usuario: {
@@ -183,18 +186,18 @@ function aoErroFoto() {
     <Head title="Meu Perfil" />
 
     <AutenticadoLayout titulo="Meu Perfil">
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="space-y-6 p-6 lg:p-8">
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <!-- Dados Pessoais -->
-                <section class="xl:col-span-2 bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Dados Pessoais</h3>
+                <section class="ng-card xl:col-span-2 p-6 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-ng-line pb-4">
+                        <h3 class="text-lg font-semibold text-ng-ink">Dados Pessoais</h3>
 
                         <div class="flex items-center gap-2">
                             <template v-if="editando">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                                    class="ng-btn-ghost"
                                     :disabled="formularioPerfil.processing"
                                     @click="cancelarEdicao"
                                 >
@@ -202,7 +205,7 @@ function aoErroFoto() {
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-[#1fa67e] px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] disabled:opacity-60"
+                                    class="ng-btn-primary"
                                     :disabled="formularioPerfil.processing"
                                     @click="salvarPerfil"
                                 >
@@ -213,7 +216,7 @@ function aoErroFoto() {
                             <button
                                 v-else
                                 type="button"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-[#1fa67e] px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68]"
+                                class="ng-btn-primary"
                                 @click="ativarEdicao"
                             >
                                 <span class="material-icons text-sm">edit</span>
@@ -226,7 +229,7 @@ function aoErroFoto() {
                         <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
                             <div class="relative mx-auto shrink-0 sm:mx-0">
                                 <div
-                                    class="group/foto relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-3xl font-bold text-[#1fa67e]"
+                                    class="group/foto relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-3xl font-bold text-[#1fa67e]"
                                     :class="{ 'cursor-not-allowed': !editando }"
                                 >
                                     <img
@@ -249,7 +252,7 @@ function aoErroFoto() {
                                         class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/foto:opacity-100"
                                         title="Clique em Editar Perfil para alterar"
                                     >
-                                        <span class="material-icons text-2xl text-gray-700">lock</span>
+                                        <span class="material-icons text-2xl text-ng-ink-secondary">lock</span>
                                     </span>
                                 </div>
                                 <button
@@ -274,7 +277,7 @@ function aoErroFoto() {
                             <div class="min-w-0 flex-1 space-y-4">
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div class="group/campo relative">
-                                        <label for="nome" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <label for="nome" class="block text-xs font-semibold uppercase tracking-wide text-ng-ink-muted">
                                             Nome completo
                                         </label>
                                         <div class="relative mt-1">
@@ -282,7 +285,7 @@ function aoErroFoto() {
                                                 id="nome"
                                                 v-model="formularioPerfil.nome"
                                                 type="text"
-                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                class="block w-full rounded-lg border-ng-line-strong bg-ng-input focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
                                                 :class="{ 'group-hover/campo:pr-10': !editando }"
                                                 :disabled="!editando"
                                                 required
@@ -290,7 +293,7 @@ function aoErroFoto() {
                                             >
                                             <span
                                                 v-if="!editando"
-                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ng-ink-subtle opacity-0 transition group-hover/campo:opacity-100"
                                                 title="Clique em Editar Perfil para alterar"
                                             >
                                                 <span class="material-icons text-lg">lock</span>
@@ -304,7 +307,7 @@ function aoErroFoto() {
                                     <div class="group/campo relative">
                                         <label
                                             for="data_nascimento"
-                                            class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
+                                            class="block text-xs font-semibold uppercase tracking-wide text-ng-ink-muted"
                                         >
                                             Data de nascimento
                                         </label>
@@ -313,14 +316,14 @@ function aoErroFoto() {
                                                 id="data_nascimento"
                                                 v-model="formularioPerfil.data_nascimento"
                                                 type="date"
-                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                class="block w-full rounded-lg border-ng-line-strong bg-ng-input focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
                                                 :class="{ 'group-hover/campo:pr-10': !editando }"
                                                 :disabled="!editando"
                                                 required
                                             >
                                             <span
                                                 v-if="!editando"
-                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ng-ink-subtle opacity-0 transition group-hover/campo:opacity-100"
                                                 title="Clique em Editar Perfil para alterar"
                                             >
                                                 <span class="material-icons text-lg">lock</span>
@@ -334,7 +337,7 @@ function aoErroFoto() {
 
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div class="group/campo relative">
-                                        <label for="email" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <label for="email" class="block text-xs font-semibold uppercase tracking-wide text-ng-ink-muted">
                                             E-mail
                                         </label>
                                         <div class="relative mt-1">
@@ -342,7 +345,7 @@ function aoErroFoto() {
                                                 id="email"
                                                 v-model="formularioPerfil.email"
                                                 type="email"
-                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                class="block w-full rounded-lg border-ng-line-strong bg-ng-input focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
                                                 :class="{ 'group-hover/campo:pr-10': !editando }"
                                                 :disabled="!editando"
                                                 required
@@ -350,7 +353,7 @@ function aoErroFoto() {
                                             >
                                             <span
                                                 v-if="!editando"
-                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ng-ink-subtle opacity-0 transition group-hover/campo:opacity-100"
                                                 title="Clique em Editar Perfil para alterar"
                                             >
                                                 <span class="material-icons text-lg">lock</span>
@@ -364,7 +367,7 @@ function aoErroFoto() {
                                     <div class="group/campo relative">
                                         <label
                                             for="motivo_controle_financeiro"
-                                            class="block text-xs font-semibold uppercase tracking-wide text-gray-500"
+                                            class="block text-xs font-semibold uppercase tracking-wide text-ng-ink-muted"
                                         >
                                             Motivo do controle financeiro
                                         </label>
@@ -372,7 +375,7 @@ function aoErroFoto() {
                                             <select
                                                 id="motivo_controle_financeiro"
                                                 v-model="formularioPerfil.motivo_controle_financeiro"
-                                                class="block w-full rounded-lg border-gray-200 bg-gray-50 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
+                                                class="block w-full rounded-lg border-ng-line-strong bg-ng-input focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:cursor-not-allowed disabled:opacity-70"
                                                 :class="{ 'group-hover/campo:pr-10': !editando }"
                                                 :disabled="!editando"
                                                 required
@@ -388,7 +391,7 @@ function aoErroFoto() {
                                             </select>
                                             <span
                                                 v-if="!editando"
-                                                class="pointer-events-none absolute inset-y-0 right-8 flex items-center text-gray-400 opacity-0 transition group-hover/campo:opacity-100"
+                                                class="pointer-events-none absolute inset-y-0 right-8 flex items-center text-ng-ink-subtle opacity-0 transition group-hover/campo:opacity-100"
                                                 title="Clique em Editar Perfil para alterar"
                                             >
                                                 <span class="material-icons text-lg">lock</span>
@@ -413,39 +416,39 @@ function aoErroFoto() {
 
                 <div class="space-y-6">
                     <!-- Segurança -->
-                    <section class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
-                        <div class="flex items-center gap-2 border-b border-gray-100 pb-4">
+                    <section class="bg-ng-card shadow-sm rounded-2xl border border-ng-line p-6">
+                        <div class="flex items-center gap-2 border-b border-ng-line pb-4">
                             <span class="material-icons text-[#1fa67e]">shield</span>
-                            <h3 class="text-lg font-semibold text-gray-900">Segurança</h3>
+                            <h3 class="text-lg font-semibold text-ng-ink">Segurança</h3>
                         </div>
 
                         <div class="mt-4 space-y-3">
                             <button
                                 type="button"
-                                class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-50"
+                                class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-ng-brand-soft"
                                 @click="abrirModalSenha"
                             >
-                                <span class="material-icons text-gray-500">lock</span>
-                                <span class="flex-1 text-sm font-medium text-gray-800">Alterar senha</span>
-                                <span class="material-icons text-gray-400">chevron_right</span>
+                                <span class="material-icons text-ng-ink-muted">lock</span>
+                                <span class="flex-1 text-sm font-medium text-ng-ink">Alterar senha</span>
+                                <span class="material-icons text-ng-ink-subtle">chevron_right</span>
                             </button>
 
                             <div class="flex items-center gap-3 rounded-xl px-3 py-3 opacity-70">
-                                <span class="material-icons text-gray-500">verified_user</span>
-                                <span class="flex-1 text-sm font-medium text-gray-800">
+                                <span class="material-icons text-ng-ink-muted">verified_user</span>
+                                <span class="flex-1 text-sm font-medium text-ng-ink">
                                     Autenticação em 2 fatores
                                 </span>
                                 <button
                                     type="button"
                                     role="switch"
                                     :aria-checked="autenticacaoDoisFatores"
-                                    class="relative h-6 w-11 rounded-full transition"
-                                    :class="autenticacaoDoisFatores ? 'bg-[#1fa67e]' : 'bg-gray-300'"
+                                    class="ng-toggle"
+                                    :class="autenticacaoDoisFatores ? 'ng-toggle--on' : 'ng-toggle--off'"
                                     disabled
                                     title="Em breve"
                                 >
                                     <span
-                                        class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition"
+                                        class="ng-toggle__knob"
                                         :class="{ 'translate-x-5': autenticacaoDoisFatores }"
                                     />
                                 </button>
@@ -454,19 +457,45 @@ function aoErroFoto() {
                     </section>
 
                     <!-- Configurações -->
-                    <section class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 opacity-80">
-                        <div class="flex items-center gap-2 border-b border-gray-100 pb-4">
+                    <section class="rounded-2xl border border-ng-line bg-ng-card p-6 shadow-sm">
+                        <div class="flex items-center gap-2 border-b border-ng-line pb-4">
                             <span class="material-icons text-[#1fa67e]">settings</span>
-                            <h3 class="text-lg font-semibold text-gray-900">Configurações</h3>
+                            <h3 class="text-lg font-semibold text-ng-ink">Configurações</h3>
                         </div>
 
                         <div class="mt-4 space-y-5">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <div class="flex items-center gap-3 rounded-xl px-3 py-3">
+                                <span class="material-icons text-ng-ink-muted">
+                                    {{ escuro ? 'dark_mode' : 'light_mode' }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-ng-ink">Modo noturno</p>
+                                    <p class="text-xs text-ng-ink-muted">
+                                        {{ escuro ? 'Tema escuro ativo' : 'Tema claro ativo' }}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    :aria-checked="escuro"
+                                    :aria-label="escuro ? 'Desativar modo noturno' : 'Ativar modo noturno'"
+                                    class="ng-toggle"
+                                    :class="escuro ? 'ng-toggle--on' : 'ng-toggle--off'"
+                                    @click="alternarTema"
+                                >
+                                    <span
+                                        class="ng-toggle__knob"
+                                        :class="{ 'translate-x-5': escuro }"
+                                    />
+                                </button>
+                            </div>
+
+                            <div class="opacity-60">
+                                <label class="block text-xs font-semibold uppercase tracking-wide text-ng-ink-muted">
                                     Idioma
                                 </label>
                                 <select
-                                    class="mt-1 block w-full rounded-lg border-gray-200 bg-gray-50 text-gray-700"
+                                    class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-input text-ng-ink-secondary"
                                     disabled
                                 >
                                     <option>Português (Brasil)</option>
@@ -474,24 +503,24 @@ function aoErroFoto() {
                                 </select>
                             </div>
 
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <div class="opacity-60">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-ng-ink-muted">
                                     Notificações
                                 </p>
                                 <div class="mt-3 space-y-2">
-                                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                                    <label class="flex items-center gap-2 text-sm text-ng-ink-secondary">
                                         <input
                                             type="checkbox"
-                                            class="rounded border-gray-300 text-[#1fa67e] focus:ring-[#1fa67e]"
+                                            class="rounded border-ng-input-border text-[#1fa67e] focus:ring-[#1fa67e]"
                                             checked
                                             disabled
                                         >
                                         Receber alertas por e-mail
                                     </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                                    <label class="flex items-center gap-2 text-sm text-ng-ink-secondary">
                                         <input
                                             type="checkbox"
-                                            class="rounded border-gray-300 text-[#1fa67e] focus:ring-[#1fa67e]"
+                                            class="rounded border-ng-input-border text-[#1fa67e] focus:ring-[#1fa67e]"
                                             disabled
                                         >
                                         Notificações push
@@ -507,7 +536,7 @@ function aoErroFoto() {
             <div class="flex justify-end pt-2">
                 <button
                     type="button"
-                    class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-white hover:bg-red-500"
+                    class="ng-btn-danger ng-btn-danger--lg"
                     @click="abrirModalExclusao"
                 >
                     <span class="material-icons text-sm">delete_forever</span>
@@ -519,10 +548,10 @@ function aoErroFoto() {
         <!-- Modal alteração de senha -->
         <Modal :aberto="modalSenhaAberto" max-largura="md">
             <div class="p-6">
-                <h2 class="text-lg font-semibold text-gray-900">Alterar senha</h2>
+                <h2 class="text-lg font-semibold text-ng-ink">Alterar senha</h2>
 
                 <template v-if="etapaSenha === 'solicitar'">
-                    <p class="mt-2 text-sm text-gray-600">
+                    <p class="mt-2 text-sm text-ng-ink-muted">
                         Enviaremos um código de confirmação para
                         <strong>{{ usuario.email }}</strong>.
                         Use esse código para definir uma nova senha.
@@ -531,7 +560,7 @@ function aoErroFoto() {
                     <div class="mt-6 flex justify-end gap-2">
                         <button
                             type="button"
-                            class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
                             :disabled="formularioSenha.processing"
                             @click="fecharModalSenha"
                         >
@@ -549,12 +578,12 @@ function aoErroFoto() {
                 </template>
 
                 <form v-else class="mt-4 space-y-4" @submit.prevent="confirmarNovaSenha">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-ng-ink-muted">
                         Digite o código recebido por e-mail e a nova senha.
                     </p>
 
                     <div>
-                        <label for="codigo" class="block text-sm font-medium text-gray-700">Código</label>
+                        <label for="codigo" class="block text-sm font-medium text-ng-ink-secondary">Código</label>
                         <input
                             id="codigo"
                             v-model="formularioSenha.codigo"
@@ -562,7 +591,7 @@ function aoErroFoto() {
                             maxlength="6"
                             inputmode="numeric"
                             autocomplete="one-time-code"
-                            class="mt-1 block w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
                         <p v-if="formularioSenha.errors.codigo" class="mt-2 text-sm text-red-600">
@@ -571,13 +600,13 @@ function aoErroFoto() {
                     </div>
 
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Nova senha</label>
+                        <label for="password" class="block text-sm font-medium text-ng-ink-secondary">Nova senha</label>
                         <input
                             id="password"
                             v-model="formularioSenha.password"
                             type="password"
                             autocomplete="new-password"
-                            class="mt-1 block w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
                         <p v-if="formularioSenha.errors.password" class="mt-2 text-sm text-red-600">
@@ -586,7 +615,7 @@ function aoErroFoto() {
                     </div>
 
                     <div>
-                        <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
+                        <label for="password_confirmation" class="block text-sm font-medium text-ng-ink-secondary">
                             Confirmar nova senha
                         </label>
                         <input
@@ -594,7 +623,7 @@ function aoErroFoto() {
                             v-model="formularioSenha.password_confirmation"
                             type="password"
                             autocomplete="new-password"
-                            class="mt-1 block w-full rounded-lg border-gray-200 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
                     </div>
@@ -602,7 +631,7 @@ function aoErroFoto() {
                     <div class="flex justify-end gap-2 pt-2">
                         <button
                             type="button"
-                            class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
                             :disabled="formularioSenha.processing"
                             @click="fecharModalSenha"
                         >
@@ -624,14 +653,14 @@ function aoErroFoto() {
         <Modal :aberto="modalExclusaoAberto" max-largura="lg">
             <form class="p-6" @submit.prevent="excluirConta">
                 <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full ng-tint ng-tint--red">
                         <span class="material-symbols-outlined text-[22px]">warning</span>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">
+                        <h2 class="text-lg font-semibold text-ng-ink">
                             Tem certeza que deseja excluir a conta?
                         </h2>
-                        <p class="mt-2 text-sm text-gray-600">
+                        <p class="mt-2 text-sm text-ng-ink-muted">
                             Você perderá todos os registros feitos e esta ação é irreversível.
                             Digite sua senha para confirmar.
                         </p>
@@ -639,12 +668,12 @@ function aoErroFoto() {
                 </div>
 
                 <div class="mt-6">
-                    <label for="password_exclusao" class="block text-sm font-medium text-gray-700">Senha</label>
+                    <label for="password_exclusao" class="block text-sm font-medium text-ng-ink-secondary">Senha</label>
                     <input
                         id="password_exclusao"
                         v-model="formularioExclusao.password"
                         type="password"
-                        class="mt-1 block w-full rounded-lg border-gray-200 focus:border-red-500 focus:ring-red-500"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong focus:border-red-500 focus:ring-red-500"
                         placeholder="Digite sua senha"
                         required
                     >
@@ -656,7 +685,7 @@ function aoErroFoto() {
                 <div class="mt-6 flex justify-end gap-3">
                     <button
                         type="button"
-                        class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
                         :disabled="formularioExclusao.processing"
                         @click="fecharModalExclusao"
                     >
@@ -664,7 +693,7 @@ function aoErroFoto() {
                     </button>
                     <button
                         type="submit"
-                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                        class="ng-btn-danger"
                         :disabled="formularioExclusao.processing"
                     >
                         {{ formularioExclusao.processing ? 'Excluindo...' : 'Excluir conta' }}

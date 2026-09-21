@@ -100,22 +100,22 @@ function salvar() {
 <template>
     <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-ng-ink">
                 {{ editando ? 'Editar orçamento' : 'Novo orçamento' }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 Defina um limite mensal para uma categoria de despesa.
             </p>
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="categoria-orcamento" class="block text-sm font-medium text-gray-500">
+                    <label for="categoria-orcamento" class="block text-sm font-medium text-ng-ink-muted">
                         Categoria
                     </label>
                     <select
                         id="categoria-orcamento"
                         v-model="formulario.id_categoria"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option :value="null">Selecione...</option>
                         <option
@@ -132,7 +132,7 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="valor-mensal-orcamento" class="block text-sm font-medium text-gray-500">
+                    <label for="valor-mensal-orcamento" class="block text-sm font-medium text-ng-ink-muted">
                         Valor máximo mensal
                     </label>
                     <input
@@ -140,7 +140,7 @@ function salvar() {
                         :value="formulario.valor_mensal"
                         type="text"
                         inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="0,00"
                         @input="formulario.valor_mensal = aoDigitarMoeda($event)"
                     >
@@ -149,26 +149,26 @@ function salvar() {
                     </p>
                 </div>
 
-                <div class="rounded-xl border border-gray-100">
+                <div class="rounded-xl border border-ng-line">
                     <div class="flex items-center justify-between gap-4 px-4 py-3">
                         <div class="flex items-center gap-3 min-w-0">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ng-card-muted text-ng-ink-muted">
                                 <span class="material-symbols-outlined text-[20px]">dashboard</span>
                             </span>
                             <div class="min-w-0">
-                                <p class="text-sm text-gray-800">Exibir no dashboard</p>
+                                <p class="text-sm text-ng-ink">Exibir no dashboard</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             role="switch"
                             class="relative h-6 w-11 shrink-0 rounded-full transition"
-                            :class="estaAtivo('exibir_dashboard') ? 'bg-[#1fa67e]' : 'bg-gray-200'"
+                            :class="estaAtivo('exibir_dashboard') ? 'bg-[#1fa67e]' : 'bg-zinc-300 dark:bg-white/15'"
                             :aria-checked="estaAtivo('exibir_dashboard')"
                             @click="toggleSimNao('exibir_dashboard')"
                         >
                             <span
-                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition"
+                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-ng-card shadow transition"
                                 :class="estaAtivo('exibir_dashboard') ? 'translate-x-5' : 'translate-x-0'"
                             />
                         </button>
@@ -179,7 +179,7 @@ function salvar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

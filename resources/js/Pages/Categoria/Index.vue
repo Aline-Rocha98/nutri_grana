@@ -151,7 +151,7 @@ function subcategoriasArquivadas(categoria) {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
                     Categorias
                 </h2>
                 <button
@@ -174,23 +174,23 @@ function subcategoriasArquivadas(categoria) {
                     class="rounded-lg px-4 py-2 text-sm font-semibold transition"
                     :class="filtroTipo === tipo.valor
                         ? 'bg-[#1fa67e] text-white'
-                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                        : 'bg-ng-card text-ng-ink-muted border border-ng-line-strong hover:bg-ng-brand-soft'"
                     @click="filtroTipo = tipo.valor"
                 >
                     {{ tipo.rotulo === 'Saída' ? 'Despesas' : 'Entradas' }}
                 </button>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">
                         {{ filtroTipo === 'saida' ? 'Despesas' : 'Entradas' }}
                     </h3>
                 </div>
 
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <template v-for="categoria in categoriasAtivas" :key="categoria.id">
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition">
+                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition">
                             <div
                                 class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
                                 :style="{ backgroundColor: `${categoria.cor}20`, color: categoria.cor }"
@@ -200,15 +200,15 @@ function subcategoriasArquivadas(categoria) {
 
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <p class="truncate font-semibold text-gray-900">{{ categoria.nome }}</p>
+                                    <p class="truncate font-semibold text-ng-ink">{{ categoria.nome }}</p>
                                     <span
                                         v-if="categoria.padrao === 'S'"
-                                        class="shrink-0 rounded-md bg-[#e8f7f1] px-1.5 py-0.5 text-[10px] tracking-wide text-[#1fa67e]"
+                                        class="ng-badge ng-badge--brand shrink-0 !px-1.5 !py-0.5 !text-[10px]"
                                     >
                                         Padrão
                                     </span>
                                 </div>
-                                <p class="text-sm text-gray-500">
+                                <p class="text-sm text-ng-ink-muted">
                                     {{ categoria.tipo_rotulo }}
                                     <span v-if="(categoria.subcategorias?.length ?? 0) > 0">
                                         · {{ categoria.subcategorias.length }} subcategoria(s)
@@ -222,7 +222,7 @@ function subcategoriasArquivadas(categoria) {
                             <div class="flex items-center gap-1 shrink-0">
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-[#1fa67e]"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-[#1fa67e]"
                                     title="Adicionar subcategoria"
                                     @click="abrirCriarSub(categoria)"
                                 >
@@ -231,7 +231,7 @@ function subcategoriasArquivadas(categoria) {
 
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                     title="Editar"
                                     @click="abrirEditar(categoria)"
                                 >
@@ -240,7 +240,7 @@ function subcategoriasArquivadas(categoria) {
 
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                     :title="categoria.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
                                     @click="alternarArquivada(categoria)"
                                 >
@@ -252,7 +252,7 @@ function subcategoriasArquivadas(categoria) {
                                 <button
                                     v-if="!categoria.pode_excluir"
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-300 cursor-not-allowed"
+                                    class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
                                     title="Não é possível excluir categoria com lançamentos. Arquive em vez disso."
                                     disabled
                                 >
@@ -261,7 +261,7 @@ function subcategoriasArquivadas(categoria) {
                                 <button
                                     v-else
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                     title="Excluir"
                                     @click="pedirExclusao(categoria)"
                                 >
@@ -273,7 +273,7 @@ function subcategoriasArquivadas(categoria) {
                         <div
                             v-for="sub in subcategoriasVisiveis(categoria)"
                             :key="sub.id"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-gray-50/80 transition bg-gray-50/40"
+                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-ng-brand-soft/80 transition bg-ng-input/40"
                         >
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -283,14 +283,14 @@ function subcategoriasArquivadas(categoria) {
                             </div>
 
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-800">{{ sub.nome }}</p>
-                                <p class="text-xs text-gray-500">Subcategoria</p>
+                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
+                                <p class="text-xs text-ng-ink-muted">Subcategoria</p>
                             </div>
 
                             <div class="flex items-center gap-1 shrink-0">
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                     title="Editar"
                                     @click="abrirEditar(sub, categoria)"
                                 >
@@ -299,7 +299,7 @@ function subcategoriasArquivadas(categoria) {
 
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                     title="Arquivar"
                                     @click="alternarArquivada(sub)"
                                 >
@@ -309,7 +309,7 @@ function subcategoriasArquivadas(categoria) {
                                 <button
                                     v-if="!sub.pode_excluir"
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-300 cursor-not-allowed"
+                                    class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
                                     title="Não é possível excluir subcategoria com lançamentos."
                                     disabled
                                 >
@@ -318,7 +318,7 @@ function subcategoriasArquivadas(categoria) {
                                 <button
                                     v-else
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                     title="Excluir"
                                     @click="pedirExclusao(sub)"
                                 >
@@ -330,7 +330,7 @@ function subcategoriasArquivadas(categoria) {
                         <div
                             v-for="sub in subcategoriasArquivadas(categoria)"
                             :key="`arq-${sub.id}`"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-gray-50/80 transition bg-gray-50/40 opacity-70"
+                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-ng-brand-soft/80 transition bg-ng-input/40 opacity-70"
                         >
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -340,14 +340,14 @@ function subcategoriasArquivadas(categoria) {
                             </div>
 
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-800">{{ sub.nome }}</p>
-                                <p class="text-xs text-gray-500">Subcategoria arquivada</p>
+                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
+                                <p class="text-xs text-ng-ink-muted">Subcategoria arquivada</p>
                             </div>
 
                             <div class="flex items-center gap-1 shrink-0">
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                     title="Editar"
                                     @click="abrirEditar(sub, categoria)"
                                 >
@@ -355,7 +355,7 @@ function subcategoriasArquivadas(categoria) {
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                     title="Desarquivar"
                                     @click="alternarArquivada(sub)"
                                 >
@@ -367,7 +367,7 @@ function subcategoriasArquivadas(categoria) {
 
                     <div
                         v-if="categoriasAtivas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-gray-500"
+                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhuma categoria cadastrada. Clique em <strong>Adicionar categoria</strong> para começar.
                     </div>
@@ -376,14 +376,14 @@ function subcategoriasArquivadas(categoria) {
 
             <div
                 v-if="categoriasArquivadas.length > 0"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 opacity-80"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
             >
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Arquivadas</h3>
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Arquivadas</h3>
                 </div>
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <template v-for="categoria in categoriasArquivadas" :key="categoria.id">
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition">
+                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition">
                             <div
                                 class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
                                 :style="{ backgroundColor: `${categoria.cor}20`, color: categoria.cor }"
@@ -391,13 +391,13 @@ function subcategoriasArquivadas(categoria) {
                                 <span class="material-symbols-outlined text-[22px]">{{ categoria.icone }}</span>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="truncate font-semibold text-gray-900">{{ categoria.nome }}</p>
-                                <p class="text-sm text-gray-500">{{ categoria.tipo_rotulo }}</p>
+                                <p class="truncate font-semibold text-ng-ink">{{ categoria.nome }}</p>
+                                <p class="text-sm text-ng-ink-muted">{{ categoria.tipo_rotulo }}</p>
                             </div>
                             <div class="flex items-center gap-1 shrink-0">
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                     title="Editar"
                                     @click="abrirEditar(categoria)"
                                 >
@@ -405,7 +405,7 @@ function subcategoriasArquivadas(categoria) {
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                     title="Desarquivar"
                                     @click="alternarArquivada(categoria)"
                                 >
@@ -417,7 +417,7 @@ function subcategoriasArquivadas(categoria) {
                         <div
                             v-for="sub in (categoria.subcategorias ?? [])"
                             :key="sub.id"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 bg-gray-50/40"
+                            class="flex items-center gap-4 py-3 pl-14 pr-6 bg-ng-input/40"
                         >
                             <div
                                 class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
@@ -426,8 +426,8 @@ function subcategoriasArquivadas(categoria) {
                                 <span class="material-symbols-outlined text-[18px]">{{ sub.icone }}</span>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-800">{{ sub.nome }}</p>
-                                <p class="text-xs text-gray-500">Subcategoria</p>
+                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
+                                <p class="text-xs text-ng-ink-muted">Subcategoria</p>
                             </div>
                         </div>
                     </template>

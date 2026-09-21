@@ -7,8 +7,11 @@ import Vue3Toastify from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 import '../css/toastify-custom.css';
 import { processarFlash, registrarFlashNotificacao } from '@/Helpers/notificacao';
+import { inicializarTema } from '@/Composables/useTema';
 
 const nomeApp = import.meta.env.VITE_APP_NAME || 'NutriGrana';
+
+inicializarTema();
 
 createInertiaApp({
     title: (titulo) => titulo || nomeApp,

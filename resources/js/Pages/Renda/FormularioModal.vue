@@ -116,23 +116,23 @@ function confirmarSalvar() {
 <template>
     <Modal :aberto="aberto">
         <form class="p-6" @submit.prevent="pedirConfirmacao">
-            <h2 class="text-lg font-semibold text-gray-900">
+            <h2 class="text-lg font-semibold text-ng-ink">
                 {{ editando ? 'Editar renda' : 'Nova renda' }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 Cadastre suas rendas mensais, como salários, freelances e outras receitas.
             </p>
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="descricao-renda" class="block text-sm font-medium text-gray-500">
+                    <label for="descricao-renda" class="block text-sm font-medium text-ng-ink-muted">
                         Descrição
                     </label>
                     <input
                         id="descricao-renda"
                         v-model="formulario.descricao"
                         type="text"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="Ex.: Salário"
                     >
                     <p v-if="formulario.errors.descricao" class="mt-2 text-sm text-red-600">
@@ -141,7 +141,7 @@ function confirmarSalvar() {
                 </div>
 
                 <div>
-                    <label for="valor-esperado-renda" class="block text-sm font-medium text-gray-500">
+                    <label for="valor-esperado-renda" class="block text-sm font-medium text-ng-ink-muted">
                         Valor esperado
                     </label>
                     <input
@@ -149,7 +149,7 @@ function confirmarSalvar() {
                         :value="formulario.valor_esperado"
                         type="text"
                         inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="0,00"
                         @input="formulario.valor_esperado = aoDigitarMoeda($event)"
                     >
@@ -159,13 +159,13 @@ function confirmarSalvar() {
                 </div>
 
                 <div>
-                    <label for="conta-renda" class="block text-sm font-medium text-gray-500">
+                    <label for="conta-renda" class="block text-sm font-medium text-ng-ink-muted">
                         Conta bancária de recebimento
                     </label>
                     <select
                         id="conta-renda"
                         v-model="formulario.id_conta_bancaria"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option
                             v-for="conta in contasBancarias"
@@ -182,13 +182,13 @@ function confirmarSalvar() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="frequencia-renda" class="block text-sm font-medium text-gray-500">
+                        <label for="frequencia-renda" class="block text-sm font-medium text-ng-ink-muted">
                             Frequência
                         </label>
                         <select
                             id="frequencia-renda"
                             v-model="formulario.frequencia"
-                            class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option
                                 v-for="opcao in frequencias"
@@ -204,7 +204,7 @@ function confirmarSalvar() {
                     </div>
 
                     <div>
-                        <label for="dia-esperado-renda" class="block text-sm font-medium text-gray-500">
+                        <label for="dia-esperado-renda" class="block text-sm font-medium text-ng-ink-muted">
                             Dia esperado de recebimento
                         </label>
                         <input
@@ -213,7 +213,7 @@ function confirmarSalvar() {
                             type="number"
                             min="1"
                             max="31"
-                            class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                         <p v-if="formulario.errors.dia_esperado" class="mt-2 text-sm text-red-600">
                             {{ formulario.errors.dia_esperado }}
@@ -222,14 +222,14 @@ function confirmarSalvar() {
                 </div>
 
                 <div>
-                    <label for="observacao-renda" class="block text-sm font-medium text-gray-500">
+                    <label for="observacao-renda" class="block text-sm font-medium text-ng-ink-muted">
                         Observações
                     </label>
                     <textarea
                         id="observacao-renda"
                         v-model="formulario.observacao"
                         rows="3"
-                        class="mt-1 block w-full rounded-lg border-gray-200 shadow-none bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     />
                     <p v-if="formulario.errors.observacao" class="mt-2 text-sm text-red-600">
                         {{ formulario.errors.observacao }}
@@ -240,7 +240,7 @@ function confirmarSalvar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

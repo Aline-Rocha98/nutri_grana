@@ -26,7 +26,6 @@ use Illuminate\Validation\ValidationException;
 
 class OrcamentoServicoService
 {
-    /** @var list<int> */
     private const PARCELAS_MAXIMAS = 12;
 
     public function __construct(
@@ -146,9 +145,6 @@ class OrcamentoServicoService
         return $this->anexarSimulacao($recusado, $idUsuario);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function simular(
         int $idUsuario,
         array $dadosCotacao,
@@ -309,9 +305,6 @@ class OrcamentoServicoService
         }
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function montarSimulacao(
         int $idUsuario,
         float $valor,
@@ -435,9 +428,6 @@ class OrcamentoServicoService
         return $this->projetorFluxoCaixa->resolverHorizonte($referencia, $horizonte);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function normalizarDadosCotacao(int $idUsuario, array $dados): array
     {
         $this->validarDatas($dados);
@@ -457,9 +447,6 @@ class OrcamentoServicoService
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function normalizarPagamentoSimulacao(int $idUsuario, array $dados): array
     {
         $modalidade = ModalidadePagamentoOrcamento::from(
@@ -499,9 +486,6 @@ class OrcamentoServicoService
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function normalizarPagamentoAprovacao(int $idUsuario, array $dados): array
     {
         $modalidade = ModalidadePagamentoOrcamento::from($dados['modalidade_pagamento']);

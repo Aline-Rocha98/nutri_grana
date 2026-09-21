@@ -320,9 +320,6 @@ class OrcamentoServicoTest extends TestCase
         );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function dadosCotacaoValidos(ContaBancaria $conta): array
     {
         return [

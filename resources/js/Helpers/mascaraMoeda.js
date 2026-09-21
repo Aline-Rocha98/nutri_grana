@@ -1,18 +1,7 @@
-/**
- * Helpers de máscara monetária no padrão brasileiro (1.234,56).
- * Digitação trata os dígitos como centavos.
- */
-
-/**
- * Remove tudo que não for dígito.
- */
 export function somenteDigitos(valor) {
     return String(valor ?? '').replace(/\D/g, '');
 }
 
-/**
- * Aplica máscara BRL a partir do valor digitado (ex.: 123456 → "1.234,56").
- */
 export function aplicarMascaraMoeda(valor) {
     const digitos = somenteDigitos(valor);
 
@@ -32,9 +21,6 @@ export function aplicarMascaraMoeda(valor) {
     });
 }
 
-/**
- * Converte string mascarada ("1.234,56") para número (1234.56).
- */
 export function moedaParaNumero(valor) {
     if (valor === null || valor === undefined || valor === '') {
         return 0;
@@ -51,9 +37,6 @@ export function moedaParaNumero(valor) {
     return Number.isFinite(numero) ? numero : 0;
 }
 
-/**
- * Formata um número para exibição monetária ("1.234,56").
- */
 export function formatarNumeroParaMoeda(valor) {
     const numero = Number(valor ?? 0);
 
@@ -67,10 +50,6 @@ export function formatarNumeroParaMoeda(valor) {
     });
 }
 
-/**
- * Handler para @input em campos de valor.
- * Retorna o valor mascarado e sincroniza o input.
- */
 export function aoDigitarMoeda(evento) {
     const formatado = aplicarMascaraMoeda(evento.target.value);
     evento.target.value = formatado;

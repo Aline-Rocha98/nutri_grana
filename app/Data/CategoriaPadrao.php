@@ -8,9 +8,6 @@ final class CategoriaPadrao
 {
     public const COR_PADRAO = '#6b7280';
 
-    /**
-     * @return list<array{nome: string, tipo: string, icone: string, cor: string}>
-     */
     public static function todas(): array
     {
         return [

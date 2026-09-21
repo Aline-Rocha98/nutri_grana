@@ -58,12 +58,12 @@ function sair() {
     <aside
         v-if="menu"
         id="barra-lateral"
-        class="barra-lateral relative flex shrink-0 flex-col rounded-[2rem] bg-[#151a18] text-gray-300 transition-all duration-300 min-h-[calc(100vh-1.5rem)]"
+        class="barra-lateral ng-sidebar relative flex shrink-0 flex-col rounded-[2rem] transition-all duration-300 ease-smooth min-h-[calc(100vh-1.5rem)]"
         :class="classeBarra"
     >
         <button
             type="button"
-            class="absolute -right-3 top-8 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[#1fa67e] text-white shadow-lg hover:bg-[#188f6b] transition"
+            class="absolute -right-3 top-8 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[#1fa67e] text-white shadow-lg shadow-emerald-500/20 hover:bg-[#188f6b] transition"
             aria-label="Alternar barra lateral"
             @click="alternarExpansao"
         >
@@ -72,7 +72,7 @@ function sair() {
             </span>
         </button>
 
-        <div class="px-4 pt-5 pb-4 border-b border-white/10">
+        <div class="border-b border-ng-line px-4 pb-4 pt-5">
             <Link
                 :href="urlPerfil"
                 class="barra-lateral__cabecalho-perfil flex items-center gap-3 rounded-xl px-1 py-1 transition hover:bg-white/5"
@@ -90,13 +90,13 @@ function sair() {
                     <span v-else>{{ menu.perfil.iniciais }}</span>
                 </div>
                 <div v-show="expandida" class="barra-lateral__texto min-w-0">
-                    <p class="text-xs text-gray-500">Olá</p>
+                    <p class="text-xs text-zinc-500">Olá</p>
                     <p class="truncate text-sm font-semibold text-white">{{ menu.perfil.nome }}</p>
                 </div>
             </Link>
         </div>
 
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             <template v-for="item in menu.itens" :key="item.id">
                 <Link
                     v-if="item.tipo === 'link'"
@@ -110,7 +110,7 @@ function sair() {
                         class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#1fa67e]"
                     />
                     <span
-                        class="material-icons shrink-0 text-xl text-gray-400 group-hover:text-[#1fa67e]"
+                        class="material-icons shrink-0 text-xl text-zinc-500 transition group-hover:text-[#1fa67e]"
                         :class="{ 'text-[#1fa67e]': item.ativo }"
                     >
                         {{ item.iconeMaterial }}
@@ -136,7 +136,7 @@ function sair() {
                             class="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#1fa67e]"
                         />
                         <span
-                            class="material-icons shrink-0 text-xl text-gray-400 group-hover:text-[#1fa67e]"
+                            class="material-icons shrink-0 text-xl text-zinc-500 transition group-hover:text-[#1fa67e]"
                             :class="{ 'text-[#1fa67e]': item.ativo }"
                         >
                             {{ item.iconeMaterial }}
@@ -158,16 +158,16 @@ function sair() {
 
                     <div
                         v-show="expandida && gruposAbertos[item.id]"
-                        class="barra-lateral__submenu barra-lateral__submenu--aberto ml-5 border-l border-white/10 pl-3 space-y-1"
+                        class="barra-lateral__submenu barra-lateral__submenu--aberto ml-5 space-y-1 border-l border-ng-line pl-3"
                     >
                         <Link
                             v-for="filho in item.filhos"
                             :key="filho.rota"
                             :href="filho.url"
                             class="relative flex items-center gap-2 rounded-lg py-2 pl-3 pr-2 text-sm transition"
-                            :class="filho.ativo ? 'bg-white/10 text-white font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white'"
+                            :class="filho.ativo ? 'bg-white/10 font-medium text-white' : 'text-zinc-500 hover:bg-white/5 hover:text-white'"
                         >
-                            <span class="absolute -left-3 top-1/2 h-px w-3 bg-white/10" />
+                            <span class="absolute -left-3 top-1/2 h-px w-3 bg-ng-line" />
                             <span class="truncate">{{ filho.rotulo }}</span>
                             <span
                                 v-if="filho.ativo"
@@ -181,11 +181,11 @@ function sair() {
             </template>
         </nav>
 
-        <div class="border-t border-white/10 p-3">
+        <div class="border-t border-ng-line p-3">
             <button
                 type="button"
                 title="Sair"
-                class="barra-lateral__item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-400 transition hover:bg-red-500/10 hover:text-red-300"
+                class="barra-lateral__item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 transition hover:bg-red-500/10 hover:text-red-300"
                 @click="sair"
             >
                 <span class="material-icons shrink-0 text-xl">logout</span>

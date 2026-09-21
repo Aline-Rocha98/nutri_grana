@@ -124,7 +124,7 @@ const mensagemExclusao = computed(() => {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
                     Cartões de crédito
                 </h2>
                 <button type="button"
@@ -138,23 +138,23 @@ const mensagemExclusao = computed(() => {
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6">
-                <p class="text-sm font-medium text-gray-500">Limite total</p>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
+                <p class="text-sm font-medium text-ng-ink-muted">Limite total</p>
                 <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
                     R$ {{ formatarMoeda(limiteGeral) }}
                 </p>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Meus cartões</h3>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Meus cartões</h3>
                 </div>
 
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div v-for="cartao in cartoesAtivos"
-                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition"
+                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-[#1fa67e]">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
                             <img
                                 v-if="cartao.logo"
                                 :src="cartao.logo"
@@ -166,14 +166,14 @@ const mensagemExclusao = computed(() => {
 
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 min-w-0">
-                                <p class="truncate font-semibold text-gray-900">{{ cartao.nome }}</p>
+                                <p class="truncate font-semibold text-ng-ink">{{ cartao.nome }}</p>
                                 <span v-if="cartao.padrao === 'S'"
-                                    class="shrink-0 rounded-md bg-[#e8f7f1] px-1.5 py-0.5 text-[10px] tracking-wide text-[#1fa67e]"
+                                    class="shrink-0 rounded-md bg-ng-brand-soft px-1.5 py-0.5 text-[10px] tracking-wide text-[#1fa67e]"
                                 >
                                     Padrão
                                 </span>
                             </div>
-                            <p class="text-sm text-gray-500">
+                            <p class="text-sm text-ng-ink-muted">
                                 {{ cartao.bandeira_rotulo }}
                                 · Fecha dia {{ cartao.dia_fechamento_formatado }}
                                 · Vence dia {{ cartao.dia_vencimento_formatado }}
@@ -189,21 +189,21 @@ const mensagemExclusao = computed(() => {
                         <div class="flex items-center gap-1 shrink-0">
                             <a
                                 :href="cartao.url_faturas"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 title="Faturas"
                             >
                                 <span class="material-symbols-outlined text-[20px]">receipt_long</span>
                             </a>
 
                             <button type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 title="Editar" @click="abrirEditar(cartao)"
                             >
                                 <span class="material-symbols-outlined text-[20px]">edit</span>
                             </button>
 
                             <button type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 :title="cartao.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
                                 @click="alternarArquivada(cartao)"
                             >
@@ -215,7 +215,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-if="!cartao.pode_excluir"
                                 type="button"
-                                class="rounded-lg p-2 text-gray-300 cursor-not-allowed"
+                                class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
                                 title="Dê baixa na fatura antes de excluir"
                                 disabled
                             >
@@ -224,7 +224,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-else
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                 title="Excluir"
                                 @click="pedirExclusao(cartao)"
                             >
@@ -234,7 +234,7 @@ const mensagemExclusao = computed(() => {
                     </div>
 
                     <div v-if="cartoesAtivos.length === 0"
-                        class="px-6 py-10 text-center text-sm text-gray-500"
+                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhum cartão cadastrado. Clique em <strong>Adicionar cartão</strong> para começar.
                     </div>
@@ -242,16 +242,16 @@ const mensagemExclusao = computed(() => {
             </div>
 
             <div v-if="cartoesArquivados.length > 0"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 opacity-80"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
             >
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Arquivados</h3>
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Arquivados</h3>
                 </div>
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div v-for="cartao in cartoesArquivados"
-                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition"
+                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-[#1fa67e]">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
                             <img
                                 v-if="cartao.logo"
                                 :src="cartao.logo"
@@ -261,16 +261,16 @@ const mensagemExclusao = computed(() => {
                             <span v-else class="material-symbols-outlined text-[22px]">credit_card</span>
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-gray-900">{{ cartao.nome }}</p>
-                            <p class="text-sm text-gray-500">{{ cartao.bandeira_rotulo }}</p>
+                            <p class="truncate font-semibold text-ng-ink">{{ cartao.nome }}</p>
+                            <p class="text-sm text-ng-ink-muted">{{ cartao.bandeira_rotulo }}</p>
                         </div>
                         <div class="text-right shrink-0">
-                            <p class="font-semibold text-gray-500">R$ {{ cartao.limite_total }}</p>
+                            <p class="font-semibold text-ng-ink-muted">R$ {{ cartao.limite_total }}</p>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 title="Editar"
                                 @click="abrirEditar(cartao)"
                             >
@@ -278,7 +278,7 @@ const mensagemExclusao = computed(() => {
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 title="Desarquivar"
                                 @click="alternarArquivada(cartao)"
                             >

@@ -124,7 +124,7 @@ const mensagemExclusao = computed(() => {
     <AutenticadoLayout>
         <template #cabecalho>
             <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
                     Contas bancárias
                 </h2>
                 <button
@@ -139,25 +139,25 @@ const mensagemExclusao = computed(() => {
         </template>
 
         <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 p-6">
-                <p class="text-sm font-medium text-gray-500">Saldo geral</p>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
+                <p class="text-sm font-medium text-ng-ink-muted">Saldo geral</p>
                 <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
                     R$ {{ formatarMoeda(saldoGeral) }}
                 </p>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Minhas contas</h3>
+            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Minhas contas</h3>
                 </div>
 
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div
                         v-for="conta in contasAtivas"
                         :key="conta.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition"
+                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-[#1fa67e]">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
                             <img
                                 v-if="conta.logo"
                                 :src="conta.logo"
@@ -170,8 +170,8 @@ const mensagemExclusao = computed(() => {
                         </div>
 
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-gray-900">{{ conta.nome }}</p>
-                            <p class="text-sm text-gray-500">{{ conta.tipo_rotulo }}</p>
+                            <p class="truncate font-semibold text-ng-ink">{{ conta.nome }}</p>
+                            <p class="text-sm text-ng-ink-muted">{{ conta.tipo_rotulo }}</p>
                         </div>
 
                         <div class="text-right shrink-0">
@@ -186,7 +186,7 @@ const mensagemExclusao = computed(() => {
                         <div class="flex items-center gap-1 shrink-0">
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 title="Editar"
                                 @click="abrirEditar(conta)"
                             >
@@ -195,7 +195,7 @@ const mensagemExclusao = computed(() => {
 
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
                                 :title="conta.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
                                 @click="alternarArquivada(conta)"
                             >
@@ -207,7 +207,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-if="conta.total_lancamentos > 0"
                                 type="button"
-                                class="rounded-lg p-2 text-gray-300 cursor-not-allowed"
+                                class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
                                 title="Não é possível excluir: há lançamentos vinculados"
                                 disabled
                             >
@@ -216,7 +216,7 @@ const mensagemExclusao = computed(() => {
                             <button
                                 v-else
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
                                 title="Excluir"
                                 @click="pedirExclusao(conta)"
                             >
@@ -227,7 +227,7 @@ const mensagemExclusao = computed(() => {
 
                     <div
                         v-if="contasAtivas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-gray-500"
+                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
                     >
                         Nenhuma conta cadastrada. Clique em <strong>Adicionar conta</strong> para começar.
                     </div>
@@ -236,18 +236,18 @@ const mensagemExclusao = computed(() => {
 
             <div
                 v-if="contasArquivadas.length > 0"
-                class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100 opacity-80"
+                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
             >
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800">Arquivadas</h3>
+                <div class="px-6 py-4 border-b border-ng-line">
+                    <h3 class="text-base font-semibold text-ng-ink">Arquivadas</h3>
                 </div>
-                <div class="divide-y divide-gray-100">
+                <div class="divide-y divide-ng-line">
                     <div
                         v-for="conta in contasArquivadas"
                         :key="conta.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/80 transition"
+                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f7f1] text-[#1fa67e]">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
                             <img
                                 v-if="conta.logo"
                                 :src="conta.logo"
@@ -259,16 +259,16 @@ const mensagemExclusao = computed(() => {
                             </span>
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-gray-900">{{ conta.nome }}</p>
-                            <p class="text-sm text-gray-500">{{ conta.tipo_rotulo }}</p>
+                            <p class="truncate font-semibold text-ng-ink">{{ conta.nome }}</p>
+                            <p class="text-sm text-ng-ink-muted">{{ conta.tipo_rotulo }}</p>
                         </div>
                         <div class="text-right shrink-0">
-                            <p class="font-semibold text-gray-500">R$ {{ conta.saldo_inicial }}</p>
+                            <p class="font-semibold text-ng-ink-muted">R$ {{ conta.saldo_inicial }}</p>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 title="Editar"
                                 @click="abrirEditar(conta)"
                             >
@@ -276,7 +276,7 @@ const mensagemExclusao = computed(() => {
                             </button>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
                                 title="Desarquivar"
                                 @click="alternarArquivada(conta)"
                             >

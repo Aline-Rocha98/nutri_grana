@@ -74,21 +74,21 @@ function salvar() {
 <template>
     <Modal :aberto="aberto" max-largura="lg">
         <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-gray-900">Registrar aporte</h2>
-            <p class="mt-1 text-sm text-gray-500">
+            <h2 class="text-lg font-semibold text-ng-ink">Registrar aporte</h2>
+            <p class="mt-1 text-sm text-ng-ink-muted">
                 Adicione valor ao objetivo
-                <span v-if="objetivo" class="font-medium text-gray-700">"{{ objetivo.descricao }}"</span>.
+                <span v-if="objetivo" class="font-medium text-ng-ink-secondary">"{{ objetivo.descricao }}"</span>.
             </p>
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="tipo-aporte" class="block text-sm font-medium text-gray-500">
+                    <label for="tipo-aporte" class="block text-sm font-medium text-ng-ink-muted">
                         Forma do aporte
                     </label>
                     <select
                         id="tipo-aporte"
                         v-model="formulario.tipo"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option
                             v-for="opcao in tiposAporte"
@@ -104,7 +104,7 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="valor-aporte" class="block text-sm font-medium text-gray-500">
+                    <label for="valor-aporte" class="block text-sm font-medium text-ng-ink-muted">
                         Valor
                     </label>
                     <input
@@ -112,7 +112,7 @@ function salvar() {
                         :value="formulario.valor"
                         type="text"
                         inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         placeholder="0,00"
                         @input="formulario.valor = aoDigitarMoeda($event)"
                     >
@@ -122,14 +122,14 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="data-aporte" class="block text-sm font-medium text-gray-500">
+                    <label for="data-aporte" class="block text-sm font-medium text-ng-ink-muted">
                         Data do aporte
                     </label>
                     <input
                         id="data-aporte"
                         v-model="formulario.data_aporte"
                         type="date"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                     <p v-if="formulario.errors.data_aporte" class="mt-2 text-sm text-red-600">
                         {{ formulario.errors.data_aporte }}
@@ -137,13 +137,13 @@ function salvar() {
                 </div>
 
                 <div v-if="usaContaBancaria">
-                    <label for="conta-aporte" class="block text-sm font-medium text-gray-500">
+                    <label for="conta-aporte" class="block text-sm font-medium text-ng-ink-muted">
                         Conta bancária
                     </label>
                     <select
                         id="conta-aporte"
                         v-model="formulario.id_conta_bancaria"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option :value="null" disabled>Selecione a conta</option>
                         <option
@@ -163,14 +163,14 @@ function salvar() {
                 </div>
 
                 <div>
-                    <label for="observacao-aporte" class="block text-sm font-medium text-gray-500">
+                    <label for="observacao-aporte" class="block text-sm font-medium text-ng-ink-muted">
                         Observação (opcional)
                     </label>
                     <input
                         id="observacao-aporte"
                         v-model="formulario.observacao"
                         type="text"
-                        class="mt-1 block w-full rounded-lg border-gray-200 bg-white text-gray-900 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         maxlength="255"
                     >
                 </div>
@@ -179,7 +179,7 @@ function salvar() {
             <div class="mt-6 flex justify-end gap-3">
                 <button
                     type="button"
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
                     @click="fechar"
                 >
                     Cancelar

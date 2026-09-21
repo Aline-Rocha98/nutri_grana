@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * @var list<string>
-     */
     private array $tabelas = [
         'contas_bancarias',
         'cartoes_credito',
@@ -33,7 +30,6 @@ return new class extends Migration
                 continue;
             }
 
-            // Estado parcial: só arquivada_sn existe (rename anterior falhou)
             if (! $temArquivada && $temArquivadaSn) {
                 $this->promoverArquivadaSn($tabela);
 

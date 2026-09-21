@@ -265,17 +265,17 @@ function confirmarUltrapassagemOrcamento() {
 <template>
     <Modal :aberto="aberto" max-largura="lg">
         <div class="p-6">
-            <h3 class="text-lg font-semibold text-gray-900">
+            <h3 class="text-lg font-semibold text-ng-ink">
                 {{ editando ? 'Editar lançamento' : 'Novo lançamento' }}
             </h3>
 
             <form class="mt-4 space-y-4" @submit.prevent="salvar">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                    <label class="block text-sm font-medium text-ng-ink-secondary">Descrição</label>
                     <input
                         v-model="formulario.descricao"
                         type="text"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         required
                     >
                     <p v-if="formulario.errors.descricao" class="mt-1 text-sm text-red-600">
@@ -285,12 +285,12 @@ function confirmarUltrapassagemOrcamento() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Valor</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Valor</label>
                         <input
                             :value="formulario.valor"
                             type="text"
                             inputmode="numeric"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                             @input="formulario.valor = aoDigitarMoeda($event)"
                         >
@@ -299,11 +299,11 @@ function confirmarUltrapassagemOrcamento() {
                         </p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Data ocorrência</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Data ocorrência</label>
                         <input
                             v-model="formulario.data_vencimento"
                             type="date"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
                         <p v-if="formulario.errors.data_vencimento" class="mt-1 text-sm text-red-600">
@@ -314,19 +314,19 @@ function confirmarUltrapassagemOrcamento() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Tipo</label>
                         <select
                             v-model="formulario.tipo"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option v-for="t in tipos" :key="t.valor" :value="t.valor">{{ t.rotulo }}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Situação</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Situação</label>
                         <select
                             v-model="formulario.situacao"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option v-for="s in situacoes" :key="s.valor" :value="s.valor">{{ s.rotulo }}</option>
                         </select>
@@ -335,20 +335,20 @@ function confirmarUltrapassagemOrcamento() {
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Categoria</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Categoria</label>
                         <select
                             v-model="formulario.id_categoria_principal"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         >
                             <option :value="null">Selecione</option>
                             <option v-for="c in categoriasPai" :key="c.id" :value="c.id">{{ c.nome }}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Subcategoria</label>
+                        <label class="block text-sm font-medium text-ng-ink-secondary">Subcategoria</label>
                         <select
                             v-model="formulario.id_subcategoria"
-                            class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-gray-100 disabled:text-gray-400"
+                            class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-ng-card-muted disabled:text-ng-ink-subtle"
                             :disabled="!formulario.id_categoria_principal"
                         >
                             <option :value="null">Selecione</option>
@@ -358,20 +358,20 @@ function confirmarUltrapassagemOrcamento() {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Forma de cobrança</label>
+                    <label class="block text-sm font-medium text-ng-ink-secondary">Forma de cobrança</label>
                     <select
                         v-model="formulario.forma_pagamento"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     >
                         <option v-for="f in formasPagamento" :key="f.valor" :value="f.valor">{{ f.rotulo }}</option>
                     </select>
                 </div>
 
                 <div v-if="formulario.forma_pagamento === 'conta_bancaria'">
-                    <label class="block text-sm font-medium text-gray-700">Conta bancária</label>
+                    <label class="block text-sm font-medium text-ng-ink-secondary">Conta bancária</label>
                     <select
                         v-model="formulario.id_conta_bancaria"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         required
                     >
                         <option v-for="c in contasBancarias" :key="c.id" :value="c.id">{{ c.nome }}</option>
@@ -382,10 +382,10 @@ function confirmarUltrapassagemOrcamento() {
                 </div>
 
                 <div v-if="formulario.forma_pagamento === 'cartao_credito'">
-                    <label class="block text-sm font-medium text-gray-700">Cartão de crédito</label>
+                    <label class="block text-sm font-medium text-ng-ink-secondary">Cartão de crédito</label>
                     <select
                         v-model="formulario.id_cartao_credito"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                         required
                     >
                         <option v-for="c in cartoesCredito" :key="c.id" :value="c.id">{{ c.nome }}</option>
@@ -395,12 +395,12 @@ function confirmarUltrapassagemOrcamento() {
                     </p>
                 </div>
 
-                <div v-if="mostrarRecorrenciaParcelas" class="space-y-3 rounded-xl bg-gray-50 p-4">
-                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                <div v-if="mostrarRecorrenciaParcelas" class="space-y-3 rounded-xl bg-ng-input p-4">
+                    <label class="flex items-center gap-2 text-sm text-ng-ink-secondary">
                         <input
                             v-model="formulario.recorrente"
                             type="checkbox"
-                            class="rounded border-gray-300 text-[#1fa67e] focus:ring-[#1fa67e]"
+                            class="rounded border-ng-input-border text-[#1fa67e] focus:ring-[#1fa67e]"
                             :disabled="editando"
                         >
                         Lançamento recorrente
@@ -408,10 +408,10 @@ function confirmarUltrapassagemOrcamento() {
 
                     <div v-if="formulario.recorrente" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-500">Frequência</label>
+                            <label class="block text-xs font-medium text-ng-ink-muted">Frequência</label>
                             <select
                                 v-model="formulario.frequencia_recorrencia"
-                                class="mt-1 w-full rounded-lg border-gray-300 text-sm focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-gray-100"
+                                class="mt-1 w-full rounded-lg border-ng-input-border text-sm focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-ng-card-muted"
                                 :disabled="editando"
                             >
                                 <option v-for="f in frequencias" :key="f.valor" :value="f.valor">{{ f.rotulo }}</option>
@@ -420,37 +420,37 @@ function confirmarUltrapassagemOrcamento() {
                     </div>
 
                     <div v-if="!formulario.recorrente">
-                        <label class="block text-xs font-medium text-gray-500">Parcelas</label>
+                        <label class="block text-xs font-medium text-ng-ink-muted">Parcelas</label>
                         <input
                             v-model.number="formulario.total_parcelas"
                             type="number"
                             min="1"
                             max="48"
-                            class="mt-1 w-32 rounded-lg border-gray-300 text-sm focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-gray-100"
+                            class="mt-1 w-32 rounded-lg border-ng-input-border text-sm focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-ng-card-muted"
                             :disabled="editando"
                         >
-                        <p v-if="!editando" class="mt-1 text-xs text-gray-500">
+                        <p v-if="!editando" class="mt-1 text-xs text-ng-ink-muted">
                             Ex.: 2 gera a 1ª no mês da data e a 2ª no mês seguinte.
                         </p>
-                        <p v-else-if="lancamento?.parcela_atual" class="mt-1 text-xs text-gray-500">
+                        <p v-else-if="lancamento?.parcela_atual" class="mt-1 text-xs text-ng-ink-muted">
                             Parcela {{ lancamento.parcela_atual }}/{{ lancamento.total_parcelas }}
                         </p>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Observação</label>
+                    <label class="block text-sm font-medium text-ng-ink-secondary">Observação</label>
                     <textarea
                         v-model="formulario.observacao"
                         rows="2"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+                        class="mt-1 w-full rounded-lg border-ng-input-border focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                     />
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
                     <button
                         type="button"
-                        class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                        class="rounded-lg px-4 py-2 text-sm font-medium text-ng-ink-muted hover:bg-ng-brand-soft"
                         @click="fechar"
                     >
                         Cancelar
