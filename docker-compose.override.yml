@@ -1,0 +1,15 @@
+services:
+  app:
+    volumes:
+      - .:/var/www/html
+
+  vite:
+    image: node:22-alpine
+    container_name: nutri_grana_vite
+    user: node
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev"
