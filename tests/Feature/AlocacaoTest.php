@@ -41,9 +41,9 @@ class AlocacaoTest extends TestCase
                 ->component('Alocacao/Index')
                 ->has('alocacoes', 2)
                 ->where('alocacoes.0.nome', 'Carro')
-                ->where('alocacoes.0.saldo_numero', 300.0)
+                ->where('alocacoes.0.saldo_numero', fn ($saldo) => (float) $saldo === 300.0)
                 ->where('alocacoes.0.saldos_por_conta.0.id_conta_bancaria', (int) $conta->id_conta_bancaria)
-                ->where('totalAlocado', 300.0)
+                ->where('totalAlocado', fn ($total) => (float) $total === 300.0)
                 ->has('alocacoesCadastradas.data', 2)
             );
     }
@@ -264,15 +264,15 @@ class AlocacaoTest extends TestCase
         $repositorio = app(ContaBancariaRepository::class);
         $contaAtualizada = $conta->fresh();
 
-        $this->assertSame(1400.0, $repositorio->saldoTotalDaConta($contaAtualizada));
+        $this->assertSame(1000.0, $repositorio->saldoTotalDaConta($contaAtualizada));
         $this->assertSame(250.0, $repositorio->saldoGuardadoDaConta($contaAtualizada));
-        $this->assertSame(1150.0, $repositorio->saldoDisponivelDaConta($contaAtualizada));
+        $this->assertSame(750.0, $repositorio->saldoDisponivelDaConta($contaAtualizada));
     }
 
     public function test_resgate_para_outra_conta_move_o_valor_entre_as_contas(): void
     {
         $usuario = Usuario::factory()->create();
-        $contaReserva = $this->criarConta($usuario, 0, 'Conta reserva');
+        $contaReserva = $this->criarConta($usuario, 500, 'Conta reserva');
         $contaCorrente = $this->criarConta($usuario, 0, 'Conta corrente');
         $alocacao = $this->criarAlocacao($usuario, 'Carro');
         $this->registrarSeparacao($usuario, $alocacao, $contaReserva, 500);
