@@ -6,6 +6,7 @@ use App\Enum\FrequenciaRecorrencia;
 use App\Models\Concerns\TemChaveRotaCriptografada;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\Lancamento\Lancamento;
+use App\Models\PlanoFinanceiro\PlanoFinanceiro;
 use App\Models\Usuario\Usuario;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,7 @@ class Renda extends Model
         'descricao',
         'valor_esperado',
         'id_conta_bancaria',
+        'id_plano_financeiro',
         'frequencia',
         'dia_esperado',
         'data_inicio',
@@ -53,5 +55,10 @@ class Renda extends Model
     public function lancamentos(): HasMany
     {
         return $this->hasMany(Lancamento::class, 'id_renda', 'id_renda');
+    }
+
+    public function planoFinanceiro(): BelongsTo
+    {
+        return $this->belongsTo(PlanoFinanceiro::class, 'id_plano_financeiro', 'id_plano_financeiro');
     }
 }

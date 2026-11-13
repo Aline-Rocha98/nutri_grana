@@ -7,6 +7,7 @@ use App\Models\ContaBancaria\ContaBancaria;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\Lancamento\RecorrenciaService;
+use App\Services\Renda\PrevisorPlanoFinanceiroRenda;
 use App\Services\Renda\RendaGeracaoService;
 use Carbon\Carbon;
 
@@ -19,6 +20,7 @@ class ProjetorFluxoCaixa
         private readonly LancamentoRepository $lancamentoRepository,
         private readonly RecorrenciaService $recorrenciaService,
         private readonly RendaGeracaoService $rendaGeracaoService,
+        private readonly PrevisorPlanoFinanceiroRenda $previsorPlanoFinanceiroRenda,
     ) {}
 
     public function projetar(
@@ -33,16 +35,18 @@ class ProjetorFluxoCaixa
 
         $this->materializarPrevistosAte($idUsuario, $ate);
 
-        $saldoAtual = $this->somarSaldoAtualContasAtivas($idUsuario);
+        $saldoAtual = $this->somarSaldoDisponivelContasAtivas($idUsuario);
         $atrasadas = $this->lancamentoRepository->somarPendenciasAtrasadasConsolidadas($idUsuario, $referencia);
+        $destinacoesAtrasadas = $this->previsorPlanoFinanceiroRenda->calcularSeparacoesPrevistasAtrasadas($idUsuario, $referencia);
 
         $saldoCursor = round(
-            $saldoAtual + $atrasadas['receitas'] - $atrasadas['despesas'],
+            $saldoAtual + $atrasadas['receitas'] - $atrasadas['despesas'] - $destinacoesAtrasadas,
             2
         );
 
         $receitasPrevistas = $atrasadas['receitas'];
         $despesasPrevistas = $atrasadas['despesas'];
+        $destinacoesPrevistas = $destinacoesAtrasadas;
         $meses = [];
 
         $cursorMes = $referencia->copy()->startOfMonth();
@@ -63,15 +67,18 @@ class ProjetorFluxoCaixa
                 $referencia,
             );
 
+            $destinacoesMes = $this->destinacoesPrevistasDoMes($idUsuario, $cursorMes, $referencia);
+
             $chaveMes = sprintf('%04d-%02d', $ano, $mes);
             $compromissoMes = round((float) ($compromissosPorMes[$chaveMes] ?? 0), 2);
 
-            $saldoCursor = round($saldoCursor + $receitasConta - $despesasConta - $compromissoMes, 2);
+            $saldoCursor = round($saldoCursor + $receitasConta - $despesasConta - $destinacoesMes - $compromissoMes, 2);
             $despesasExibidas = round($despesasMes + $compromissoMes, 2);
-            $liquidoMes = round($receitasMes - $despesasMes, 2);
+            $liquidoMes = round($receitasMes - $despesasMes - $destinacoesMes, 2);
 
             $receitasPrevistas = round($receitasPrevistas + $receitasMes, 2);
             $despesasPrevistas = round($despesasPrevistas + $despesasMes, 2);
+            $destinacoesPrevistas = round($destinacoesPrevistas + $destinacoesMes, 2);
 
             $meses[] = [
                 'ano' => $ano,
@@ -79,6 +86,7 @@ class ProjetorFluxoCaixa
                 'rotulo' => ucfirst($cursorMes->copy()->locale('pt_BR')->translatedFormat('F/Y')),
                 'receitas' => $receitasMes,
                 'despesas' => $despesasExibidas,
+                'destinacoes' => $destinacoesMes,
                 'liquido' => $liquidoMes,
                 'saldo_projetado' => $saldoCursor,
             ];
@@ -90,8 +98,9 @@ class ProjetorFluxoCaixa
             'saldo_atual_contas' => $saldoAtual,
             'receitas_previstas' => $receitasPrevistas,
             'despesas_previstas' => $despesasPrevistas,
+            'destinacoes_previstas' => $destinacoesPrevistas,
             'saldo_disponivel_planejamento' => round(
-                $saldoAtual + $receitasPrevistas - $despesasPrevistas,
+                $saldoAtual + $receitasPrevistas - $despesasPrevistas - $destinacoesPrevistas,
                 2
             ),
             'meses' => $meses,
@@ -213,7 +222,16 @@ class ProjetorFluxoCaixa
         }
     }
 
-    private function somarSaldoAtualContasAtivas(int $idUsuario): float
+    private function destinacoesPrevistasDoMes(int $idUsuario, Carbon $cursorMes, Carbon $referencia): float
+    {
+        $inicioMes = $cursorMes->copy()->startOfMonth()->startOfDay();
+        $fimMes = $cursorMes->copy()->endOfMonth()->startOfDay();
+        $inicioJanela = $referencia->gt($inicioMes) ? $referencia->copy() : $inicioMes;
+
+        return $this->previsorPlanoFinanceiroRenda->calcularSeparacoesPrevistasNoPeriodo($idUsuario, $inicioJanela, $fimMes);
+    }
+
+    private function somarSaldoDisponivelContasAtivas(int $idUsuario): float
     {
         $contas = ContaBancaria::query()
             ->where('id_usuario', $idUsuario)
@@ -223,8 +241,7 @@ class ProjetorFluxoCaixa
         $total = 0.0;
 
         foreach ($contas as $conta) {
-            $movimentado = $this->contaBancariaRepository->saldoMovimentado((int) $conta->id_conta_bancaria);
-            $total += (float) $conta->saldo_inicial + $movimentado;
+            $total += $this->contaBancariaRepository->saldoDisponivelDaConta($conta);
         }
 
         return round($total, 2);

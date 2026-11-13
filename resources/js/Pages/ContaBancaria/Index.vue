@@ -3,14 +3,35 @@ import { computed, ref, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
+import CabecalhoSecao from '@/Components/Ui/CabecalhoSecao.vue';
+import CardAdicionarPlaceholder from '@/Components/Ui/CardAdicionarPlaceholder.vue';
+import ListaInformacoes from '@/Components/Ui/ListaInformacoes.vue';
+import ListaLancamentos from '@/Components/Ui/ListaLancamentos.vue';
+import CardSaldoGuardado from '@/Components/ContaBancaria/CardSaldoGuardado.vue';
+import ContaBancariaResumo from '@/Components/ContaBancaria/ContaBancariaResumo.vue';
+import ContaBancariaVisual from '@/Components/ContaBancaria/ContaBancariaVisual.vue';
 import FormularioModal from '@/Pages/ContaBancaria/FormularioModal.vue';
+import { varianteSituacaoLancamento } from '@/Helpers/badge';
+import { formatarNumeroParaMoeda } from '@/Helpers/mascaraMoeda';
 
 const props = defineProps({
     contasBancarias: {
         type: Array,
         default: () => [],
     },
+    movimentacoesRecentesPorConta: {
+        type: Object,
+        default: () => ({}),
+    },
+    movimentacoesSaldoGuardadoPorConta: {
+        type: Object,
+        default: () => ({}),
+    },
     tipos: {
+        type: Array,
+        default: () => [],
+    },
+    acabamentos: {
         type: Array,
         default: () => [],
     },
@@ -26,6 +47,9 @@ const contaEmEdicao = ref(null);
 const modalExclusaoAberto = ref(false);
 const contaParaExcluir = ref(null);
 const excluindo = ref(false);
+const idContaEmFoco = ref(null);
+const exibirTodasContas = ref(false);
+const arquivadasVisiveis = ref(false);
 
 watch(
     () => pagina.props.errors,
@@ -39,15 +63,168 @@ watch(
 
 const contasAtivas = computed(() => props.contasBancarias.filter((conta) => conta.arquivada !== 'S'));
 const contasArquivadas = computed(() => props.contasBancarias.filter((conta) => conta.arquivada === 'S'));
-const saldoGeral = computed(() =>
-    contasAtivas.value.reduce((total, conta) => total + Number(conta.saldo_atual_numero ?? conta.saldo_inicial_numero ?? 0), 0),
+
+const saldoGeralFormatado = computed(() =>
+    formatarNumeroParaMoeda(
+        contasAtivas.value.reduce((total, conta) => total + Number(conta.saldo_atual_numero ?? 0), 0),
+    ),
 );
 
-function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+const contaEmFoco = computed(() =>
+    contasAtivas.value.find((conta) => conta.id === idContaEmFoco.value)
+    ?? contasAtivas.value.find((conta) => conta.padrao_desconto === 'S')
+    ?? contasAtivas.value[0]
+    ?? null,
+);
+
+const nomesContasPorId = computed(() =>
+    Object.fromEntries(props.contasBancarias.map((conta) => [conta.id, conta.nome])),
+);
+
+const movimentacoesDaVisao = computed(() => {
+    if (exibirTodasContas.value) {
+        return contasAtivas.value
+            .flatMap((conta) => props.movimentacoesRecentesPorConta[conta.id] ?? [])
+            .sort((primeira, segunda) => (segunda.data_vencimento ?? '').localeCompare(primeira.data_vencimento ?? ''));
+    }
+
+    if (!contaEmFoco.value) {
+        return [];
+    }
+
+    return props.movimentacoesRecentesPorConta[contaEmFoco.value.id] ?? [];
+});
+
+const movimentacoesExibidas = computed(() =>
+    movimentacoesDaVisao.value.map((movimentacao) => ({
+        chave: movimentacao.id,
+        descricao: movimentacao.descricao,
+        subtitulo: [
+            movimentacao.categoria_nome,
+            exibirTodasContas.value ? nomesContasPorId.value[movimentacao.id_conta_bancaria] : null,
+            movimentacao.data_vencimento_formatada,
+        ].filter(Boolean).join(' · '),
+        valor: movimentacao.valor,
+        icone: movimentacao.categoria_icone ?? undefined,
+        cor: movimentacao.categoria_cor ?? undefined,
+        etiqueta: movimentacao.eh_parcelado ? `${movimentacao.parcela_atual}/${movimentacao.total_parcelas}` : '',
+        badgeTexto: movimentacao.situacao_rotulo ?? '',
+        badgeVariante: varianteSituacaoLancamento(movimentacao.situacao),
+        positivo: movimentacao.tipo === 'receita',
+        negativo: movimentacao.tipo === 'despesa',
+    })),
+);
+
+const tituloMovimentacoes = computed(() => {
+    if (exibirTodasContas.value || !contaEmFoco.value) {
+        return 'Movimentações Recentes (Todas as contas)';
+    }
+
+    return `Movimentações Recentes (${contaEmFoco.value.nome})`;
+});
+
+const itensInformacoesConta = computed(() => {
+    const conta = contaEmFoco.value;
+
+    if (!conta) {
+        return [];
+    }
+
+    return [
+        {
+            chave: 'status',
+            rotulo: 'Status da Conta',
+            valor: 'Ativa',
+            indicador: 'bg-ng-brand',
+            classeValor: 'text-xs text-ng-brand',
+            separador: true,
+        },
+        {
+            chave: 'tipo',
+            rotulo: 'Tipo da conta',
+            valor: conta.tipo_rotulo,
+        },
+        {
+            chave: 'saldo-inicial',
+            rotulo: 'Saldo inicial',
+            valor: `R$ ${conta.saldo_inicial}`,
+            classeValor: 'font-mono',
+        },
+        {
+            chave: 'saldo-atual',
+            rotulo: 'Saldo atual',
+            valor: `R$ ${conta.saldo_atual}`,
+            classeValor: conta.saldo_atual_numero < 0 ? 'font-mono text-red-500' : 'font-mono text-ng-brand',
+        },
+        {
+            chave: 'saldo-guardado',
+            rotulo: 'Saldo guardado',
+            valor: `R$ ${conta.saldo_guardado}`,
+            classeValor: 'font-mono text-sky-500',
+        },
+        {
+            chave: 'saldo-disponivel',
+            rotulo: 'Saldo disponível',
+            valor: `R$ ${conta.saldo_disponivel}`,
+            classeValor: conta.saldo_disponivel_numero < 0 ? 'font-mono text-red-500' : 'font-mono text-ng-brand',
+            separador: true,
+        },
+        {
+            chave: 'padrao-desconto',
+            rotulo: 'Padrão para desconto',
+            valor: conta.padrao_desconto === 'S' ? 'Sim' : 'Não',
+        },
+        {
+            chave: 'exibir-resumo',
+            rotulo: 'Exibir no resumo',
+            valor: conta.exibir_resumo === 'S' ? 'Sim' : 'Não',
+        },
+    ];
+});
+
+const movimentacoesSaldoGuardadoExibidas = computed(() => {
+    if (!contaEmFoco.value) {
+        return [];
+    }
+
+    return (props.movimentacoesSaldoGuardadoPorConta[contaEmFoco.value.id] ?? []).map((movimentacao) => ({
+        chave: movimentacao.id,
+        descricao: movimentacao.descricao,
+        subtitulo: [
+            movimentacao.tipo_rotulo,
+            movimentacao.conta_bancaria_origem_nome ? `de ${movimentacao.conta_bancaria_origem_nome}` : null,
+            movimentacao.conta_bancaria_resgate_nome ? `para ${movimentacao.conta_bancaria_resgate_nome}` : null,
+            movimentacao.data_movimentacao_formatada,
+        ].filter(Boolean).join(' · '),
+        valor: movimentacao.valor,
+        icone: iconeMovimentacaoSaldoGuardado(movimentacao.tipo),
+        cor: '#0ea5e9',
+        positivo: movimentacao.eh_separacao,
+        negativo: movimentacao.tipo === 'resgate' && movimentacao.id_conta_bancaria === contaEmFoco.value.id,
+    }));
+});
+
+function iconeMovimentacaoSaldoGuardado(tipo) {
+    if (tipo === 'separacao') {
+        return 'savings';
+    }
+
+    return tipo === 'transferencia' ? 'swap_horiz' : 'south_west';
+}
+
+function abrirAlocacoes() {
+    if (contaEmFoco.value?.url_alocacoes) {
+        router.visit(contaEmFoco.value.url_alocacoes);
+    }
+}
+
+function selecionarContaEmFoco(conta) {
+    idContaEmFoco.value = conta.id;
+    exibirTodasContas.value = false;
+}
+
+function alternarExibicaoTodasContas() {
+    exibirTodasContas.value = !exibirTodasContas.value;
 }
 
 function abrirCriar() {
@@ -65,19 +242,29 @@ function fecharModal() {
     contaEmEdicao.value = null;
 }
 
+function definirContaPadraoDesconto(conta) {
+    router.patch(conta.url_definir_padrao_desconto, {}, {
+        preserveScroll: true,
+    });
+}
+
 function alternarArquivada(conta) {
-    router.put(conta.url_atualizar, {
-        nome: conta.nome,
-        tipo: conta.tipo,
+    router.patch(conta.url_arquivar, {
         arquivada: conta.arquivada === 'S' ? 'N' : 'S',
-        padrao_desconto: conta.padrao_desconto,
-        exibir_resumo: conta.exibir_resumo,
     }, {
         preserveScroll: true,
     });
 }
 
+function podeExcluirConta(conta) {
+    return Number(conta.total_lancamentos ?? 0) === 0;
+}
+
 function pedirExclusao(conta) {
+    if (!podeExcluirConta(conta)) {
+        return;
+    }
+
     contaParaExcluir.value = conta;
     modalExclusaoAberto.value = true;
 }
@@ -121,176 +308,177 @@ const mensagemExclusao = computed(() => {
 <template>
     <Head title="Contas bancárias" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
-                    Contas bancárias
-                </h2>
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
-                    @click="abrirCriar"
+    <AutenticadoLayout titulo="Contas bancárias">
+        <div class="space-y-8 p-6 lg:p-8">
+            <section class="space-y-4">
+                <CabecalhoSecao
+                    titulo="Minhas Contas Bancárias"
+                    :subtitulo="`Saldo geral das contas ativas: R$ ${saldoGeralFormatado}`"
                 >
-                    <span class="material-symbols-outlined text-base leading-none">add</span>
-                    Adicionar conta
-                </button>
-            </div>
-        </template>
+                    <template #acoes>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-sm font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                            @click="abrirCriar"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            Adicionar Conta
+                        </button>
+                    </template>
+                </CabecalhoSecao>
 
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <p class="text-sm font-medium text-ng-ink-muted">Saldo geral</p>
-                <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
-                    R$ {{ formatarMoeda(saldoGeral) }}
-                </p>
-            </div>
-
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Minhas contas</h3>
-                </div>
-
-                <div class="divide-y divide-ng-line">
-                    <div
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <ContaBancariaResumo
                         v-for="conta in contasAtivas"
                         :key="conta.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
-                    >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
-                            <img
-                                v-if="conta.logo"
-                                :src="conta.logo"
-                                :alt="conta.nome"
-                                class="h-full w-full object-cover"
+                        :nome="conta.nome"
+                        :tipo="conta.tipo"
+                        :tipo-rotulo="conta.tipo_rotulo"
+                        :logo="conta.logo"
+                        :saldo-atual="conta.saldo_atual"
+                        :saldo-atual-numero="conta.saldo_atual_numero"
+                        :saldo-inicial="conta.saldo_inicial"
+                        :saldo-guardado="conta.saldo_guardado"
+                        :saldo-guardado-numero="conta.saldo_guardado_numero"
+                        :exibir-resumo="conta.exibir_resumo === 'S'"
+                        :total-lancamentos="conta.total_lancamentos"
+                        :padrao="conta.padrao_desconto === 'S'"
+                        :selecionado="contaEmFoco?.id === conta.id"
+                        :pode-excluir="podeExcluirConta(conta)"
+                        @selecionar="selecionarContaEmFoco(conta)"
+                        @editar="abrirEditar(conta)"
+                        @arquivar="alternarArquivada(conta)"
+                        @excluir="pedirExclusao(conta)"
+                        @definir-padrao="definirContaPadraoDesconto(conta)"
+                    />
+
+                    <CardAdicionarPlaceholder
+                        titulo="Nova Conta"
+                        descricao="Adicione o saldo inicial e o tipo"
+                        icone="account_balance"
+                        @click="abrirCriar"
+                    />
+                </div>
+            </section>
+
+            <section v-if="contaEmFoco" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="space-y-4">
+                    <CabecalhoSecao titulo="Conta em Foco">
+                        <template #acoes>
+                            <button
+                                type="button"
+                                class="text-xs font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                                @click="abrirEditar(contaEmFoco)"
                             >
-                            <span v-else class="material-symbols-outlined text-[22px]">
-                                {{ conta.tipo === 'poupanca' ? 'savings' : 'account_balance' }}
+                                Editar Dados
+                            </button>
+                        </template>
+                    </CabecalhoSecao>
+
+                    <ContaBancariaVisual
+                        :nome="contaEmFoco.nome"
+                        :tipo="contaEmFoco.tipo"
+                        :tipo-rotulo="contaEmFoco.tipo_rotulo"
+                        :logo="contaEmFoco.logo"
+                        :saldo-atual="contaEmFoco.saldo_atual"
+                        :saldo-atual-numero="contaEmFoco.saldo_atual_numero"
+                        :saldo-inicial="contaEmFoco.saldo_inicial"
+                        :cor-acabamento="contaEmFoco.acabamento_cor"
+                    />
+
+                    <CardSaldoGuardado
+                        :saldo-guardado="contaEmFoco.saldo_guardado"
+                        :saldo-guardado-numero="contaEmFoco.saldo_guardado_numero"
+                        :saldo-disponivel="contaEmFoco.saldo_disponivel"
+                        :saldo-disponivel-numero="contaEmFoco.saldo_disponivel_numero"
+                        @acao="abrirAlocacoes"
+                    />
+
+                    <div class="ng-card p-5">
+                        <ListaInformacoes :itens="itensInformacoesConta" />
+                    </div>
+                </div>
+
+                <div class="space-y-4 lg:col-span-2">
+                    <CabecalhoSecao
+                        :titulo="tituloMovimentacoes"
+                        subtitulo="Receitas e despesas mais recentes vinculadas à conta."
+                    >
+                        <template #acoes>
+                            <button
+                                type="button"
+                                class="rounded-lg border border-ng-line-strong bg-ng-card-muted px-3 py-1.5 text-xs font-medium text-ng-ink-secondary transition hover:border-ng-brand hover:text-ng-ink"
+                                @click="alternarExibicaoTodasContas"
+                            >
+                                {{ exibirTodasContas ? 'Somente conta em foco' : 'Todas as contas' }}
+                            </button>
+                        </template>
+                    </CabecalhoSecao>
+
+                    <ListaLancamentos
+                        :itens="movimentacoesExibidas"
+                        mensagem-vazia="Nenhuma movimentação recente para exibir."
+                    />
+
+                    <CabecalhoSecao
+                        :titulo="`Saldo guardado (${contaEmFoco.nome})`"
+                        subtitulo="Valores separados pelo plano financeiro, transferências entre alocações e resgates."
+                    />
+
+                    <ListaLancamentos
+                        :itens="movimentacoesSaldoGuardadoExibidas"
+                        mensagem-vazia="Nenhum valor guardado nesta conta ainda. Aplique um plano financeiro nas suas rendas."
+                    />
+                </div>
+            </section>
+
+            <section v-if="contasArquivadas.length > 0" class="space-y-4">
+                <CabecalhoSecao
+                    titulo="Arquivadas"
+                    :subtitulo="`${contasArquivadas.length} conta(s) fora de uso.`"
+                >
+                    <template #acoes>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-ng-ink-muted transition hover:text-ng-ink"
+                            @click="arquivadasVisiveis = !arquivadasVisiveis"
+                        >
+                            {{ arquivadasVisiveis ? 'Ocultar' : 'Mostrar' }}
+                            <span class="material-symbols-outlined text-[18px]">
+                                {{ arquivadasVisiveis ? 'expand_less' : 'expand_more' }}
                             </span>
-                        </div>
+                        </button>
+                    </template>
+                </CabecalhoSecao>
 
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-ng-ink">{{ conta.nome }}</p>
-                            <p class="text-sm text-ng-ink-muted">{{ conta.tipo_rotulo }}</p>
-                        </div>
-
-                        <div class="text-right shrink-0">
-                            <p
-                                class="font-semibold"
-                                :class="(conta.saldo_atual_numero ?? conta.saldo_inicial_numero) >= 0 ? 'text-[#1fa67e]' : 'text-red-600'"
-                            >
-                                R$ {{ conta.saldo_atual ?? conta.saldo_inicial }}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                title="Editar"
-                                @click="abrirEditar(conta)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                :title="conta.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
-                                @click="alternarArquivada(conta)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">
-                                    {{ conta.arquivada === 'S' ? 'unarchive' : 'archive' }}
-                                </span>
-                            </button>
-
-                            <button
-                                v-if="conta.total_lancamentos > 0"
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
-                                title="Não é possível excluir: há lançamentos vinculados"
-                                disabled
-                            >
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
-                                title="Excluir"
-                                @click="pedirExclusao(conta)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div
-                        v-if="contasAtivas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
-                    >
-                        Nenhuma conta cadastrada. Clique em <strong>Adicionar conta</strong> para começar.
-                    </div>
-                </div>
-            </div>
-
-            <div
-                v-if="contasArquivadas.length > 0"
-                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
-            >
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Arquivadas</h3>
-                </div>
-                <div class="divide-y divide-ng-line">
-                    <div
+                <div v-show="arquivadasVisiveis" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <ContaBancariaResumo
                         v-for="conta in contasArquivadas"
                         :key="conta.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
-                    >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
-                            <img
-                                v-if="conta.logo"
-                                :src="conta.logo"
-                                :alt="conta.nome"
-                                class="h-full w-full object-cover"
-                            >
-                            <span v-else class="material-symbols-outlined text-[22px]">
-                                account_balance
-                            </span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-ng-ink">{{ conta.nome }}</p>
-                            <p class="text-sm text-ng-ink-muted">{{ conta.tipo_rotulo }}</p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="font-semibold text-ng-ink-muted">R$ {{ conta.saldo_inicial }}</p>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                title="Editar"
-                                @click="abrirEditar(conta)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                title="Desarquivar"
-                                @click="alternarArquivada(conta)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">unarchive</span>
-                            </button>
-                        </div>
-                    </div>
+                        :nome="conta.nome"
+                        :tipo="conta.tipo"
+                        :tipo-rotulo="conta.tipo_rotulo"
+                        :logo="conta.logo"
+                        :saldo-atual="conta.saldo_atual"
+                        :saldo-atual-numero="conta.saldo_atual_numero"
+                        :saldo-inicial="conta.saldo_inicial"
+                        :exibir-resumo="conta.exibir_resumo === 'S'"
+                        :total-lancamentos="conta.total_lancamentos"
+                        :pode-excluir="podeExcluirConta(conta)"
+                        arquivado
+                        @selecionar="abrirEditar(conta)"
+                        @editar="abrirEditar(conta)"
+                        @arquivar="alternarArquivada(conta)"
+                        @excluir="pedirExclusao(conta)"
+                    />
                 </div>
-            </div>
+            </section>
         </div>
 
         <FormularioModal
             :aberto="modalAberto"
             :tipos="tipos"
+            :acabamentos="acabamentos"
             :bancos-sugeridos="bancosSugeridos"
             :conta="contaEmEdicao"
             @fechar="fecharModal"

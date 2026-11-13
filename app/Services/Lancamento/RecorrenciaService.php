@@ -69,6 +69,20 @@ class RecorrenciaService
         }
     }
 
+    public function calcularDataDaUltimaOcorrencia(
+        Carbon $dataInicial,
+        FrequenciaRecorrencia $frequencia,
+        int $quantidadeOcorrencias,
+    ): Carbon {
+        $dataDaOcorrencia = $dataInicial->copy()->startOfDay();
+
+        for ($numeroOcorrencia = 2; $numeroOcorrencia <= $quantidadeOcorrencias; $numeroOcorrencia++) {
+            $dataDaOcorrencia = $this->avancarData($dataDaOcorrencia, $frequencia);
+        }
+
+        return $dataDaOcorrencia;
+    }
+
     private function criarOcorrencia(Lancamento $pai, Carbon $data): Lancamento
     {
         $dados = [

@@ -9,6 +9,7 @@ use App\Enum\TipoLancamento;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\FaturaCartao\FaturaCartao;
 use App\Models\Lancamento\Lancamento;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class CartaoCreditoRepository
@@ -22,12 +23,8 @@ class CartaoCreditoRepository
             ->get();
 
         return $cartoes->each(function (CartaoCredito $cartao): void {
-            $usado = $this->somarUsoEmAberto((int) $cartao->id_cartao_credito);
-            $limiteDisponivel = round(max(0, (float) $cartao->limite_total - $usado), 2);
-
+            $this->preencherUsoDoLimite($cartao);
             $cartao->setAttribute('tem_fatura_aberta', $this->temFaturaAberta($cartao));
-            $cartao->setAttribute('limite_usado', $usado);
-            $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
         });
     }
 
@@ -39,37 +36,38 @@ class CartaoCreditoRepository
             ->orderBy('nome')
             ->get();
 
-        return $cartoes->each(function (CartaoCredito $cartao): void {
-            $usado = $this->somarUsoEmAberto((int) $cartao->id_cartao_credito);
-            $limiteTotal = (float) $cartao->limite_total;
-            $limiteDisponivel = round(max(0, $limiteTotal - $usado), 2);
-            $percentual = $limiteTotal > 0
-                ? round(($usado / $limiteTotal) * 100, 1)
-                : 0.0;
+        return $cartoes->each(fn (CartaoCredito $cartao) => $this->preencherUsoDoLimite($cartao));
+    }
 
-            $cartao->setAttribute('limite_usado', $usado);
-            $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
-            $cartao->setAttribute('percentual_utilizado', $percentual);
-        });
+    public function buscarPreferencialDoUsuario(int $idUsuario): ?CartaoCredito
+    {
+        $cartao = CartaoCredito::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('arquivada', SimNao::Nao)
+            ->orderByRaw("CASE WHEN padrao = 'S' THEN 0 ELSE 1 END")
+            ->orderBy('nome')
+            ->first();
+
+        if ($cartao) {
+            $this->preencherUsoDoLimite($cartao);
+        }
+
+        return $cartao;
     }
 
     public function somarUsoEmAberto(int $idCartaoCredito): float
     {
-        return (float) Lancamento::query()
-            ->where('id_cartao_credito', $idCartaoCredito)
-            ->where('tipo', TipoLancamento::Despesa)
-            ->where('eh_recorrencia', 'N')
-            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
-            ->where(function ($query) {
-                $query->whereNull('id_fatura_cartao')
-                    ->orWhereHas('faturaCartao', function ($fatura) {
-                        $fatura->whereIn('situacao', [
-                            SituacaoFatura::Aberta,
-                            SituacaoFatura::Fechada,
-                        ]);
-                    });
-            })
-            ->sum('valor');
+        return (float) $this->consultaLancamentosEmAbertoDoCartao($idCartaoCredito)->sum('valor');
+    }
+
+    public function listarLancamentosRecentesDoCartao(int $idCartaoCredito, int $limite): Collection
+    {
+        return $this->consultaLancamentosEmAbertoDoCartao($idCartaoCredito)
+            ->with(['categoria', 'faturaCartao'])
+            ->orderByDesc('data_vencimento')
+            ->orderByDesc('id_lancamento')
+            ->limit($limite)
+            ->get();
     }
 
     public function limparPadraoDoUsuario(int $idUsuario, ?int $excetoId = null): void
@@ -105,5 +103,37 @@ class CartaoCreditoRepository
             ->whereIn('situacao', [SituacaoFatura::Aberta, SituacaoFatura::Fechada])
             ->whereHas('lancamentos', fn ($q) => $q->where('situacao', '!=', SituacaoLancamento::Cancelado))
             ->exists();
+    }
+
+    private function preencherUsoDoLimite(CartaoCredito $cartao): void
+    {
+        $usado = $this->somarUsoEmAberto((int) $cartao->id_cartao_credito);
+        $limiteTotal = (float) $cartao->limite_total;
+        $limiteDisponivel = round(max(0, $limiteTotal - $usado), 2);
+        $percentual = $limiteTotal > 0
+            ? round(($usado / $limiteTotal) * 100, 1)
+            : 0.0;
+
+        $cartao->setAttribute('limite_usado', $usado);
+        $cartao->setAttribute('limite_disponivel', $limiteDisponivel);
+        $cartao->setAttribute('percentual_utilizado', $percentual);
+    }
+
+    private function consultaLancamentosEmAbertoDoCartao(int $idCartaoCredito): Builder
+    {
+        return Lancamento::query()
+            ->where('id_cartao_credito', $idCartaoCredito)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', 'N')
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->where(function ($query) {
+                $query->whereNull('id_fatura_cartao')
+                    ->orWhereHas('faturaCartao', function ($fatura) {
+                        $fatura->whereIn('situacao', [
+                            SituacaoFatura::Aberta,
+                            SituacaoFatura::Fechada,
+                        ]);
+                    });
+            });
     }
 }

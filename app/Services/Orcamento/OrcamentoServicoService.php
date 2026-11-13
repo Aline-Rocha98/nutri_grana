@@ -643,9 +643,7 @@ class OrcamentoServicoService
             return 0.0;
         }
 
-        $movimentado = $this->contaBancariaRepository->saldoMovimentado($idContaBancaria);
-
-        return round((float) $conta->saldo_inicial + $movimentado, 2);
+        return $this->contaBancariaRepository->saldoDisponivelDaConta($conta);
     }
 
     private function resolverIdContaParaSimulacao(

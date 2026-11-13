@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\Objetivo\ObjetivoResource;
-use App\Services\Objetivo\ObjetivoService;
+use App\Services\Home\HomeService;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -11,20 +10,18 @@ use Inertia\Response;
 class HomeController extends Controller
 {
     public function __construct(
-        private readonly ObjetivoService $objetivoService,
+        private readonly HomeService $homeService,
     ) {}
 
     public function index(): Response
     {
         $usuario = Auth::user();
-        $objetivosDashboard = $this->objetivoService->listarParaDashboard((int) $usuario->id_usuario);
 
         return Inertia::render('Home', [
             'usuario' => [
                 'nome' => $usuario->nome,
             ],
-            'dataHoje' => now()->format('d/m/Y'),
-            'objetivosDashboard' => ObjetivoResource::collection($objetivosDashboard)->resolve(),
+            'resumoDoDia' => fn () => $this->homeService->obterResumoDoDia((int) $usuario->id_usuario),
         ]);
     }
 }

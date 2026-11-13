@@ -173,6 +173,74 @@ class ObjetivoTest extends TestCase
         );
     }
 
+    public function test_criar_objetivo_com_valor_ja_guardado_gera_aporte_manual_inicial(): void
+    {
+        $usuario = Usuario::factory()->create();
+
+        $this
+            ->actingAs($usuario)
+            ->post('/objetivos', [
+                'descricao' => 'Reserva de emergência',
+                'valor_meta' => '25.000,00',
+                'valor_ja_guardado' => '12.500,00',
+                'data_limite' => now()->addYear()->toDateString(),
+                'exibir_dashboard' => 'N',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/objetivos');
+
+        $objetivo = Objetivo::query()->where('descricao', 'Reserva de emergência')->firstOrFail();
+
+        $this->assertDatabaseHas('aportes_objetivo', [
+            'id_objetivo' => $objetivo->id_objetivo,
+            'id_usuario' => $usuario->id_usuario,
+            'tipo' => TipoAporteObjetivo::Manual->value,
+            'valor' => 12500.00,
+            'id_conta_bancaria' => null,
+            'id_lancamento' => null,
+        ]);
+        $this->assertDatabaseCount('lancamentos', 0);
+    }
+
+    public function test_criar_objetivo_sem_valor_ja_guardado_nao_gera_aporte(): void
+    {
+        $usuario = Usuario::factory()->create();
+
+        $this
+            ->actingAs($usuario)
+            ->post('/objetivos', [
+                'descricao' => 'Viagem',
+                'valor_meta' => '5.000,00',
+                'valor_ja_guardado' => '0,00',
+                'data_limite' => now()->addMonths(8)->toDateString(),
+                'exibir_dashboard' => 'N',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/objetivos');
+
+        $this->assertDatabaseCount('objetivos', 1);
+        $this->assertDatabaseCount('aportes_objetivo', 0);
+    }
+
+    public function test_valor_ja_guardado_negativo_e_rejeitado(): void
+    {
+        $usuario = Usuario::factory()->create();
+
+        $this
+            ->actingAs($usuario)
+            ->post('/objetivos', [
+                'descricao' => 'Carro novo',
+                'valor_meta' => '10.000,00',
+                'valor_ja_guardado' => '-100,00',
+                'data_limite' => now()->addYear()->toDateString(),
+                'exibir_dashboard' => 'N',
+            ])
+            ->assertSessionHasErrors('valor_ja_guardado');
+
+        $this->assertDatabaseCount('objetivos', 0);
+        $this->assertDatabaseCount('aportes_objetivo', 0);
+    }
+
     private function criarObjetivo(Usuario $usuario, float $valorMeta = 5000): Objetivo
     {
         return Objetivo::query()->create([

@@ -10,34 +10,47 @@ export const BADGE = {
     zinc: 'ng-badge ng-badge--zinc',
 };
 
+export function varianteSituacaoObjetivo(situacao) {
+    return {
+        adiantado: 'emerald',
+        em_dia: 'sky',
+        atrasado: 'amber',
+        concluido: 'brand',
+        vencido: 'red',
+    }[situacao] ?? 'zinc';
+}
+
 export function badgeSituacaoObjetivo(situacao) {
-    return {
-        adiantado: BADGE.emerald,
-        em_dia: BADGE.sky,
-        atrasado: BADGE.amber,
-        concluido: BADGE.brand,
-        vencido: BADGE.red,
-    }[situacao] ?? BADGE.zinc;
+    return BADGE[varianteSituacaoObjetivo(situacao)];
 }
 
-export function badgeStatusCotacao(status) {
+export function varianteStatusCotacao(status) {
     return {
-        em_analise: BADGE.blue,
-        aprovada: BADGE.emerald,
-        recusada: BADGE.red,
-        expirada: BADGE.zinc,
-        concluida: BADGE.indigo,
-    }[status] ?? BADGE.zinc;
+        em_analise: 'blue',
+        aprovada: 'emerald',
+        recusada: 'red',
+        expirada: 'zinc',
+        concluida: 'indigo',
+    }[status] ?? 'zinc';
 }
 
-export function badgeSituacaoLancamento(situacao) {
-    if (situacao === 'pendente' || situacao === 'previsto') {
-        return BADGE.orange;
-    }
+export function varianteSituacaoFatura(situacao) {
+    return {
+        aberta: 'brand',
+        fechada: 'amber',
+        paga: 'zinc',
+    }[situacao] ?? 'zinc';
+}
 
-    if (situacao === 'pago' || situacao === 'recebido') {
-        return BADGE.brand;
-    }
+export function badgeSituacaoFatura(situacao) {
+    return BADGE[varianteSituacaoFatura(situacao)];
+}
 
-    return BADGE.zinc;
+export function varianteSituacaoLancamento(situacao) {
+    return {
+        pendente: 'orange',
+        previsto: 'orange',
+        pago: 'brand',
+        recebido: 'brand',
+    }[situacao] ?? 'zinc';
 }

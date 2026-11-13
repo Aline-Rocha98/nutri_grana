@@ -9,6 +9,7 @@ use App\Enum\TipoLancamento;
 use App\Models\Lancamento\Lancamento;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class LancamentoRepository
@@ -16,26 +17,91 @@ class LancamentoRepository
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
     {
         $query = Lancamento::query()
-            ->with(['categoria.pai', 'contaBancaria', 'cartaoCredito', 'pai'])
-            ->ocorrenciasDoMes($idUsuario, $ano, $mes)
-            ->when(
-                ($filtros['tipo'] ?? null),
-                fn ($q, $tipo) => $q->where('tipo', $tipo)
-            )
-            ->when(
-                ($filtros['situacao'] ?? null),
-                fn ($q, $situacao) => $q->where('situacao', $situacao),
-                fn ($q) => $q->where('situacao', '!=', SituacaoLancamento::Cancelado)
-            )
-            ->when(
-                ($filtros['id_categoria'] ?? null),
-                fn ($q, $idCategoria) => $q->where('id_categoria', $idCategoria)
-            )
+            ->with([
+                'categoria.pai',
+                'contaBancaria',
+                'cartaoCredito',
+                'pai',
+                'renda.planoFinanceiro:id_plano_financeiro,nome',
+                'renda.planoFinanceiro.itensQueSeparamDoSaldo.contaBancariaDestino:id_conta_bancaria,nome',
+            ])
+            ->ocorrenciasDoMes($idUsuario, $ano, $mes);
+
+        $this->aplicarFiltrosListagem($query, $filtros);
+
+        $query
             ->orderByRaw("CASE WHEN id_renda IS NOT NULL AND situacao = 'previsto' THEN 0 ELSE 1 END")
             ->orderBy('data_vencimento')
             ->orderBy('id_lancamento');
 
         return $query->paginate($porPagina)->withQueryString();
+    }
+
+    public function contarPorTipoDoMes(int $idUsuario, int $ano, int $mes, array $filtros = []): array
+    {
+        $query = Lancamento::query()->ocorrenciasDoMes($idUsuario, $ano, $mes);
+
+        $this->aplicarFiltrosListagem($query, $filtros, aplicarTipo: false);
+
+        $quantidadesPorTipo = $query
+            ->selectRaw('tipo, COUNT(*) as quantidade')
+            ->groupBy('tipo')
+            ->pluck('quantidade', 'tipo');
+
+        $receitas = (int) ($quantidadesPorTipo[TipoLancamento::Receita->value] ?? 0);
+        $despesas = (int) ($quantidadesPorTipo[TipoLancamento::Despesa->value] ?? 0);
+
+        return [
+            'todos' => $receitas + $despesas,
+            'receitas' => $receitas,
+            'despesas' => $despesas,
+        ];
+    }
+
+    private function aplicarFiltrosListagem(Builder $query, array $filtros, bool $aplicarTipo = true): void
+    {
+        $query
+            ->when(
+                $aplicarTipo ? ($filtros['tipo'] ?? null) : null,
+                fn (Builder $q, $tipo) => $q->where('tipo', $tipo)
+            )
+            ->when(
+                $filtros['situacao'] ?? null,
+                fn (Builder $q, $situacao) => $q->where('situacao', $situacao),
+                fn (Builder $q) => $q->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            )
+            ->when(
+                $filtros['status'] ?? null,
+                fn (Builder $q, $status) => $q->whereIn('situacao', $this->situacoesDoStatus($status))
+            )
+            ->when(
+                $filtros['id_categoria'] ?? null,
+                fn (Builder $q, $idCategoria) => $q->where('id_categoria', $idCategoria)
+            )
+            ->when(
+                $filtros['busca'] ?? null,
+                fn (Builder $q, $busca) => $this->aplicarBuscaTextual($q, $busca)
+            );
+    }
+
+    private function situacoesDoStatus(string $status): array
+    {
+        return $status === 'efetivados'
+            ? SituacaoLancamento::situacoesEfetivadas()
+            : SituacaoLancamento::situacoesEmAberto();
+    }
+
+    private function aplicarBuscaTextual(Builder $query, string $busca): void
+    {
+        $termo = '%'.addcslashes($busca, '\\%_').'%';
+
+        $query->where(function (Builder $consulta) use ($termo): void {
+            $consulta
+                ->where('descricao', 'like', $termo)
+                ->orWhereHas('categoria', fn (Builder $q) => $q->where('nome', 'like', $termo))
+                ->orWhereHas('contaBancaria', fn (Builder $q) => $q->where('nome', 'like', $termo))
+                ->orWhereHas('cartaoCredito', fn (Builder $q) => $q->where('nome', 'like', $termo));
+        });
     }
 
     public function totaisDoMes(int $idUsuario, int $ano, int $mes): array
@@ -48,7 +114,7 @@ class LancamentoRepository
             ->where('eh_recorrencia', SimNao::Nao)
             ->where('situacao', '!=', SituacaoLancamento::Cancelado)
             ->whereBetween('data_vencimento', [$inicio, $fim])
-            ->selectRaw('tipo, situacao, SUM(valor) as total')
+            ->selectRaw('tipo, situacao, SUM(valor) as total, COUNT(*) as quantidade')
             ->groupBy('tipo', 'situacao')
             ->get();
 
@@ -58,10 +124,13 @@ class LancamentoRepository
             'receitas_pagas' => 0.0,
             'despesas_pagas' => 0.0,
             'pendentes' => 0.0,
+            'quantidade_receitas' => 0,
+            'quantidade_despesas' => 0,
         ];
 
         foreach ($totais as $linha) {
             $valor = (float) $linha->total;
+            $quantidade = (int) $linha->quantidade;
             $tipo = $linha->tipo instanceof TipoLancamento
                 ? $linha->tipo
                 : TipoLancamento::from($linha->tipo);
@@ -71,11 +140,13 @@ class LancamentoRepository
 
             if ($tipo === TipoLancamento::Receita) {
                 $resultado['receitas'] += $valor;
+                $resultado['quantidade_receitas'] += $quantidade;
                 if ($situacao->estaEfetivado()) {
                     $resultado['receitas_pagas'] += $valor;
                 }
             } else {
                 $resultado['despesas'] += $valor;
+                $resultado['quantidade_despesas'] += $quantidade;
                 if ($situacao->estaEfetivado()) {
                     $resultado['despesas_pagas'] += $valor;
                 }
@@ -174,13 +245,63 @@ class LancamentoRepository
             ->exists();
     }
 
-    public function existeOcorrenciaDeRendaNaData(int $idRenda, Carbon $data): bool
+    public function listarOcorrenciasDeRendasNoPeriodo(array $idsRendas, Carbon $inicio, Carbon $fim): Collection
+    {
+        if ($idsRendas === []) {
+            return collect();
+        }
+
+        return Lancamento::query()
+            ->select(['id_lancamento', 'id_renda', 'data_vencimento', 'situacao'])
+            ->whereIn('id_renda', $idsRendas)
+            ->whereDate('data_vencimento', '>=', $inicio->toDateString())
+            ->whereDate('data_vencimento', '<=', $fim->toDateString())
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->orderBy('data_vencimento')
+            ->orderBy('id_lancamento')
+            ->get();
+    }
+
+    public function listarOcorrenciasAtivasDaRenda(int $idRenda): Collection
     {
         return Lancamento::query()
             ->where('id_renda', $idRenda)
-            ->whereDate('data_vencimento', $data->toDateString())
             ->where('situacao', '!=', SituacaoLancamento::Cancelado)
-            ->exists();
+            ->orderBy('data_vencimento')
+            ->orderBy('id_lancamento')
+            ->get();
+    }
+
+    public function excluirPrevistosDaRendaPorIds(int $idRenda, array $idsLancamentos): void
+    {
+        if ($idsLancamentos === []) {
+            return;
+        }
+
+        Lancamento::query()
+            ->where('id_renda', $idRenda)
+            ->where('situacao', SituacaoLancamento::Previsto)
+            ->whereIn('id_lancamento', $idsLancamentos)
+            ->delete();
+    }
+
+    public function listarRendasPrevistasEmContasNoPeriodo(int $idUsuario, ?Carbon $inicio, Carbon $fim): Collection
+    {
+        return Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->where('situacao', SituacaoLancamento::Previsto)
+            ->whereNotNull('id_renda')
+            ->whereNotNull('id_conta_bancaria')
+            ->when(
+                $inicio !== null,
+                fn ($query) => $query->whereBetween('data_vencimento', [
+                    $inicio->toDateString(),
+                    $fim->toDateString(),
+                ]),
+                fn ($query) => $query->whereDate('data_vencimento', '<=', $fim->toDateString()),
+            )
+            ->get(['id_lancamento', 'id_renda', 'valor', 'data_vencimento']);
     }
 
     public function temLancamentosNaConta(int $idContaBancaria): bool
@@ -312,7 +433,7 @@ class LancamentoRepository
             ->whereNotNull('id_conta_bancaria')
             ->when(
                 $incluirAtrasadas,
-                fn ($query) => $query->where('data_vencimento', '<=', $fim->toDateString()),
+                fn ($query) => $query->whereDate('data_vencimento', '<=', $fim->toDateString()),
                 fn ($query) => $query->whereBetween('data_vencimento', [
                     $inicio->toDateString(),
                     $fim->toDateString(),
@@ -444,6 +565,60 @@ class LancamentoRepository
             'receitas' => round($conta['receitas'] + $cartao['receitas'], 2),
             'despesas' => round($conta['despesas'] + $cartao['despesas'], 2),
         ];
+    }
+
+    public function listarDespesasPendentesEmContasAte(int $idUsuario, Carbon $ate, int $limite): Collection
+    {
+        return $this->consultaDespesasPendentesEmContasAte($idUsuario, $ate)
+            ->with(['contaBancaria:id_conta_bancaria,nome', 'categoria'])
+            ->orderBy('data_vencimento')
+            ->orderBy('id_lancamento')
+            ->limit($limite)
+            ->get();
+    }
+
+    public function resumirDespesasPendentesEmContasAte(int $idUsuario, Carbon $ate): array
+    {
+        $resumo = $this->consultaDespesasPendentesEmContasAte($idUsuario, $ate)
+            ->selectRaw('COALESCE(SUM(valor), 0) as total, COUNT(*) as quantidade')
+            ->first();
+
+        return [
+            'total' => round((float) ($resumo->total ?? 0), 2),
+            'quantidade' => (int) ($resumo->quantidade ?? 0),
+        ];
+    }
+
+    public function somarDespesasRecorrentesDoMes(int $idUsuario, int $ano, int $mes): float
+    {
+        $inicio = Carbon::create($ano, $mes, 1)->startOfDay();
+
+        return round((float) Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->where('situacao', '!=', SituacaoLancamento::Cancelado)
+            ->whereNotNull('id_lancamento_pai')
+            ->whereBetween('data_vencimento', [
+                $inicio->toDateString(),
+                $inicio->copy()->endOfMonth()->toDateString(),
+            ])
+            ->sum('valor'), 2);
+    }
+
+    private function consultaDespesasPendentesEmContasAte(int $idUsuario, Carbon $ate): Builder
+    {
+        return Lancamento::query()
+            ->where('id_usuario', $idUsuario)
+            ->where('tipo', TipoLancamento::Despesa)
+            ->where('eh_recorrencia', SimNao::Nao)
+            ->whereIn('situacao', [
+                SituacaoLancamento::Pendente,
+                SituacaoLancamento::Previsto,
+            ])
+            ->whereNotNull('id_conta_bancaria')
+            ->whereNull('id_renda')
+            ->whereDate('data_vencimento', '<=', $ate->toDateString());
     }
 
     private function agregarReceitasDespesas(Collection $linhas): array

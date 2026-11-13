@@ -1,113 +1,216 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
-import BarraProgresso from '@/Components/BarraProgresso.vue';
-import { badgeSituacaoObjetivo } from '@/Helpers/badge';
+import CabecalhoCentralDia from '@/Components/Home/CabecalhoCentralDia.vue';
+import CardMetaDestaque from '@/Components/Objetivo/CardMetaDestaque.vue';
+import CardDica from '@/Components/Ui/CardDica.vue';
+import CardPainel from '@/Components/Ui/CardPainel.vue';
+import CardResumoAcao from '@/Components/Ui/CardResumoAcao.vue';
+import LinhaLancamento from '@/Components/Ui/LinhaLancamento.vue';
+import LinkAcaoPainel from '@/Components/Ui/LinkAcaoPainel.vue';
 
-defineProps({
+const URL_LANCAMENTOS = '/lancamentos';
+const URL_CARTOES_CREDITO = '/cartoes-credito';
+const URL_OBJETIVOS = '/objetivos';
+const URL_DASHBOARD = '/dashboard';
+
+const VARIANTE_DICA_POR_TOM = {
+    positivo: 'brand',
+    atencao: 'amber',
+    alerta: 'red',
+};
+
+const props = defineProps({
     usuario: {
         type: Object,
         required: true,
     },
-    dataHoje: {
-        type: String,
+    resumoDoDia: {
+        type: Object,
         required: true,
-    },
-    objetivosDashboard: {
-        type: Array,
-        default: () => [],
     },
 });
 
-const agora = new Date();
-const urlLancamentos = `/lancamentos/${agora.getFullYear()}/${agora.getMonth() + 1}`;
+const idLancamentoPagando = ref(null);
 
-function classeSituacao(situacao) {
-    return badgeSituacaoObjetivo(situacao);
+const saldoLivre = computed(() => props.resumoDoDia.saldo_livre);
+const aPagar = computed(() => props.resumoDoDia.a_pagar);
+const compromissos = computed(() => props.resumoDoDia.compromissos ?? []);
+const cartaoPreferencial = computed(() => props.resumoDoDia.cartao_preferencial);
+const metaEmDestaque = computed(() => props.resumoDoDia.meta_em_destaque);
+const dicaFinanceira = computed(() => props.resumoDoDia.dica_financeira);
+
+const rodapeSaldoLivre = computed(() => (saldoLivre.value.conta_principal_nome
+    ? `${saldoLivre.value.conta_principal_nome} • Principal`
+    : 'Nenhuma conta principal definida'));
+
+const badgePendentes = computed(() => {
+    const quantidade = aPagar.value.quantidade;
+
+    return quantidade === 1 ? '1 pendente' : `${quantidade} pendentes`;
+});
+
+const mensagemSemCompromissos = computed(
+    () => `Nenhum compromisso pendente nos próximos ${props.resumoDoDia.dias_janela} dias.`,
+);
+
+function montarSubtituloCompromisso(compromisso) {
+    return [compromisso.data_vencimento_formatada, compromisso.conta_bancaria_nome]
+        .filter(Boolean)
+        .join(' • ');
+}
+
+function pagarCompromisso(compromisso) {
+    if (idLancamentoPagando.value) {
+        return;
+    }
+
+    idLancamentoPagando.value = compromisso.id;
+
+    router.patch(compromisso.url_situacao, { situacao: 'pago' }, {
+        preserveScroll: true,
+        only: ['resumoDoDia'],
+        onFinish: () => {
+            idLancamentoPagando.value = null;
+        },
+    });
 }
 </script>
 
 <template>
     <Head title="Home" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Home</h2>
-                <span class="text-sm text-ng-ink-muted">{{ dataHoje }}</span>
+    <AutenticadoLayout titulo="Home">
+        <div class="space-y-6 p-6 lg:p-8">
+            <CabecalhoCentralDia
+                :nome-usuario="usuario.nome"
+                :url-dashboard="URL_DASHBOARD"
+                :url-registrar-pagamento="URL_LANCAMENTOS"
+                :url-aporte-rapido="URL_OBJETIVOS"
+            />
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <CardResumoAcao
+                    rotulo="Saldo Livre para o Dia"
+                    icone="account_balance_wallet"
+                    :variante-valor="saldoLivre.valor_numero < 0 ? 'red' : 'brand'"
+                    :valor="saldoLivre.valor"
+                    descricao="Saldo disponível nas contas do resumo"
+                    :badge-texto="saldoLivre.conta_principal_tipo_rotulo ?? ''"
+                    :rodape-texto="rodapeSaldoLivre"
+                    link-rotulo="Extrato"
+                    :link-href="URL_LANCAMENTOS"
+                />
+
+                <CardResumoAcao
+                    rotulo="A Pagar nos Próximos Dias"
+                    icone="schedule"
+                    variante="amber"
+                    :valor="aPagar.total"
+                    :descricao="aPagar.resumo_descricoes || 'Nenhuma despesa pendente'"
+                    :badge-texto="aPagar.quantidade ? badgePendentes : ''"
+                    badge-variante="amber"
+                    rodape-texto="Atenção aos vencimentos"
+                    link-rotulo="Ver agenda"
+                    :link-href="URL_LANCAMENTOS"
+                />
+
+                <CardResumoAcao
+                    v-if="cartaoPreferencial"
+                    rotulo="Cartão Preferencial"
+                    icone="credit_card"
+                    variante="zinc"
+                    :valor="cartaoPreferencial.limite_disponivel"
+                    :descricao="`Limite disponível no ${cartaoPreferencial.nome}`"
+                    :badge-texto="`Fecha dia ${cartaoPreferencial.dia_fechamento_formatado}`"
+                    badge-variante="zinc"
+                    :rodape-texto="`Vencimento: dia ${cartaoPreferencial.dia_vencimento_formatado}`"
+                    link-rotulo="Gerenciar"
+                    :link-href="URL_CARTOES_CREDITO"
+                />
+                <article v-else class="ng-card flex flex-col items-start justify-center gap-3 p-5">
+                    <p class="text-sm text-ng-ink-muted">Nenhum cartão cadastrado.</p>
+                    <LinkAcaoPainel :href="URL_CARTOES_CREDITO" rotulo="Cadastrar cartão" icone-esquerda="add" destacado />
+                </article>
             </div>
-        </template>
 
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <h3 class="text-lg font-semibold text-[#1fa67e]">
-                    Olá, {{ usuario.nome }}!
-                </h3>
-                <p class="mt-2 text-ng-ink-muted">
-                    Pequenas ações geram grandes resultados. Organize suas finanças pelo menu lateral.
-                </p>
-            </div>
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <CardPainel
+                    class="lg:col-span-2"
+                    titulo="Compromissos e Contas Pendentes"
+                    subtitulo="Clique em Pagar para marcar como pago e dar baixa instantânea."
+                    icone="error"
+                    :vazio="!compromissos.length"
+                    :mensagem-vazio="mensagemSemCompromissos"
+                >
+                    <template #acoes>
+                        <LinkAcaoPainel :href="URL_LANCAMENTOS" rotulo="Adicionar conta" icone-esquerda="add" destacado />
+                    </template>
 
-            <div v-if="objetivosDashboard.length" class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <div class="flex items-center justify-between gap-3">
-                    <h4 class="font-semibold text-ng-ink">Objetivos no dashboard</h4>
-                    <Link href="/objetivos" class="text-sm font-medium text-[#1fa67e] hover:underline">
-                        Ver todos
-                    </Link>
-                </div>
+                    <ul class="space-y-3">
+                        <li v-for="compromisso in compromissos" :key="compromisso.id" class="ng-card-muted">
+                            <LinhaLancamento
+                                :descricao="compromisso.descricao"
+                                :subtitulo="montarSubtituloCompromisso(compromisso)"
+                                subtitulo-mono
+                                :valor="compromisso.valor"
+                                :icone="compromisso.icone"
+                                :cor="compromisso.cor"
+                                :badge-texto="compromisso.atrasado ? 'Atrasado' : ''"
+                                badge-variante="amber"
+                                badge-na-descricao
+                                negativo
+                            >
+                                <template #acoes>
+                                    <button
+                                        type="button"
+                                        class="ng-selecionavel ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-ng-ink-secondary hover:text-ng-ink disabled:cursor-wait disabled:opacity-50"
+                                        :disabled="idLancamentoPagando !== null"
+                                        :aria-label="`Marcar ${compromisso.descricao} como pago`"
+                                        @click="pagarCompromisso(compromisso)"
+                                    >
+                                        <span
+                                            v-if="idLancamentoPagando === compromisso.id"
+                                            class="material-symbols-outlined animate-spin text-[14px]"
+                                        >progress_activity</span>
+                                        Pagar
+                                    </button>
+                                </template>
+                            </LinhaLancamento>
+                        </li>
+                    </ul>
+                </CardPainel>
 
-                <div class="mt-4 space-y-4">
-                    <div
-                        v-for="objetivo in objetivosDashboard"
-                        :key="objetivo.id"
-                        class="rounded-xl border border-ng-line p-4"
+                <div class="flex flex-col gap-6">
+                    <CardMetaDestaque
+                        v-if="metaEmDestaque"
+                        :descricao="metaEmDestaque.descricao"
+                        :data-limite-formatada="metaEmDestaque.data_limite_formatada"
+                        :valor-guardado="metaEmDestaque.valor_guardado"
+                        :valor-meta="metaEmDestaque.valor_meta"
+                        :percentual="metaEmDestaque.percentual_atual"
                     >
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <p class="font-medium text-ng-ink">{{ objetivo.descricao }}</p>
-                            <span :class="classeSituacao(objetivo.situacao_ritmo)">
-                                {{ objetivo.situacao_ritmo_rotulo }}
-                            </span>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between text-sm text-ng-ink-muted">
-                            <span>{{ objetivo.percentual_atual }}%</span>
-                            <span>R$ {{ objetivo.valor_guardado }} / R$ {{ objetivo.valor_meta }}</span>
-                        </div>
-                        <div class="mt-2">
-                            <BarraProgresso :percentual="objetivo.percentual_atual" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        <template #acao>
+                            <Link :href="URL_OBJETIVOS" class="ng-btn-suave w-full">
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                                Fazer Aporte de Hoje
+                            </Link>
+                        </template>
+                    </CardMetaDestaque>
+                    <article v-else class="ng-card flex flex-col items-start gap-3 p-5">
+                        <p class="text-sm text-ng-ink-muted">Nenhuma meta em destaque.</p>
+                        <LinkAcaoPainel :href="URL_OBJETIVOS" rotulo="Criar meta" icone-esquerda="add" destacado />
+                    </article>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Link
-                    href="/dashboard"
-                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 text-center hover:border-[#1fa67e]/40 transition"
-                >
-                    <h4 class="font-semibold text-ng-ink">Dashboard</h4>
-                    <p class="mt-2 text-sm text-ng-ink-muted">Resumo financeiro e gráficos</p>
-                </Link>
-                <Link
-                    :href="urlLancamentos"
-                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 text-center hover:border-[#1fa67e]/40 transition"
-                >
-                    <h4 class="font-semibold text-ng-ink">Lançamentos</h4>
-                    <p class="mt-2 text-sm text-ng-ink-muted">Receitas e despesas do mês</p>
-                </Link>
-                <Link
-                    href="/contas-bancarias"
-                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 text-center hover:border-[#1fa67e]/40 transition"
-                >
-                    <h4 class="font-semibold text-ng-ink">Contas</h4>
-                    <p class="mt-2 text-sm text-ng-ink-muted">Saldos e contas bancárias</p>
-                </Link>
-                <Link
-                    href="/objetivos"
-                    class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 text-center hover:border-[#1fa67e]/40 transition"
-                >
-                    <h4 class="font-semibold text-ng-ink">Objetivos</h4>
-                    <p class="mt-2 text-sm text-ng-ink-muted">Metas e aportes</p>
-                </Link>
+                    <CardDica
+                        titulo="Dica Financeira de Hoje"
+                        :partes="dicaFinanceira.partes"
+                        :variante="VARIANTE_DICA_POR_TOM[dicaFinanceira.tom] ?? 'brand'"
+                        link-rotulo="Ver relatório executivo completo"
+                        :link-href="URL_DASHBOARD"
+                    />
+                </div>
             </div>
         </div>
     </AutenticadoLayout>

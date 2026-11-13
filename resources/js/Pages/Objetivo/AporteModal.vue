@@ -2,7 +2,17 @@
 import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoSelecao from '@/Components/Formulario/CampoSelecao.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import ChipsSugestao from '@/Components/Formulario/ChipsSugestao.vue';
+import ProgressoMeta from '@/Components/Ui/ProgressoMeta.vue';
+import { formatarNumeroParaMoeda, moedaParaNumero } from '@/Helpers/mascaraMoeda';
+import { calcularPercentualDaMeta } from '@/Helpers/objetivo';
+
+const TIPO_APORTE_MANUAL = 'manual';
+const TIPO_APORTE_CONTA_BANCARIA = 'conta_bancaria';
+const VALORES_INCREMENTO_APORTE = [250, 500, 1000];
 
 const props = defineProps({
     aberto: {
@@ -17,32 +27,78 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    tiposAporte: {
-        type: Array,
-        default: () => [],
-    },
 });
 
 const emit = defineEmits(['fechar']);
 
-const hoje = new Date().toISOString().slice(0, 10);
-
 const formulario = useForm({
-    tipo: 'manual',
     valor: '0,00',
-    data_aporte: hoje,
+    data_aporte: '',
     id_conta_bancaria: null,
     observacao: '',
 });
 
-const usaContaBancaria = computed(() => formulario.tipo === 'conta_bancaria');
+const valorGuardadoAtual = computed(() => Number(props.objetivo?.valor_guardado_numero ?? 0));
+const valorMeta = computed(() => Number(props.objetivo?.valor_meta_numero ?? 0));
+const valorDoAporte = computed(() => moedaParaNumero(formulario.valor));
+const valorGuardadoAposAporte = computed(() => valorGuardadoAtual.value + valorDoAporte.value);
+const valorFaltanteAposAporte = computed(() => Math.max(0, valorMeta.value - valorGuardadoAposAporte.value));
+const percentualAtual = computed(() => Number(props.objetivo?.percentual_atual ?? 0));
+const percentualAposAporte = computed(() => calcularPercentualDaMeta(valorGuardadoAposAporte.value, valorMeta.value));
+const depositoSugerido = computed(() => Number(props.objetivo?.deposito_mensal_sugerido_numero ?? 0));
 
-function reiniciarFormulario() {
+const atalhosValor = computed(() => (depositoSugerido.value > 0
+    ? [{ rotulo: `Sugerido: R$ ${formatarNumeroParaMoeda(depositoSugerido.value)}`, valor: formatarNumeroParaMoeda(depositoSugerido.value) }]
+    : []));
+
+const chipsIncremento = computed(() => {
+    const valores = [...VALORES_INCREMENTO_APORTE];
+
+    if (depositoSugerido.value > 0 && !valores.includes(depositoSugerido.value)) {
+        valores.push(depositoSugerido.value);
+    }
+
+    return valores.map((valor) => ({
+        chave: valor,
+        valor,
+        rotulo: `+R$ ${formatarNumeroParaMoeda(valor)}`,
+    }));
+});
+
+const opcoesContas = computed(() => props.contasBancarias.map((conta) => ({
+    valor: conta.id,
+    rotulo: `${conta.nome} — Disponível: R$ ${conta.saldo_disponivel ?? conta.saldo_atual}`,
+})));
+
+const tituloDoModal = computed(() => (props.objetivo
+    ? `Aportar em "${props.objetivo.descricao}"`
+    : 'Registrar aporte'));
+
+const subtituloDoModal = computed(() => (formulario.id_conta_bancaria
+    ? 'Adicione saldo à sua meta financeira com débito em conta.'
+    : 'Adicione saldo à sua meta financeira sem movimentar contas.'));
+
+const erroDaConta = computed(() => formulario.errors.id_conta_bancaria || formulario.errors.tipo || '');
+
+function obterDataDeHoje() {
+    const hoje = new Date();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+
+    return `${hoje.getFullYear()}-${mes}-${dia}`;
+}
+
+function contaPadraoParaAporte() {
+    const contaPadrao = props.contasBancarias.find((conta) => conta.padrao_desconto === 'S');
+
+    return (contaPadrao ?? props.contasBancarias[0])?.id ?? null;
+}
+
+function reiniciarFormularioAporte() {
     formulario.clearErrors();
-    formulario.tipo = 'manual';
     formulario.valor = '0,00';
-    formulario.data_aporte = hoje;
-    formulario.id_conta_bancaria = props.contasBancarias[0]?.id ?? null;
+    formulario.data_aporte = obterDataDeHoje();
+    formulario.id_conta_bancaria = contaPadraoParaAporte();
     formulario.observacao = '';
 }
 
@@ -50,148 +106,111 @@ watch(
     () => [props.aberto, props.objetivo],
     () => {
         if (props.aberto) {
-            reiniciarFormulario();
+            reiniciarFormularioAporte();
         }
     },
 );
 
-function fechar() {
+function somarIncrementoAoAporte(chip) {
+    formulario.valor = formatarNumeroParaMoeda(valorDoAporte.value + chip.valor);
+}
+
+function fecharAporte() {
     emit('fechar');
 }
 
-function salvar() {
+function montarDadosEnvio(dados) {
+    return {
+        ...dados,
+        tipo: dados.id_conta_bancaria ? TIPO_APORTE_CONTA_BANCARIA : TIPO_APORTE_MANUAL,
+    };
+}
+
+function confirmarAporte() {
     if (!props.objetivo?.url_aportar) {
         return;
     }
 
-    formulario.post(props.objetivo.url_aportar, {
+    formulario.transform(montarDadosEnvio).post(props.objetivo.url_aportar, {
         preserveScroll: true,
-        onSuccess: () => fechar(),
+        onSuccess: () => fecharAporte(),
     });
 }
 </script>
 
 <template>
-    <Modal :aberto="aberto" max-largura="lg">
-        <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-ng-ink">Registrar aporte</h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                Adicione valor ao objetivo
-                <span v-if="objetivo" class="font-medium text-ng-ink-secondary">"{{ objetivo.descricao }}"</span>.
-            </p>
-
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="tipo-aporte" class="block text-sm font-medium text-ng-ink-muted">
-                        Forma do aporte
-                    </label>
-                    <select
-                        id="tipo-aporte"
-                        v-model="formulario.tipo"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                        <option
-                            v-for="opcao in tiposAporte"
-                            :key="opcao.valor"
-                            :value="opcao.valor"
-                        >
-                            {{ opcao.rotulo }}
-                        </option>
-                    </select>
-                    <p v-if="formulario.errors.tipo" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.tipo }}
-                    </p>
-                </div>
-
-                <div>
-                    <label for="valor-aporte" class="block text-sm font-medium text-ng-ink-muted">
-                        Valor
-                    </label>
-                    <input
-                        id="valor-aporte"
-                        :value="formulario.valor"
-                        type="text"
-                        inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="0,00"
-                        @input="formulario.valor = aoDigitarMoeda($event)"
-                    >
-                    <p v-if="formulario.errors.valor" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.valor }}
-                    </p>
-                </div>
-
-                <div>
-                    <label for="data-aporte" class="block text-sm font-medium text-ng-ink-muted">
-                        Data do aporte
-                    </label>
-                    <input
-                        id="data-aporte"
-                        v-model="formulario.data_aporte"
-                        type="date"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                    <p v-if="formulario.errors.data_aporte" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.data_aporte }}
-                    </p>
-                </div>
-
-                <div v-if="usaContaBancaria">
-                    <label for="conta-aporte" class="block text-sm font-medium text-ng-ink-muted">
-                        Conta bancária
-                    </label>
-                    <select
-                        id="conta-aporte"
-                        v-model="formulario.id_conta_bancaria"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                        <option :value="null" disabled>Selecione a conta</option>
-                        <option
-                            v-for="conta in contasBancarias"
-                            :key="conta.id"
-                            :value="conta.id"
-                        >
-                            {{ conta.nome }} — R$ {{ conta.saldo_atual }}
-                        </option>
-                    </select>
-                    <p v-if="formulario.errors.id_conta_bancaria" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.id_conta_bancaria }}
-                    </p>
-                    <p v-if="contasBancarias.length === 0" class="mt-2 text-sm text-amber-600">
-                        Cadastre uma conta bancária ativa para usar esta opção.
-                    </p>
-                </div>
-
-                <div>
-                    <label for="observacao-aporte" class="block text-sm font-medium text-ng-ink-muted">
-                        Observação (opcional)
-                    </label>
-                    <input
-                        id="observacao-aporte"
-                        v-model="formulario.observacao"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        maxlength="255"
-                    >
-                </div>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="savings"
+        :titulo="tituloDoModal"
+        :subtitulo="subtituloDoModal"
+        texto-confirmar="Confirmar aporte"
+        :processando="formulario.processing"
+        @fechar="fecharAporte"
+        @confirmar="confirmarAporte"
+    >
+        <div class="space-y-5">
+            <div class="ng-card-muted p-4">
+                <ProgressoMeta
+                    rotulo="Progresso atual:"
+                    :valor-atual="objetivo?.valor_guardado ?? '0,00'"
+                    :valor-meta="objetivo?.valor_meta ?? '0,00'"
+                    :percentual="percentualAtual"
+                    :percentual-projetado="percentualAposAporte"
+                >
+                    <template #legenda-esquerda>
+                        <span class="font-medium text-ng-brand">
+                            Após este aporte: R$ {{ formatarNumeroParaMoeda(valorGuardadoAposAporte) }} ({{ percentualAposAporte }}%)
+                        </span>
+                    </template>
+                    <template #legenda-direita>
+                        Faltarão R$ {{ formatarNumeroParaMoeda(valorFaltanteAposAporte) }}
+                    </template>
+                </ProgressoMeta>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing || (usaContaBancaria && contasBancarias.length === 0)"
-                >
-                    Registrar aporte
-                </button>
+            <div class="space-y-2">
+                <CampoMoeda
+                    id="valor-aporte"
+                    v-model="formulario.valor"
+                    rotulo="Valor do aporte"
+                    obrigatorio
+                    :atalhos="atalhosValor"
+                    :erro="formulario.errors.valor"
+                />
+                <ChipsSugestao :itens="chipsIncremento" @selecionar="somarIncrementoAoAporte" />
             </div>
-        </form>
+
+            <CampoSelecao
+                id="conta-aporte"
+                v-model="formulario.id_conta_bancaria"
+                rotulo="Debitar da conta"
+                :opcoes="opcoesContas"
+                placeholder="Sem débito em conta (aporte manual)"
+                placeholder-selecionavel
+                :dica="contasBancarias.length === 0 ? 'Nenhuma conta ativa cadastrada' : ''"
+                :erro="erroDaConta"
+            />
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_1fr]">
+                <CampoTexto
+                    id="data-aporte"
+                    v-model="formulario.data_aporte"
+                    tipo="date"
+                    rotulo="Data"
+                    obrigatorio
+                    :erro="formulario.errors.data_aporte"
+                />
+                <CampoTexto
+                    id="observacao-aporte"
+                    v-model="formulario.observacao"
+                    rotulo="Observação"
+                    placeholder="Opcional"
+                    maxlength="255"
+                    :erro="formulario.errors.observacao"
+                />
+            </div>
+        </div>
     </Modal>
 </template>

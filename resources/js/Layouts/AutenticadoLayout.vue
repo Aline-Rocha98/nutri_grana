@@ -1,5 +1,6 @@
 <script setup>
 import BarraLateral from '@/Components/BarraLateral.vue';
+import BarraSuperior from '@/Components/BarraSuperior.vue';
 
 defineProps({
     titulo: {
@@ -11,20 +12,19 @@ defineProps({
 
 <template>
     <div class="ng-page font-sans antialiased">
-        <div class="flex min-h-screen gap-3 p-3">
+        <div class="flex min-h-screen">
             <BarraLateral />
 
             <div class="flex min-w-0 flex-1 flex-col">
-                <header
-                    v-if="titulo || $slots.cabecalho"
-                    class="ng-header mb-3 rounded-2xl px-6 py-4"
-                >
-                    <slot name="cabecalho">
-                        <h2 class="font-semibold text-xl text-ng-ink leading-tight tracking-tight">
-                            {{ titulo }}
-                        </h2>
-                    </slot>
-                </header>
+                <BarraSuperior :titulo="titulo">
+                    <template v-if="$slots.acoes" #acoes>
+                        <slot name="acoes" />
+                    </template>
+                </BarraSuperior>
+
+                <div v-if="$slots.cabecalho" class="px-6 pt-6">
+                    <slot name="cabecalho" />
+                </div>
 
                 <slot />
             </div>

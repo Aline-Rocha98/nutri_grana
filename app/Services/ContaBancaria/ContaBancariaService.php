@@ -21,12 +21,25 @@ class ContaBancariaService
         return $this->contaBancariaRepository->listarPorUsuario($idUsuario);
     }
 
+    public function listarMovimentacoesRecentesPorConta(Collection $contasBancarias, int $limitePorConta = 10): array
+    {
+        return $contasBancarias
+            ->reject(fn (ContaBancaria $conta) => $conta->arquivada === SimNao::Sim)
+            ->mapWithKeys(fn (ContaBancaria $conta) => [
+                $conta->id_conta_bancaria => $this->contaBancariaRepository->listarMovimentacoesRecentesDaConta(
+                    (int) $conta->id_conta_bancaria,
+                    $limitePorConta
+                ),
+            ])
+            ->all();
+    }
+
     public function criar(int $idUsuario, array $dados): ContaBancaria
     {
         $padraoDesconto = $dados['padrao_desconto'] ?? null;
         $exibirResumo = $dados['exibir_resumo'] ?? null;
 
-        if ($padraoDesconto === SimNao::Sim || $padraoDesconto === SimNao::Sim->value) {
+        if ($this->ehSim($padraoDesconto)) {
             $this->contaBancariaRepository->limparPadraoDescontoDoUsuario($idUsuario);
         }
 
@@ -35,6 +48,7 @@ class ContaBancariaService
             'nome' => $dados['nome'],
             'saldo_inicial' => $dados['saldo_inicial'],
             'tipo' => $dados['tipo'],
+            'acabamento' => $dados['acabamento'],
             'arquivada' => SimNao::Nao,
             'padrao_desconto' => $padraoDesconto,
             'exibir_resumo' => $exibirResumo,
@@ -54,6 +68,10 @@ class ContaBancariaService
             'tipo' => $dados['tipo'],
         ];
 
+        if (array_key_exists('acabamento', $dados)) {
+            $dadosAtualizacao['acabamento'] = $dados['acabamento'];
+        }
+
         if (array_key_exists('arquivada', $dados)) {
             $dadosAtualizacao['arquivada'] = $dados['arquivada'];
         }
@@ -62,7 +80,7 @@ class ContaBancariaService
             $padraoDesconto = $dados['padrao_desconto'];
             $dadosAtualizacao['padrao_desconto'] = $padraoDesconto;
 
-            if ($padraoDesconto === SimNao::Sim || $padraoDesconto === SimNao::Sim->value) {
+            if ($this->ehSim($padraoDesconto)) {
                 $this->contaBancariaRepository->limparPadraoDescontoDoUsuario(
                     $idUsuario,
                     (int) $contaBancaria->id_conta_bancaria
@@ -75,6 +93,24 @@ class ContaBancariaService
         }
 
         $atualizada = $this->contaBancariaRepository->atualizar($contaBancaria, $dadosAtualizacao);
+
+        DashboardCache::invalidar($idUsuario);
+
+        return $atualizada;
+    }
+
+    public function definirContaBancariaPadraoDesconto(ContaBancaria $contaBancaria, int $idUsuario): ContaBancaria
+    {
+        $this->garantirPropriedade($contaBancaria, $idUsuario);
+
+        $this->contaBancariaRepository->limparPadraoDescontoDoUsuario(
+            $idUsuario,
+            (int) $contaBancaria->id_conta_bancaria
+        );
+
+        $atualizada = $this->contaBancariaRepository->atualizar($contaBancaria, [
+            'padrao_desconto' => SimNao::Sim,
+        ]);
 
         DashboardCache::invalidar($idUsuario);
 
@@ -107,6 +143,11 @@ class ContaBancariaService
         $this->contaBancariaRepository->excluir($contaBancaria);
 
         DashboardCache::invalidar($idUsuario);
+    }
+
+    private function ehSim(mixed $valor): bool
+    {
+        return $valor === SimNao::Sim || $valor === SimNao::Sim->value;
     }
 
     private function garantirPropriedade(ContaBancaria $contaBancaria, int $idUsuario): void

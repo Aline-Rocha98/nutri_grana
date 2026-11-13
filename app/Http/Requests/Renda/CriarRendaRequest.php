@@ -23,6 +23,7 @@ class CriarRendaRequest extends FormRequest
             'frequencia' => ['required', Rule::enum(FrequenciaRecorrencia::class)],
             'dia_esperado' => ['required', 'integer', 'min:1', 'max:31'],
             'observacao' => ['nullable', 'string', 'max:2000'],
+            'id_plano_financeiro' => ['nullable', 'integer'],
         ];
     }
 
@@ -30,6 +31,7 @@ class CriarRendaRequest extends FormRequest
     {
         $this->merge([
             'valor_esperado' => Valor::normalizarValorMonetario($this->input('valor_esperado')),
+            'id_plano_financeiro' => $this->input('id_plano_financeiro') ?: null,
         ]);
     }
 

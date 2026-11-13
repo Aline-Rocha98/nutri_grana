@@ -2,6 +2,9 @@
 
 namespace App\Data;
 
+use App\Enum\AcabamentoVisual;
+use App\Enum\BandeiraCartaoCredito;
+
 final class BancosSugeridos
 {
     public static function todos(): array
@@ -52,6 +55,30 @@ final class BancosSugeridos
                 'logo' => null,
             ],
         ];
+    }
+
+    public static function modelosRapidos(): array
+    {
+        $predefinicoesPorBanco = [
+            'Nubank' => [AcabamentoVisual::Roxo, BandeiraCartaoCredito::Mastercard],
+            'Banco Inter' => [AcabamentoVisual::Laranja, BandeiraCartaoCredito::Mastercard],
+            'Itaú' => [AcabamentoVisual::Oceano, BandeiraCartaoCredito::Visa],
+            'Bradesco' => [AcabamentoVisual::Prata, BandeiraCartaoCredito::Visa],
+        ];
+
+        $bancosPorNome = array_column(self::todos(), null, 'nome');
+        $modelosRapidos = [];
+
+        foreach ($predefinicoesPorBanco as $nome => [$acabamento, $bandeira]) {
+            $modelosRapidos[] = [
+                'nome' => $nome,
+                'logo' => $bancosPorNome[$nome]['logo'] ?? null,
+                'acabamento' => $acabamento->value,
+                'bandeira' => $bandeira->value,
+            ];
+        }
+
+        return $modelosRapidos;
     }
 
     public static function logoPorNome(?string $nome): ?string

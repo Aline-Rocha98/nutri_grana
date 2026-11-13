@@ -12,6 +12,10 @@ use Illuminate\Validation\Rule;
 
 class CriarLancamentoRequest extends FormRequest
 {
+    public const MINIMO_OCORRENCIAS = 2;
+
+    public const MAXIMO_OCORRENCIAS = 120;
+
     public function authorize(): bool
     {
         return true;
@@ -33,6 +37,13 @@ class CriarLancamentoRequest extends FormRequest
             'recorrente' => ['nullable', 'boolean'],
             'frequencia_recorrencia' => ['nullable', Rule::enum(FrequenciaRecorrencia::class)],
             'recorrencia_ate' => ['nullable', 'date', 'after_or_equal:data_vencimento'],
+            'quantidade_ocorrencias' => [
+                'nullable',
+                'integer',
+                'min:'.self::MINIMO_OCORRENCIAS,
+                'max:'.self::MAXIMO_OCORRENCIAS,
+                'prohibits:recorrencia_ate',
+            ],
             'total_parcelas' => ['nullable', 'integer', 'min:1', 'max:48'],
             'data_pagamento' => ['nullable', 'date'],
             'confirmar_ultrapassagem_orcamento' => ['nullable', 'boolean'],
@@ -64,6 +75,11 @@ class CriarLancamentoRequest extends FormRequest
             'data_vencimento.required' => 'A data de vencimento é obrigatória.',
             'tipo.required' => 'O tipo é obrigatório.',
             'forma_pagamento.required' => 'A forma de pagamento é obrigatória.',
+            'recorrencia_ate.after_or_equal' => 'O mês final deve ser igual ou posterior à data do lançamento.',
+            'quantidade_ocorrencias.integer' => 'Informe uma quantidade válida de lançamentos.',
+            'quantidade_ocorrencias.min' => 'A recorrência deve gerar ao menos '.self::MINIMO_OCORRENCIAS.' lançamentos.',
+            'quantidade_ocorrencias.max' => 'A recorrência pode gerar no máximo '.self::MAXIMO_OCORRENCIAS.' lançamentos.',
+            'quantidade_ocorrencias.prohibits' => 'Informe a quantidade de lançamentos ou o mês final, não os dois.',
         ];
     }
 }

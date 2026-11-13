@@ -11,7 +11,9 @@ class MenuPainel
         'home' => 'grid_view',
         'dashboard' => 'dashboard',
         'financeiro' => 'account_balance_wallet',
+        'rendas' => 'payments',
         'objetivos' => 'flag',
+        'alocacoes' => 'savings',
         'orcamentos' => 'donut_large',
         'perfil' => 'person',
     ];
@@ -43,8 +45,24 @@ class MenuPainel
                     ['rotulo' => 'Categorias', 'rota' => 'categorias.index'],
                     ['rotulo' => 'Contas bancárias', 'rota' => 'contas-bancarias.index'],
                     ['rotulo' => 'Lançamentos', 'rota' => 'lancamentos.index'],
-                    ['rotulo' => 'Rendas', 'rota' => 'rendas.index'],
                 ],
+            ],
+            [
+                'tipo' => 'grupo',
+                'id' => 'rendas',
+                'rotulo' => 'Rendas',
+                'icone' => 'rendas',
+                'filhos' => [
+                    ['rotulo' => 'Minhas rendas', 'rota' => 'rendas.index'],
+                    ['rotulo' => 'Plano financeiro', 'rota' => 'planos-financeiros.index'],
+                ],
+            ],
+            [
+                'tipo' => 'link',
+                'id' => 'alocacoes',
+                'rotulo' => 'Alocações',
+                'icone' => 'alocacoes',
+                'rota' => 'alocacoes.index',
             ],
             [
                 'tipo' => 'link',

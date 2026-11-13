@@ -1,18 +1,23 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
-import WidgetToggles from '@/Components/Dashboard/WidgetToggles.vue';
-import ResumoFinanceiroCard from '@/Components/Dashboard/ResumoFinanceiroCard.vue';
+import BotaoAdicionarInline from '@/Components/Ui/BotaoAdicionarInline.vue';
+import CabecalhoBoasVindas from '@/Components/Dashboard/CabecalhoBoasVindas.vue';
+import IndicadoresResumoFinanceiro from '@/Components/Dashboard/IndicadoresResumoFinanceiro.vue';
 import ContasCard from '@/Components/Dashboard/ContasCard.vue';
 import CartoesCard from '@/Components/Dashboard/CartoesCard.vue';
 import CategoriasCard from '@/Components/Dashboard/CategoriasCard.vue';
-import ReceitasDespesasChart from '@/Components/Dashboard/ReceitasDespesasChart.vue';
+import ReceitasDespesasCard from '@/Components/Dashboard/ReceitasDespesasCard.vue';
 import MetasCard from '@/Components/Dashboard/MetasCard.vue';
 
 const STORAGE_WIDGETS = 'nutrigrana.dashboard.widgets';
 const STORAGE_PERIODO = 'nutrigrana.dashboard.periodo';
+const STORAGE_MODULOS_OCULTOS = 'nutrigrana.dashboard.modulos-ocultos';
+const PERIODOS_VALIDOS = ['atual', 'anterior', '3meses'];
+const WIDGET_RECEITAS_DESPESAS = 'receitas_despesas';
+const URL_LANCAMENTOS = '/lancamentos';
 
 const props = defineProps({
     usuario: {
@@ -38,29 +43,39 @@ const props = defineProps({
 });
 
 const opcoesWidgets = [
-    { id: 'resumo', rotulo: 'Resumo' },
-    { id: 'contas', rotulo: 'Contas' },
-    { id: 'cartoes', rotulo: 'Cartões' },
-    { id: 'categorias', rotulo: 'Categorias' },
-    { id: 'receitas_despesas', rotulo: 'Receitas x despesas' },
+    { id: 'resumo', rotulo: 'Resumo Financeiro' },
+    { id: 'contas', rotulo: 'Contas Bancárias' },
+    { id: 'cartoes', rotulo: 'Cartões de Crédito' },
+    { id: 'categorias', rotulo: 'Despesas por Categoria' },
+    { id: WIDGET_RECEITAS_DESPESAS, rotulo: 'Receitas x Despesas' },
     { id: 'metas', rotulo: 'Objetivos' },
 ];
 
 const widgets = reactive({});
+const payload = reactive({});
+const widgetsCarregando = reactive(new Set());
+const versaoPorWidget = {};
 const periodo = ref(props.periodoPadrao);
-const payload = ref({});
-const carregando = ref(false);
+const modulosOcultos = ref(false);
 const erro = ref('');
+let controladorPeriodo = null;
+
+const widgetsAtivos = computed(() =>
+    Object.entries(widgets)
+        .filter(([, ativo]) => ativo)
+        .map(([id]) => id),
+);
+
+function lerJsonDoStorage(chave) {
+    try {
+        return JSON.parse(localStorage.getItem(chave) || 'null');
+    } catch {
+        return null;
+    }
+}
 
 function carregarPreferencias() {
-    let salvos = null;
-
-    try {
-        salvos = JSON.parse(localStorage.getItem(STORAGE_WIDGETS) || 'null');
-    } catch {
-        salvos = null;
-    }
-
+    const salvos = lerJsonDoStorage(STORAGE_WIDGETS);
     const ids = props.widgetsPadrao.length
         ? props.widgetsPadrao
         : opcoesWidgets.map((item) => item.id);
@@ -70,158 +85,202 @@ function carregarPreferencias() {
     });
 
     const periodoSalvo = localStorage.getItem(STORAGE_PERIODO);
-    if (['atual', 'anterior', '3meses'].includes(periodoSalvo)) {
+    if (PERIODOS_VALIDOS.includes(periodoSalvo)) {
         periodo.value = periodoSalvo;
     }
+
+    modulosOcultos.value = lerJsonDoStorage(STORAGE_MODULOS_OCULTOS) === true;
 }
 
 function persistirPreferencias() {
     localStorage.setItem(STORAGE_WIDGETS, JSON.stringify({ ...widgets }));
     localStorage.setItem(STORAGE_PERIODO, periodo.value);
+    localStorage.setItem(STORAGE_MODULOS_OCULTOS, JSON.stringify(modulosOcultos.value));
 }
 
-const widgetsAtivos = computed(() =>
-    Object.entries(widgets)
-        .filter(([, ativo]) => ativo)
-        .map(([id]) => id),
-);
+function registrarNovaVersao(listaWidgets) {
+    return Object.fromEntries(listaWidgets.map((widget) => {
+        versaoPorWidget[widget] = (versaoPorWidget[widget] ?? 0) + 1;
+        widgetsCarregando.add(widget);
 
-async function buscarDados() {
-    if (!widgetsAtivos.value.length) {
-        payload.value = {};
+        return [widget, versaoPorWidget[widget]];
+    }));
+}
+
+function ehVersaoAtual(widget, versoes) {
+    return versoes[widget] === versaoPorWidget[widget];
+}
+
+async function buscarWidgets(listaWidgets, controlador = null) {
+    if (!listaWidgets.length) {
         return;
     }
 
-    carregando.value = true;
+    const versoes = registrarNovaVersao(listaWidgets);
     erro.value = '';
 
     try {
         const { data } = await axios.get(props.urlDados, {
             params: {
-                widgets: widgetsAtivos.value,
+                widgets: listaWidgets,
                 periodo: periodo.value,
             },
             headers: {
                 Accept: 'application/json',
             },
+            signal: controlador?.signal,
         });
 
-        payload.value = data?.data ?? data ?? {};
+        const dados = data?.data ?? data ?? {};
+
+        listaWidgets
+            .filter((widget) => ehVersaoAtual(widget, versoes))
+            .forEach((widget) => {
+                payload[widget] = dados[widget] ?? null;
+            });
     } catch (e) {
+        if (axios.isCancel(e)) {
+            return;
+        }
+
         erro.value = 'Não foi possível carregar o dashboard. Tente novamente.';
-        payload.value = {};
+        listaWidgets
+            .filter((widget) => ehVersaoAtual(widget, versoes) && payload[widget] === undefined)
+            .forEach((widget) => {
+                payload[widget] = null;
+            });
     } finally {
-        carregando.value = false;
+        listaWidgets
+            .filter((widget) => ehVersaoAtual(widget, versoes))
+            .forEach((widget) => widgetsCarregando.delete(widget));
     }
+}
+
+function estaCarregando(widget) {
+    return widgetsCarregando.has(widget) || payload[widget] === undefined;
 }
 
 function alternarWidget(id) {
     widgets[id] = !widgets[id];
     persistirPreferencias();
-    buscarDados();
+
+    if (widgets[id] && payload[id] === undefined) {
+        buscarWidgets([id]);
+    }
+}
+
+function alternarVisibilidadeModulos() {
+    modulosOcultos.value = !modulosOcultos.value;
+    persistirPreferencias();
 }
 
 function atualizarPeriodo(novoPeriodo) {
+    if (novoPeriodo === periodo.value) {
+        return;
+    }
+
     periodo.value = novoPeriodo;
     persistirPreferencias();
-    buscarDados();
+
+    controladorPeriodo?.abort();
+    controladorPeriodo = null;
+
+    if (!widgets[WIDGET_RECEITAS_DESPESAS]) {
+        delete payload[WIDGET_RECEITAS_DESPESAS];
+        return;
+    }
+
+    controladorPeriodo = new AbortController();
+    buscarWidgets([WIDGET_RECEITAS_DESPESAS], controladorPeriodo);
+}
+
+function abrirTelaDeLancamentos() {
+    router.visit(URL_LANCAMENTOS);
 }
 
 onMounted(() => {
     carregarPreferencias();
-    buscarDados();
+    buscarWidgets(widgetsAtivos.value);
+});
+
+onBeforeUnmount(() => {
+    controladorPeriodo?.abort();
 });
 </script>
 
 <template>
     <Head title="Dashboard" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Dashboard</h2>
-                <span class="text-sm text-ng-ink-muted">{{ dataHoje }}</span>
-            </div>
+    <AutenticadoLayout titulo="Dashboard Executivo">
+        <template #acoes>
+            <BotaoAdicionarInline rotulo="Novo lançamento" @click="abrirTelaDeLancamentos" />
         </template>
 
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <h3 class="text-lg font-semibold text-[#1fa67e]">
-                    Olá, {{ usuario.nome }}!
-                </h3>
-                <p class="mt-2 text-ng-ink-muted">
-                    Veja o panorama das suas finanças. Escolha abaixo o que deseja exibir.
-                </p>
-                <div class="mt-4">
-                    <WidgetToggles
-                        :widgets="widgets"
-                        :opcoes="opcoesWidgets"
-                        @toggle="alternarWidget"
-                    />
-                </div>
-            </div>
+        <div class="space-y-6 p-6 lg:p-8">
+            <CabecalhoBoasVindas
+                :nome-usuario="usuario.nome"
+                :modulos="widgets"
+                :opcoes-modulos="opcoesWidgets"
+                :modulos-ocultos="modulosOcultos"
+                @alternar-modulo="alternarWidget"
+                @alternar-visibilidade-modulos="alternarVisibilidadeModulos"
+            />
 
-            <div
-                v-if="erro"
-                class="ng-alert ng-alert--danger"
-                role="alert"
-            >
+            <div v-if="erro" class="ng-alert ng-alert--danger" role="alert">
                 <span class="ng-alert__icon" aria-hidden="true">
                     <span class="material-symbols-outlined">priority_high</span>
                 </span>
                 <p class="min-w-0">{{ erro }}</p>
             </div>
 
-            <div v-if="!widgetsAtivos.length" class="bg-ng-card rounded-2xl border border-ng-line p-8 text-center text-ng-ink-muted">
-                Ative ao menos um card em “Exibir” para carregar os dados.
+            <div v-if="!widgetsAtivos.length" class="ng-card p-8 text-center text-sm text-ng-ink-muted">
+                Ative ao menos um módulo em “Exibir módulos” para carregar os dados.
             </div>
 
             <template v-else>
-                <ResumoFinanceiroCard
+                <IndicadoresResumoFinanceiro
                     v-if="widgets.resumo"
                     :dados="payload.resumo"
-                    :carregando="carregando && !payload.resumo"
+                    :carregando="estaCarregando('resumo')"
                 />
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div v-if="widgets.contas || widgets.cartoes" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <ContasCard
                         v-if="widgets.contas"
                         :dados="payload.contas"
-                        :carregando="carregando && !payload.contas"
+                        :carregando="estaCarregando('contas')"
                     />
                     <CartoesCard
                         v-if="widgets.cartoes"
                         :dados="payload.cartoes"
-                        :carregando="carregando && !payload.cartoes"
+                        :carregando="estaCarregando('cartoes')"
                     />
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div
+                    v-if="widgets.categorias || widgets.receitas_despesas"
+                    class="grid grid-cols-1 gap-6 lg:grid-cols-2"
+                >
                     <CategoriasCard
                         v-if="widgets.categorias"
                         :dados="payload.categorias"
-                        :carregando="carregando && !payload.categorias"
+                        :carregando="estaCarregando('categorias')"
                     />
-                    <MetasCard
-                        v-if="widgets.metas"
-                        :dados="payload.metas"
-                        :carregando="carregando && !payload.metas"
+                    <ReceitasDespesasCard
+                        v-if="widgets.receitas_despesas"
+                        :dados="payload.receitas_despesas"
+                        :carregando="estaCarregando('receitas_despesas')"
+                        :periodo="periodo"
+                        @atualizar-periodo="atualizarPeriodo"
                     />
                 </div>
-                <ReceitasDespesasChart
-                    v-if="widgets.receitas_despesas"
-                    :dados="payload.receitas_despesas"
-                    :carregando="carregando && !payload.receitas_despesas"
-                    :periodo="periodo"
-                    @atualizar-periodo="atualizarPeriodo"
+
+                <MetasCard
+                    v-if="widgets.metas"
+                    :dados="payload.metas"
+                    :carregando="estaCarregando('metas')"
                 />
             </template>
-
-            <div class="flex justify-end">
-                <Link href="/home" class="text-sm font-medium text-[#1fa67e] hover:underline">
-                    Voltar para Home
-                </Link>
-            </div>
         </div>
     </AutenticadoLayout>
 </template>

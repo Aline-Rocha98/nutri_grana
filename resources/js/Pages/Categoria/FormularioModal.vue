@@ -1,7 +1,20 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
+import LinhaCategoria from '@/Components/Categoria/LinhaCategoria.vue';
+import CampoBase from '@/Components/Formulario/CampoBase.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import SeletorIcone from '@/Components/Formulario/SeletorIcone.vue';
+import GrupoSegmentado from '@/Components/Ui/GrupoSegmentado.vue';
+import {
+    TIPO_CATEGORIA_SAIDA,
+    iconeTipoCategoria,
+    rotuloTipoCategoria,
+} from '@/Helpers/tipoCategoria';
+
+const COR_PADRAO_CATEGORIA = '#6b7280';
+const ICONE_PADRAO_CATEGORIA = 'category';
 
 const props = defineProps({
     aberto: {
@@ -30,7 +43,7 @@ const props = defineProps({
     },
     tipoInicial: {
         type: String,
-        default: 'saida',
+        default: TIPO_CATEGORIA_SAIDA,
     },
 });
 
@@ -39,6 +52,15 @@ const emit = defineEmits(['fechar']);
 const pagina = usePage();
 const urlCriar = computed(() => pagina.props.rotas.categoriasCriar);
 const editando = computed(() => Boolean(props.categoria));
+const iconeInicial = computed(() => props.icones[0]?.valor ?? ICONE_PADRAO_CATEGORIA);
+
+const formulario = useForm({
+    nome: '',
+    tipo: props.tipoInicial,
+    icone: ICONE_PADRAO_CATEGORIA,
+    id_categoria_pai: null,
+});
+
 const ehSubcategoria = computed(() => {
     if (props.categoria) {
         return Boolean(props.categoria.id_categoria_pai);
@@ -47,22 +69,23 @@ const ehSubcategoria = computed(() => {
     return Boolean(formulario.id_categoria_pai);
 });
 
-const formulario = useForm({
-    nome: '',
-    tipo: props.tipoInicial,
-    icone: props.icones[0]?.valor ?? 'category',
-    id_categoria_pai: null,
+const categoriaPaiSelecionada = computed(() => {
+    const idCategoriaPai = props.categoria?.id_categoria_pai ?? formulario.id_categoria_pai;
+
+    if (!idCategoriaPai) {
+        return null;
+    }
+
+    return props.categoriasPais.find((categoria) => categoria.id === idCategoriaPai)
+        ?? props.categoriaPaiInicial;
 });
 
-const estadoUi = reactive({
-    urlAtualizar: '',
-});
-
-const paisDisponiveis = computed(() => {
-    const tipoFiltro = formulario.tipo || props.tipoInicial;
-
-    return props.categoriasPais.filter((categoria) => categoria.tipo === tipoFiltro);
-});
+const opcoesTipo = computed(() => props.tipos.map((tipo) => ({
+    valor: tipo.valor,
+    rotulo: rotuloTipoCategoria(tipo.valor),
+    icone: iconeTipoCategoria(tipo.valor),
+    variante: tipo.valor === TIPO_CATEGORIA_SAIDA ? 'red' : 'brand',
+})));
 
 const tituloModal = computed(() => {
     if (editando.value) {
@@ -72,17 +95,36 @@ const tituloModal = computed(() => {
     return ehSubcategoria.value ? 'Nova subcategoria' : 'Nova categoria';
 });
 
+const subtituloModal = computed(() => (ehSubcategoria.value
+    ? 'Defina o nome e o ícone da subcategoria.'
+    : 'Defina o nome, o tipo e o ícone da categoria.'));
+
+const corPreVisualizacao = computed(
+    () => props.categoria?.cor ?? categoriaPaiSelecionada.value?.cor ?? COR_PADRAO_CATEGORIA,
+);
+
+const corDestaqueIconeSelecionado = computed(
+    () => (corPreVisualizacao.value === COR_PADRAO_CATEGORIA ? '' : corPreVisualizacao.value),
+);
+
+const descricaoPreVisualizacao = computed(() => {
+    if (ehSubcategoria.value && categoriaPaiSelecionada.value) {
+        return `Subcategoria de ${categoriaPaiSelecionada.value.nome}`;
+    }
+
+    return rotuloTipoCategoria(formulario.tipo);
+});
+
 function reiniciarFormulario() {
     formulario.clearErrors();
     formulario.nome = props.categoria?.nome ?? '';
-    formulario.icone = props.categoria?.icone ?? (props.icones[0]?.valor ?? 'category');
+    formulario.icone = props.categoria?.icone ?? iconeInicial.value;
     formulario.id_categoria_pai = props.categoria?.id_categoria_pai
         ?? props.categoriaPaiInicial?.id
         ?? null;
     formulario.tipo = props.categoria?.tipo
         ?? props.categoriaPaiInicial?.tipo
         ?? props.tipoInicial;
-    estadoUi.urlAtualizar = props.categoria?.url_atualizar ?? '';
 }
 
 watch(
@@ -94,32 +136,18 @@ watch(
     },
 );
 
-watch(
-    () => formulario.id_categoria_pai,
-    (idPai) => {
-        if (editando.value || !idPai) {
-            return;
-        }
-
-        const pai = props.categoriasPais.find((categoria) => categoria.id === idPai);
-        if (pai) {
-            formulario.tipo = pai.tipo;
-        }
-    },
-);
-
 function fechar() {
     emit('fechar');
 }
 
-function salvar() {
+function salvarCategoria() {
     const opcoes = {
         preserveScroll: true,
         onSuccess: () => fechar(),
     };
 
     if (editando.value) {
-        formulario.put(estadoUi.urlAtualizar, opcoes);
+        formulario.put(props.categoria.url_atualizar, opcoes);
         return;
     }
 
@@ -128,127 +156,76 @@ function salvar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto">
-        <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-ng-ink">
-                {{ tituloModal }}
-            </h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                {{ ehSubcategoria
-                    ? 'Defina o nome e o ícone da subcategoria.'
-                    : 'Defina o nome, tipo e ícone da categoria.' }}
-            </p>
-
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="nome-categoria" class="block text-sm font-medium text-ng-ink-muted">
-                        Nome
-                    </label>
-                    <input
-                        id="nome-categoria"
-                        v-model="formulario.nome"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        maxlength="100"
-                    >
-                    <p v-if="formulario.errors.nome" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.nome }}
-                    </p>
-                </div>
-
-                <div v-if="!editando">
-                    <label for="categoria-pai" class="block text-sm font-medium text-ng-ink-muted">
-                        Categoria principal (opcional)
-                    </label>
-                    <select
-                        id="categoria-pai"
-                        v-model="formulario.id_categoria_pai"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                        <option :value="null">Nenhuma — criar como categoria principal</option>
-                        <option
-                            v-for="pai in paisDisponiveis"
-                            :key="pai.id"
-                            :value="pai.id"
-                        >
-                            {{ pai.nome }}
-                        </option>
-                    </select>
-                    <p v-if="formulario.errors.id_categoria_pai" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.id_categoria_pai }}
-                    </p>
-                </div>
-
-                <div v-else-if="ehSubcategoria && categoriaPaiInicial">
-                    <span class="block text-sm font-medium text-ng-ink-muted">Categoria principal</span>
-                    <p class="mt-1 text-sm font-medium text-ng-ink">{{ categoriaPaiInicial.nome }}</p>
-                </div>
-
-                <div>
-                    <label for="tipo-categoria" class="block text-sm font-medium text-ng-ink-muted">
-                        Tipo
-                    </label>
-                    <select
-                        id="tipo-categoria"
-                        v-model="formulario.tipo"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e] disabled:bg-ng-input disabled:text-ng-ink-muted"
-                        :disabled="ehSubcategoria"
-                    >
-                        <option
-                            v-for="opcao in tipos"
-                            :key="opcao.valor"
-                            :value="opcao.valor"
-                        >
-                            {{ opcao.rotulo === 'Saída' ? 'Despesa' : opcao.rotulo }}
-                        </option>
-                    </select>
-                    <p v-if="ehSubcategoria" class="mt-1 text-xs text-ng-ink-subtle">
-                        O tipo é herdado da categoria principal.
-                    </p>
-                    <p v-if="formulario.errors.tipo" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.tipo }}
-                    </p>
-                </div>
-
-                <div>
-                    <span class="block text-sm font-medium text-ng-ink-muted">Ícone</span>
-                    <div class="mt-2 grid grid-cols-7 gap-2">
-                        <button
-                            v-for="opcao in icones"
-                            :key="opcao.valor"
-                            type="button"
-                            class="flex h-10 w-10 items-center justify-center rounded-lg border transition"
-                            :class="formulario.icone === opcao.valor
-                                ? 'border-[#1fa67e] bg-ng-brand-soft text-[#1fa67e]'
-                                : 'border-ng-line-strong text-ng-ink-muted hover:bg-ng-brand-soft'"
-                            :title="opcao.valor"
-                            @click="formulario.icone = opcao.valor"
-                        >
-                            <span class="material-symbols-outlined text-[20px]">{{ opcao.valor }}</span>
-                        </button>
-                    </div>
-                    <p v-if="formulario.errors.icone" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.icone }}
-                    </p>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="category"
+        :titulo="tituloModal"
+        :subtitulo="subtituloModal"
+        :texto-confirmar="editando ? 'Salvar alterações' : 'Salvar categoria'"
+        :processando="formulario.processing"
+        @confirmar="salvarCategoria"
+        @fechar="fechar"
+    >
+        <div class="space-y-5">
+            <div class="space-y-2">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-ng-ink-subtle">
+                    Visualização em tempo real
+                </span>
+                <div class="overflow-hidden rounded-xl border border-ng-line">
+                    <LinhaCategoria
+                        :nome="formulario.nome || 'Nome da categoria'"
+                        :icone="formulario.icone"
+                        :cor="corPreVisualizacao"
+                        :descricao="descricaoPreVisualizacao"
+                        :padrao="categoria?.padrao === 'S'"
+                        :subcategoria="ehSubcategoria"
+                    />
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Salvar
-                </button>
-            </div>
-        </form>
+            <CampoTexto
+                id="categoria-nome"
+                v-model="formulario.nome"
+                rotulo="Nome"
+                :dica="ehSubcategoria ? 'Ex: Mercado, Combustível' : 'Ex: Alimentação, Transporte'"
+                obrigatorio
+                :maxlength="100"
+                :erro="formulario.errors.nome"
+            />
+
+            <CampoBase
+                v-if="ehSubcategoria && categoriaPaiSelecionada"
+                rotulo="Categoria principal"
+                :erro="formulario.errors.id_categoria_pai"
+            >
+                <p class="ng-card-muted rounded-lg px-3 py-2.5 text-sm font-medium text-ng-ink">
+                    {{ categoriaPaiSelecionada.nome }}
+                </p>
+            </CampoBase>
+
+            <CampoBase
+                rotulo="Tipo"
+                :dica="ehSubcategoria ? 'Herdado da categoria principal' : ''"
+                :erro="formulario.errors.tipo"
+            >
+                <GrupoSegmentado
+                    v-model="formulario.tipo"
+                    :opcoes="opcoesTipo"
+                    rotulo="Tipo da categoria"
+                    :desabilitado="ehSubcategoria"
+                    expandido
+                />
+            </CampoBase>
+
+            <SeletorIcone
+                v-model="formulario.icone"
+                rotulo="Ícone"
+                :opcoes="icones"
+                :cor="corDestaqueIconeSelecionado"
+                obrigatorio
+                :erro="formulario.errors.icone"
+            />
+        </div>
     </Modal>
 </template>

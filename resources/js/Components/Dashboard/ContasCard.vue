@@ -1,7 +1,13 @@
 <script setup>
-import { formatarNumeroParaMoeda } from '@/Helpers/mascaraMoeda';
+import { computed } from 'vue';
+import CardPainel from '@/Components/Ui/CardPainel.vue';
+import EsqueletoCarregamento from '@/Components/Ui/EsqueletoCarregamento.vue';
+import LinkAcaoPainel from '@/Components/Ui/LinkAcaoPainel.vue';
+import ContaBancariaLinhaResumo from '@/Components/ContaBancaria/ContaBancariaLinhaResumo.vue';
 
-defineProps({
+const URL_CONTAS_BANCARIAS = '/contas-bancarias';
+
+const props = defineProps({
     dados: {
         type: Object,
         default: null,
@@ -11,41 +17,39 @@ defineProps({
         default: false,
     },
 });
+
+const contas = computed(() => props.dados?.itens ?? []);
 </script>
 
 <template>
-    <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6 h-full">
-        <h3 class="font-semibold text-ng-ink">Contas</h3>
-
-        <div v-if="carregando" class="mt-4 space-y-3">
-            <div v-for="n in 3" :key="n" class="h-10 rounded-lg bg-ng-card-muted animate-pulse" />
-        </div>
-
-        <template v-else-if="dados">
-            <div v-if="!dados.itens?.length" class="mt-4 text-sm text-ng-ink-muted">
-                Nenhuma conta marcada para o resumo.
-            </div>
-
-            <ul v-else class="mt-4 divide-y divide-ng-line">
-                <li
-                    v-for="conta in dados.itens"
-                    :key="conta.id"
-                    class="flex items-center justify-between py-3 gap-3"
-                >
-                    <span class="font-medium text-ng-ink truncate">{{ conta.nome }}</span>
-                    <span class="text-ng-ink-secondary whitespace-nowrap">R$ {{ conta.saldo }}</span>
-                </li>
-            </ul>
-
-            <div
-                v-if="dados.itens?.length"
-                class="mt-4 pt-4 border-t border-ng-line flex items-center justify-between"
-            >
-                <span class="font-semibold text-ng-ink">Total</span>
-                <span class="font-semibold text-[#1fa67e]">
-                    R$ {{ dados.total?.saldo ?? formatarNumeroParaMoeda(0) }}
-                </span>
-            </div>
+    <CardPainel
+        titulo="Minhas Contas"
+        subtitulo="Saldos disponíveis em tempo real"
+        icone="account_balance"
+        :carregando="carregando"
+        :vazio="!contas.length"
+        mensagem-vazio="Nenhuma conta marcada para o resumo."
+    >
+        <template #acoes>
+            <LinkAcaoPainel :href="URL_CONTAS_BANCARIAS" rotulo="Nova Conta" icone-esquerda="add" destacado />
+            <LinkAcaoPainel :href="URL_CONTAS_BANCARIAS" rotulo="Ver todas" icone-direita="chevron_right" />
         </template>
-    </div>
+
+        <template #carregando>
+            <EsqueletoCarregamento :quantidade="3" altura="h-16" />
+        </template>
+
+        <div class="space-y-3">
+            <ContaBancariaLinhaResumo
+                v-for="conta in contas"
+                :key="conta.id"
+                :nome="conta.nome"
+                :tipo="conta.tipo"
+                :tipo-rotulo="conta.tipo_rotulo"
+                :logo="conta.logo"
+                :saldo-disponivel="conta.saldo_disponivel"
+                :saldo-disponivel-numero="conta.saldo_disponivel_numero"
+            />
+        </div>
+    </CardPainel>
 </template>

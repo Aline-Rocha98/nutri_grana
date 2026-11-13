@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Objetivo;
 
-use App\Enum\TipoAporteObjetivo;
 use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Objetivo\AtualizarObjetivoRequest;
@@ -46,7 +45,6 @@ class ObjetivoController extends Controller
         return Inertia::render('Objetivo/Index', [
             'objetivos' => ObjetivoResource::collection($objetivos)->resolve(),
             'contasBancarias' => ContaBancariaResource::collection($contas)->resolve(),
-            'tiposAporte' => TipoAporteObjetivo::opcoesParaSelect(),
         ]);
     }
 

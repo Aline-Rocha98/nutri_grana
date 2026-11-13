@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Alocacao\AlocacaoController;
 use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
 use App\Http\Controllers\Categoria\CategoriaController;
 use App\Http\Controllers\ContaBancaria\ContaBancariaController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Lancamento\LancamentoController;
 use App\Http\Controllers\Objetivo\ObjetivoController;
 use App\Http\Controllers\Orcamento\OrcamentoController;
 use App\Http\Controllers\Orcamento\OrcamentoServicoController;
+use App\Http\Controllers\PlanoFinanceiro\PlanoFinanceiroController;
 use App\Http\Controllers\Renda\RendaController;
 use App\Http\Controllers\Usuario\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -39,13 +41,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/contas-bancarias', [ContaBancariaController::class, 'index'])->name('contas-bancarias.index');
     Route::post('/contas-bancarias', [ContaBancariaController::class, 'criarContaBancaria'])->name('contas-bancarias.criar');
     Route::put('/contas-bancarias/{contaBancaria}', [ContaBancariaController::class, 'atualizarContaBancaria'])->name('contas-bancarias.atualizar');
+    Route::patch('/contas-bancarias/{contaBancaria}/arquivar', [ContaBancariaController::class, 'arquivarContaBancaria'])->name('contas-bancarias.arquivar');
+    Route::patch('/contas-bancarias/{contaBancaria}/padrao-desconto', [ContaBancariaController::class, 'definirContaBancariaPadraoDesconto'])->name('contas-bancarias.definir-padrao-desconto');
     Route::delete('/contas-bancarias/{contaBancaria}', [ContaBancariaController::class, 'excluirContaBancaria'])->name('contas-bancarias.excluir');
+
+    // Alocações
+    Route::get('/alocacoes', [AlocacaoController::class, 'index'])->name('alocacoes.index');
+    Route::post('/alocacoes', [AlocacaoController::class, 'criarAlocacao'])->name('alocacoes.criar');
+    Route::put('/alocacoes/{alocacao}', [AlocacaoController::class, 'atualizarAlocacao'])->name('alocacoes.atualizar');
+    Route::delete('/alocacoes/{alocacao}', [AlocacaoController::class, 'excluirAlocacao'])->name('alocacoes.excluir');
+    Route::post('/alocacoes/{alocacao}/transferir', [AlocacaoController::class, 'transferirEntreAlocacoes'])
+        ->name('alocacoes.transferir');
+    Route::post('/alocacoes/{alocacao}/resgatar', [AlocacaoController::class, 'resgatarAlocacao'])
+        ->name('alocacoes.resgatar');
 
     // Cartões de Crédito
     Route::get('/cartoes-credito', [CartaoCreditoController::class, 'index'])->name('cartoes-credito.index');
     Route::post('/cartoes-credito', [CartaoCreditoController::class, 'criarCartaoCredito'])->name('cartoes-credito.criar');
     Route::put('/cartoes-credito/{cartaoCredito}', [CartaoCreditoController::class, 'atualizarCartaoCredito'])->name('cartoes-credito.atualizar');
     Route::patch('/cartoes-credito/{cartaoCredito}/arquivar', [CartaoCreditoController::class, 'arquivarCartaoCredito'])->name('cartoes-credito.arquivar');
+    Route::patch('/cartoes-credito/{cartaoCredito}/padrao', [CartaoCreditoController::class, 'definirCartaoCreditoPadrao'])->name('cartoes-credito.definir-padrao');
     Route::delete('/cartoes-credito/{cartaoCredito}', [CartaoCreditoController::class, 'excluirCartaoCredito'])->name('cartoes-credito.excluir');
 
     // Categorias
@@ -72,6 +87,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/rendas', [RendaController::class, 'criar'])->name('rendas.criar');
     Route::put('/rendas/{renda}', [RendaController::class, 'atualizar'])->name('rendas.atualizar');
     Route::delete('/rendas/{renda}', [RendaController::class, 'excluir'])->name('rendas.excluir');
+
+    // Planos financeiros
+    Route::get('/rendas/planos-financeiros', [PlanoFinanceiroController::class, 'index'])->name('planos-financeiros.index');
+    Route::post('/planos-financeiros', [PlanoFinanceiroController::class, 'criarPlanoFinanceiro'])->name('planos-financeiros.criar');
+    Route::put('/planos-financeiros/{planoFinanceiro}', [PlanoFinanceiroController::class, 'atualizarPlanoFinanceiro'])
+        ->name('planos-financeiros.atualizar');
+    Route::patch('/planos-financeiros/{planoFinanceiro}/situacao', [PlanoFinanceiroController::class, 'alternarSituacaoPlanoFinanceiro'])
+        ->name('planos-financeiros.alternar-situacao');
+    Route::patch('/planos-financeiros/{planoFinanceiro}/padrao', [PlanoFinanceiroController::class, 'definirPlanoFinanceiroPadrao'])
+        ->name('planos-financeiros.definir-padrao');
+    Route::delete('/planos-financeiros/{planoFinanceiro}', [PlanoFinanceiroController::class, 'excluirPlanoFinanceiro'])
+        ->name('planos-financeiros.excluir');
 
     // Faturas de cartão
     Route::get('/cartoes-credito/{cartaoCredito}/faturas', [FaturaCartaoController::class, 'indexPorCartao'])
