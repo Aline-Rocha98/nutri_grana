@@ -7,17 +7,15 @@ use App\Http\Middleware\EnsureAbsoluteSessionTimeout;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\Autenticacao\PaginaAcesso;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
-            'status' => session('status'),
-        ]);
+        return PaginaAcesso::renderizarPaginaAcesso(PaginaAcesso::MODO_LOGIN);
     }
 
     public function store(LoginRequest $request): RedirectResponse

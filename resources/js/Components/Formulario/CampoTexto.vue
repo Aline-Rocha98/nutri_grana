@@ -58,6 +58,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    focoAutomatico: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -84,6 +88,7 @@ function aoDigitar(evento) {
             :maxlength="maxlength"
             :inputmode="inputmode"
             :autocomplete="autocomplete"
+            :autofocus="focoAutomatico"
             :required="obrigatorio"
             class="ng-input block w-full rounded-lg text-sm"
             :class="[

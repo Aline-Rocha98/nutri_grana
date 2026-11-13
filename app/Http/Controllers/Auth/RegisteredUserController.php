@@ -2,24 +2,21 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enum\MotivosControleFinanceiro;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsureAbsoluteSessionTimeout;
 use App\Http\Requests\Auth\StoreRegisteredUserRequest;
 use App\Models\Usuario\Usuario;
+use App\Support\Autenticacao\PaginaAcesso;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('Auth/Register', [
-            'motivos' => MotivosControleFinanceiro::opcoesParaSelect(),
-        ]);
+        return PaginaAcesso::renderizarPaginaAcesso(PaginaAcesso::MODO_CADASTRO);
     }
 
     public function store(StoreRegisteredUserRequest $request): RedirectResponse
