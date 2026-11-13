@@ -22,6 +22,14 @@ class ObjetivoRepository
             ->get();
     }
 
+    public function listarOpcoesDoUsuario(int $idUsuario): Collection
+    {
+        return Objetivo::query()
+            ->where('id_usuario', $idUsuario)
+            ->orderBy('descricao')
+            ->get(['id_objetivo', 'descricao']);
+    }
+
     public function listarParaDashboard(int $idUsuario): Collection
     {
         return Objetivo::query()

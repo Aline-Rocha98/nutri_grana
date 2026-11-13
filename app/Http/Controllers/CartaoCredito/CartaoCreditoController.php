@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\CartaoCredito;
 
 use App\Data\BancosSugeridos;
+use App\Enum\AcabamentoVisual;
 use App\Enum\BandeiraCartaoCredito;
 use App\Enum\SimNao;
 use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
@@ -11,6 +12,7 @@ use App\Http\Requests\CartaoCredito\ArquivarCartaoCreditoRequest;
 use App\Http\Requests\CartaoCredito\AtualizarCartaoCreditoRequest;
 use App\Http\Requests\CartaoCredito\CriarCartaoCreditoRequest;
 use App\Http\Resources\CartaoCredito\CartaoCreditoResource;
+use App\Http\Resources\CartaoCredito\LancamentoRecenteCartaoResource;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Services\CartaoCredito\CartaoCreditoService;
 use Exception;
@@ -36,12 +38,39 @@ class CartaoCreditoController extends Controller
         $this->authorize('viewAny', CartaoCredito::class);
 
         $cartoesCredito = $this->cartaoCreditoService->listarPorUsuario((int) Auth::id());
+        $lancamentosRecentesPorCartao = collect(
+            $this->cartaoCreditoService->listarLancamentosRecentesPorCartao($cartoesCredito)
+        )->map(fn ($lancamentos) => LancamentoRecenteCartaoResource::collection($lancamentos)->resolve());
 
         return Inertia::render('CartaoCredito/Index', [
             'cartoesCredito' => CartaoCreditoResource::collection($cartoesCredito)->resolve(),
+            'lancamentosRecentesPorCartao' => (object) $lancamentosRecentesPorCartao->all(),
             'bandeiras' => BandeiraCartaoCredito::opcoesParaSelect(),
-            'bancosSugeridos' => BancosSugeridos::todos(),
+            'acabamentos' => AcabamentoVisual::opcoesParaSelect(),
+            'bancosSugeridos' => BancosSugeridos::modelosRapidos(),
         ]);
+    }
+
+    public function definirCartaoCreditoPadrao(CartaoCredito $cartaoCredito): RedirectResponse
+    {
+        $this->authorize('update', $cartaoCredito);
+
+        try {
+            DB::beginTransaction();
+            $this->cartaoCreditoService->definirCartaoCreditoPadrao($cartaoCredito, (int) Auth::id());
+            DB::commit();
+
+            return redirect()
+                ->route('cartoes-credito.index')
+                ->with('sucesso', 'Cartão definido como padrão.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            $this->rethrowIfAuthorization($e);
+
+            return redirect()
+                ->route('cartoes-credito.index')
+                ->with('erro', 'Erro ao definir o cartão padrão.');
+        }
     }
 
     public function criarCartaoCredito(CriarCartaoCreditoRequest $request): RedirectResponse

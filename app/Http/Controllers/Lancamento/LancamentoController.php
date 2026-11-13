@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Lancamento;
 
-use App\Enum\FormaPagamento;
 use App\Enum\FrequenciaRecorrencia;
 use App\Enum\SituacaoLancamento;
-use App\Enum\TipoLancamento;
 use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lancamento\AtualizarLancamentoRequest;
 use App\Http\Requests\Lancamento\ConfirmarReceitaRequest;
 use App\Http\Requests\Lancamento\CriarLancamentoRequest;
+use App\Http\Requests\Lancamento\ListarLancamentosRequest;
 use App\Http\Resources\CartaoCredito\CartaoCreditoResource;
 use App\Http\Resources\Categoria\CategoriaResource;
 use App\Http\Resources\ContaBancaria\ContaBancariaResource;
@@ -42,7 +41,7 @@ class LancamentoController extends Controller
         private readonly CategoriaService $categoriaService,
     ) {}
 
-    public function index(Request $request, ?int $ano = null, ?int $mes = null): Response
+    public function index(ListarLancamentosRequest $request, ?int $ano = null, ?int $mes = null): Response
     {
         $this->authorize('viewAny', Lancamento::class);
 
@@ -55,10 +54,14 @@ class LancamentoController extends Controller
         }
 
         $idUsuario = (int) Auth::id();
-        $filtros = $request->only(['tipo', 'situacao', 'id_categoria']);
+        $filtros = array_filter(
+            $request->safe()->only(['tipo', 'status', 'situacao', 'id_categoria', 'busca']),
+            fn ($valor) => $valor !== null && $valor !== ''
+        );
 
         $paginator = $this->lancamentoService->listarDoMes($idUsuario, $ano, $mes, $filtros, 20);
         $totais = $this->lancamentoService->totaisDoMes($idUsuario, $ano, $mes);
+        $contadoresPorTipo = $this->lancamentoService->contarPorTipoDoMes($idUsuario, $ano, $mes, $filtros);
 
         $contas = $this->contaBancariaService->listarPorUsuario($idUsuario)
             ->filter(fn ($c) => $c->arquivada?->value !== 'S');
@@ -82,16 +85,17 @@ class LancamentoController extends Controller
                 ],
             ],
             'totais' => $totais,
+            'contadoresPorTipo' => $contadoresPorTipo,
             'filtros' => [
                 'tipo' => $filtros['tipo'] ?? null,
+                'status' => $filtros['status'] ?? null,
                 'situacao' => $filtros['situacao'] ?? null,
                 'id_categoria' => $filtros['id_categoria'] ?? null,
+                'busca' => $filtros['busca'] ?? null,
             ],
             'contasBancarias' => ContaBancariaResource::collection($contas)->resolve(),
             'cartoesCredito' => CartaoCreditoResource::collection($cartoes)->resolve(),
             'categorias' => CategoriaResource::collection($categorias)->resolve(),
-            'tipos' => TipoLancamento::opcoesParaSelect(),
-            'formasPagamento' => FormaPagamento::opcoesParaSelect(),
             'situacoes' => SituacaoLancamento::opcoesParaSelect(),
             'frequencias' => FrequenciaRecorrencia::opcoesParaSelect(),
             'urlCriar' => route('lancamentos.criar'),

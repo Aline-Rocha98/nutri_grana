@@ -7,10 +7,11 @@ use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Renda\AtualizarRendaRequest;
 use App\Http\Requests\Renda\CriarRendaRequest;
-use App\Http\Resources\ContaBancaria\ContaBancariaResource;
+use App\Http\Resources\PlanoFinanceiro\PlanoFinanceiroResource;
 use App\Http\Resources\Renda\RendaResource;
 use App\Models\Renda\Renda;
-use App\Services\ContaBancaria\ContaBancariaService;
+use App\Repositories\ContaBancaria\ContaBancariaRepository;
+use App\Services\PlanoFinanceiro\PlanoFinanceiroService;
 use App\Services\Renda\RendaService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -28,7 +29,8 @@ class RendaController extends Controller
 
     public function __construct(
         private readonly RendaService $rendaService,
-        private readonly ContaBancariaService $contaBancariaService,
+        private readonly ContaBancariaRepository $contaBancariaRepository,
+        private readonly PlanoFinanceiroService $planoFinanceiroService,
     ) {}
 
     public function index(): Response
@@ -37,14 +39,23 @@ class RendaController extends Controller
 
         $idUsuario = (int) Auth::id();
         $rendas = $this->rendaService->listarDoUsuario($idUsuario);
-        $contas = $this->contaBancariaService->listarPorUsuario($idUsuario)
-            ->filter(fn ($conta) => $conta->arquivada?->value !== 'S');
+        $contasBancarias = $this->contaBancariaRepository->listarOpcoesAtivasDoUsuario($idUsuario)
+            ->map(fn ($conta) => [
+                'id' => $conta->id_conta_bancaria,
+                'nome' => $conta->nome,
+            ])
+            ->values();
 
         return Inertia::render('Renda/Index', [
             'rendas' => RendaResource::collection($rendas)->resolve(),
-            'contasBancarias' => ContaBancariaResource::collection($contas)->resolve(),
+            'capacidadeFinanceiraGeral' => $this->rendaService->montarCapacidadeFinanceiraGeral($rendas),
+            'contasBancarias' => $contasBancarias,
+            'planosFinanceiros' => PlanoFinanceiroResource::collection(
+                $this->planoFinanceiroService->listarPlanosAtivosParaSelecao($idUsuario)
+            )->resolve(),
             'frequencias' => FrequenciaRecorrencia::opcoesParaSelect(),
             'urlCriar' => route('rendas.criar'),
+            'urlPlanosFinanceiros' => route('planos-financeiros.index'),
         ]);
     }
 

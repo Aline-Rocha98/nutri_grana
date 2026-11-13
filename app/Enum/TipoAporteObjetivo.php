@@ -6,23 +6,14 @@ enum TipoAporteObjetivo: string
 {
     case Manual = 'manual';
     case ContaBancaria = 'conta_bancaria';
+    case DestinacaoRenda = 'destinacao_renda';
 
     public function rotulo(): string
     {
         return match ($this) {
             self::Manual => 'Aporte manual',
             self::ContaBancaria => 'Retirada de conta bancária',
+            self::DestinacaoRenda => 'Plano financeiro da renda',
         };
-    }
-
-    public static function opcoesParaSelect(): array
-    {
-        return array_map(
-            fn (self $tipo) => [
-                'valor' => $tipo->value,
-                'rotulo' => $tipo->rotulo(),
-            ],
-            self::cases()
-        );
     }
 }

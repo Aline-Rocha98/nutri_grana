@@ -2,6 +2,7 @@
 
 namespace App\Services\Dashboard;
 
+use App\Data\BancosSugeridos;
 use App\Enum\PeriodoDashboard;
 use App\Enum\TipoOrcamento;
 use App\Enum\WidgetDashboard;
@@ -15,11 +16,16 @@ use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Objetivo\ObjetivoService;
 use App\Services\Renda\RendaGeracaoService;
 use App\Support\Dashboard\DashboardCache;
+use App\Support\Data\FormatarDia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
+    private ?array $contasCarregadas = null;
+
+    private ?array $cartoesCarregados = null;
+
     public function __construct(
         private readonly LancamentoRepository $lancamentoRepository,
         private readonly ContaBancariaRepository $contaBancariaRepository,
@@ -31,8 +37,7 @@ class DashboardService
         private readonly RendaGeracaoService $rendaGeracaoService,
     ) {}
 
-    
-    public function obterDados(int $idUsuario, array $widgets, PeriodoDashboard $periodo = PeriodoDashboard::Atual,?Carbon $referencia = null): array 
+    public function obterDados(int $idUsuario, array $widgets, PeriodoDashboard $periodo = PeriodoDashboard::Atual, ?Carbon $referencia = null): array
     {
         $referencia = $referencia ?? Carbon::today();
         $ano = (int) $referencia->year;
@@ -51,6 +56,9 @@ class DashboardService
             $ano,
             $mes,
         ): array {
+            $this->contasCarregadas = null;
+            $this->cartoesCarregados = null;
+
             $this->gerarLancamentosNecessarios($idUsuario, $widgetsUnicos, $periodo, $referencia);
 
             $payload = [
@@ -83,9 +91,10 @@ class DashboardService
         });
     }
 
-    private function gerarLancamentosNecessarios(int $idUsuario, array $widgets, PeriodoDashboard $periodo, Carbon $referencia): void 
+    private function gerarLancamentosNecessarios(int $idUsuario, array $widgets, PeriodoDashboard $periodo, Carbon $referencia): void
     {
         $meses = [];
+        $exibeReceitasDespesas = in_array(WidgetDashboard::ReceitasDespesas->value, $widgets, true);
 
         $precisaMesAtual = (bool) array_intersect($widgets, [
             WidgetDashboard::Resumo->value,
@@ -97,16 +106,11 @@ class DashboardService
             $meses[] = $referencia->copy()->startOfMonth();
         }
 
-        if (in_array(WidgetDashboard::Resumo->value, $widgets, true)
-            || ($periodo === PeriodoDashboard::Anterior && in_array(WidgetDashboard::ReceitasDespesas->value, $widgets, true))
-            || ($periodo === PeriodoDashboard::TresMeses && in_array(WidgetDashboard::ReceitasDespesas->value, $widgets, true))
-        ) {
+        if ($exibeReceitasDespesas && $periodo !== PeriodoDashboard::Atual) {
             $meses[] = $referencia->copy()->subMonthNoOverflow()->startOfMonth();
         }
 
-        if ($periodo === PeriodoDashboard::TresMeses
-            && in_array(WidgetDashboard::ReceitasDespesas->value, $widgets, true)
-        ) {
+        if ($exibeReceitasDespesas && $periodo === PeriodoDashboard::TresMeses) {
             $meses[] = $referencia->copy()->subMonthsNoOverflow(2)->startOfMonth();
         }
 
@@ -126,75 +130,112 @@ class DashboardService
 
     private function montarResumo(int $idUsuario, Carbon $referencia): array
     {
-        $atual = $this->totaisAgregados($idUsuario, (int) $referencia->year, (int) $referencia->month);
-        $anteriorRef = $referencia->copy()->subMonthNoOverflow();
-        $anterior = $this->totaisAgregados(
-            $idUsuario,
-            (int) $anteriorRef->year,
-            (int) $anteriorRef->month,
-        );
+        $contas = collect($this->obterContasDoUsuario($idUsuario));
+        $cartoes = collect($this->obterCartoesDoUsuario($idUsuario, $referencia));
+
+        $dinheiroDisponivel = round((float) $contas->sum('saldo_disponivel_numero'), 2);
+        $dinheiroGuardado = round((float) $contas->sum('saldo_guardado_numero'), 2);
+        $limiteTotalConfigurado = round((float) $cartoes->sum('limite_total_numero'), 2);
+        $limiteLivre = round((float) $cartoes->sum('limite_disponivel_numero'), 2);
+        $faturasEmAberto = round((float) $cartoes->sum('fatura_atual_numero'), 2);
+        $percentualLivre = $limiteTotalConfigurado > 0
+            ? round(($limiteLivre / $limiteTotalConfigurado) * 100, 1)
+            : 0.0;
 
         return [
-            'receitas_recebidas' => $this->moeda($atual['receitas_pagas']),
-            'despesas_pagas' => $this->moeda($atual['despesas_pagas']),
-            'saldo' => $this->moeda($atual['saldo_efetivado']),
-            'receitas_previstas' => $this->moeda($atual['receitas']),
-            'despesas_previstas' => $this->moeda($atual['despesas']),
-            'saldo_previsto' => $this->moeda($atual['saldo']),
-            'comparacao' => [
-                'mes_anterior_rotulo' => $this->rotuloMes($anteriorRef),
-                'receitas_recebidas' => $this->variacao($atual['receitas_pagas'], $anterior['receitas_pagas']),
-                'despesas_pagas' => $this->variacao($atual['despesas_pagas'], $anterior['despesas_pagas']),
-                'saldo' => $this->variacao($atual['saldo_efetivado'], $anterior['saldo_efetivado']),
-            ],
-            'numeros' => [
-                'receitas_recebidas' => $atual['receitas_pagas'],
-                'despesas_pagas' => $atual['despesas_pagas'],
-                'saldo' => $atual['saldo_efetivado'],
-                'receitas_previstas' => $atual['receitas'],
-                'despesas_previstas' => $atual['despesas'],
-                'saldo_previsto' => $atual['saldo'],
-            ],
+            'dinheiro_disponivel' => $this->moeda($dinheiroDisponivel),
+            'dinheiro_disponivel_numero' => $dinheiroDisponivel,
+            'dinheiro_guardado' => $this->moeda($dinheiroGuardado),
+            'dinheiro_guardado_numero' => $dinheiroGuardado,
+            'limite_livre_cartoes' => $this->moeda($limiteLivre),
+            'limite_livre_cartoes_numero' => $limiteLivre,
+            'limite_total_configurado' => $this->moeda($limiteTotalConfigurado),
+            'limite_total_configurado_numero' => $limiteTotalConfigurado,
+            'percentual_livre' => $percentualLivre,
+            'faturas_em_aberto' => $this->moeda($faturasEmAberto),
+            'faturas_em_aberto_numero' => $faturasEmAberto,
+            'proximo_dia_vencimento' => $this->proximoDiaVencimento($cartoes->all(), $referencia),
         ];
     }
 
-    private function totaisAgregados(int $idUsuario, int $ano, int $mes): array
+    private function proximoDiaVencimento(array $cartoes, Carbon $referencia): ?string
     {
-        $totais = $this->lancamentoRepository->totaisDoMes($idUsuario, $ano, $mes);
-        $totais['saldo_efetivado'] = round(
-            (float) $totais['receitas_pagas'] - (float) $totais['despesas_pagas'],
-            2,
-        );
+        $cartoesComFatura = array_filter($cartoes, fn (array $cartao) => $cartao['fatura_atual_numero'] > 0);
+        $candidatos = $cartoesComFatura ?: $cartoes;
 
-        return $totais;
+        $proximaData = null;
+
+        foreach ($candidatos as $cartao) {
+            $dia = (int) $cartao['dia_vencimento'];
+            if ($dia <= 0) {
+                continue;
+            }
+
+            $data = $referencia->copy()->startOfMonth()->day(min($dia, $referencia->daysInMonth));
+            if ($data->lt($referencia->copy()->startOfDay())) {
+                $proximoMes = $referencia->copy()->startOfMonth()->addMonthNoOverflow();
+                $data = $proximoMes->day(min($dia, $proximoMes->daysInMonth));
+            }
+
+            if ($proximaData === null || $data->lt($proximaData)) {
+                $proximaData = $data;
+            }
+        }
+
+        return $proximaData ? FormatarDia::pad($proximaData->day) : null;
     }
 
     private function montarContas(int $idUsuario): array
     {
-        $contas = $this->contaBancariaRepository->listarParaDashboard($idUsuario);
-        $itens = $contas->map(fn ($conta) => [
-            'id' => (int) $conta->id_conta_bancaria,
-            'nome' => $conta->nome,
-            'saldo' => $this->moeda((float) ($conta->saldo_atual ?? 0)),
-            'saldo_numero' => round((float) ($conta->saldo_atual ?? 0), 2),
-        ])->values()->all();
-
-        $total = round(collect($itens)->sum('saldo_numero'), 2);
+        $itens = $this->obterContasDoUsuario($idUsuario);
+        $total = round((float) collect($itens)->sum('saldo_disponivel_numero'), 2);
 
         return [
             'itens' => $itens,
             'total' => [
-                'saldo' => $this->moeda($total),
-                'saldo_numero' => $total,
+                'saldo_disponivel' => $this->moeda($total),
+                'saldo_disponivel_numero' => $total,
             ],
         ];
     }
 
+    private function obterContasDoUsuario(int $idUsuario): array
+    {
+        return $this->contasCarregadas ??= $this->contaBancariaRepository
+            ->listarParaDashboard($idUsuario)
+            ->map(function ($conta) {
+                $saldoDisponivel = round((float) ($conta->saldo_disponivel ?? 0), 2);
+                $saldoGuardado = round((float) ($conta->saldo_guardado ?? 0), 2);
+
+                return [
+                    'id' => (int) $conta->id_conta_bancaria,
+                    'nome' => $conta->nome,
+                    'tipo' => $conta->tipo?->value,
+                    'tipo_rotulo' => $conta->tipo?->rotulo(),
+                    'logo' => BancosSugeridos::logoPorNome($conta->nome),
+                    'saldo_disponivel' => $this->moeda($saldoDisponivel),
+                    'saldo_disponivel_numero' => $saldoDisponivel,
+                    'saldo_guardado_numero' => $saldoGuardado,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     private function montarCartoes(int $idUsuario, Carbon $referencia): array
     {
+        return ['itens' => $this->obterCartoesDoUsuario($idUsuario, $referencia)];
+    }
+
+    private function obterCartoesDoUsuario(int $idUsuario, Carbon $referencia): array
+    {
+        if ($this->cartoesCarregados !== null) {
+            return $this->cartoesCarregados;
+        }
+
         $proximo = $referencia->copy()->addMonthNoOverflow();
 
-        $itens = $this->cartaoCreditoRepository
+        return $this->cartoesCarregados = $this->cartaoCreditoRepository
             ->listarParaDashboard($idUsuario)
             ->map(function ($cartao) use ($referencia, $proximo) {
                 $idCartao = (int) $cartao->id_cartao_credito;
@@ -212,6 +253,11 @@ class DashboardService
                 return [
                     'id' => $idCartao,
                     'nome' => $cartao->nome,
+                    'bandeira' => $cartao->bandeira?->value,
+                    'bandeira_rotulo' => $cartao->bandeira?->rotulo(),
+                    'logo' => BancosSugeridos::logoPorNome($cartao->nome),
+                    'dia_vencimento' => (int) $cartao->dia_vencimento,
+                    'dia_vencimento_formatado' => FormatarDia::pad($cartao->dia_vencimento),
                     'limite_total' => $this->moeda((float) $cartao->limite_total),
                     'limite_total_numero' => round((float) $cartao->limite_total, 2),
                     'limite_usado' => $this->moeda((float) $cartao->limite_usado),
@@ -219,16 +265,14 @@ class DashboardService
                     'limite_disponivel' => $this->moeda((float) $cartao->limite_disponivel),
                     'limite_disponivel_numero' => round((float) $cartao->limite_disponivel, 2),
                     'percentual_utilizado' => (float) $cartao->percentual_utilizado,
-                    'fatura_atual' => $this->moeda($faturaAtual),
-                    'fatura_atual_numero' => $faturaAtual,
-                    'fatura_proxima' => $this->moeda($faturaProxima),
-                    'fatura_proxima_numero' => $faturaProxima,
+                    'fatura_atual' => $this->moeda((float) $faturaAtual),
+                    'fatura_atual_numero' => round((float) $faturaAtual, 2),
+                    'fatura_proxima' => $this->moeda((float) $faturaProxima),
+                    'fatura_proxima_numero' => round((float) $faturaProxima, 2),
                 ];
             })
             ->values()
             ->all();
-
-        return ['itens' => $itens];
     }
 
     private function montarCategorias(int $idUsuario, Carbon $referencia): array
@@ -243,11 +287,14 @@ class DashboardService
             ->listarPorUsuario($idUsuario, TipoOrcamento::PorCategoria)
             ->keyBy(fn (Orcamento $orcamento) => (int) $orcamento->id_categoria);
 
-        $itens = $despesas->map(function (object $linha) use ($limites) {
+        $total = round((float) $despesas->sum('valor'), 2);
+
+        $itens = $despesas->map(function (object $linha) use ($limites, $total) {
+            $valor = (float) $linha->valor;
             $orcamento = $limites->get($linha->id_categoria);
             $limite = $orcamento ? (float) $orcamento->valor_mensal : null;
             $percentual = ($limite !== null && $limite > 0)
-                ? round(($linha->valor / $limite) * 100, 1)
+                ? round(($valor / $limite) * 100, 1)
                 : null;
 
             return [
@@ -255,20 +302,24 @@ class DashboardService
                 'nome' => $linha->nome,
                 'cor' => $linha->cor,
                 'icone' => $linha->icone,
-                'valor' => $this->moeda($linha->valor),
-                'valor_numero' => $linha->valor,
+                'valor' => $this->moeda($valor),
+                'valor_numero' => $valor,
+                'percentual_participacao' => $this->percentualDe($valor, $total),
                 'limite' => $limite !== null ? $this->moeda($limite) : null,
                 'limite_numero' => $limite,
                 'percentual' => $percentual,
-                'percentual_barra' => $percentual !== null ? min(100, $percentual) : null,
                 'ultrapassado' => $percentual !== null && $percentual > 100,
             ];
         })->values()->all();
 
-        return ['itens' => $itens];
+        return [
+            'itens' => $itens,
+            'total' => $this->moeda($total),
+            'total_numero' => $total,
+        ];
     }
 
-    private function montarReceitasDespesas(int $idUsuario, PeriodoDashboard $periodo, Carbon $referencia): array 
+    private function montarReceitasDespesas(int $idUsuario, PeriodoDashboard $periodo, Carbon $referencia): array
     {
         $meses = match ($periodo) {
             PeriodoDashboard::Atual => [$referencia->copy()->startOfMonth()],
@@ -298,7 +349,32 @@ class DashboardService
             ];
         }
 
-        return ['series' => $series];
+        return [
+            'series' => $series,
+            'totais' => $this->totaisDoPeriodo($series),
+        ];
+    }
+
+    private function totaisDoPeriodo(array $series): array
+    {
+        $receitas = round((float) array_sum(array_column($series, 'receitas')), 2);
+        $despesas = round((float) array_sum(array_column($series, 'despesas')), 2);
+        $saldoPoupado = round($receitas - $despesas, 2);
+
+        $percentualComprometido = $receitas > 0
+            ? $this->percentualDe($despesas, $receitas)
+            : ($despesas > 0 ? 100.0 : 0.0);
+
+        return [
+            'receitas' => $this->moeda($receitas),
+            'receitas_numero' => $receitas,
+            'despesas' => $this->moeda($despesas),
+            'despesas_numero' => $despesas,
+            'saldo_poupado' => $this->moeda(abs($saldoPoupado)),
+            'saldo_poupado_numero' => $saldoPoupado,
+            'percentual_comprometido' => $percentualComprometido,
+            'percentual_guardado' => $this->percentualDe(max(0, $saldoPoupado), $receitas),
+        ];
     }
 
     private function montarMetas(int $idUsuario): array
@@ -313,36 +389,23 @@ class DashboardService
                 'valor_guardado' => $this->moeda((float) ($objetivo->valor_guardado ?? 0)),
                 'valor_guardado_numero' => round((float) ($objetivo->valor_guardado ?? 0), 2),
                 'percentual_atual' => (float) ($objetivo->percentual_atual ?? 0),
+                'deposito_mensal_sugerido' => $this->moeda((float) ($objetivo->deposito_mensal_sugerido ?? 0)),
+                'deposito_mensal_sugerido_numero' => round((float) ($objetivo->deposito_mensal_sugerido ?? 0), 2),
                 'situacao_ritmo' => $objetivo->situacao_ritmo ?? null,
                 'situacao_ritmo_rotulo' => $objetivo->situacao_ritmo_rotulo ?? null,
             ])
             ->values()
             ->all();
 
-        return ['itens' => $itens];
+        return [
+            'itens' => $itens,
+            'total_objetivos' => count($itens),
+        ];
     }
 
-    private function variacao(float $atual, float $anterior): array
+    private function percentualDe(float $parte, float $total): float
     {
-        $diferenca = round($atual - $anterior, 2);
-        $percentual = abs($anterior) > 0.0001
-            ? round(($diferenca / abs($anterior)) * 100, 1)
-            : ($atual > 0 ? 100.0 : ($atual < 0 ? -100.0 : 0.0));
-
-        $direcao = match (true) {
-            $diferenca > 0 => 'alta',
-            $diferenca < 0 => 'baixa',
-            default => 'igual',
-        };
-
-        return [
-            'valor_anterior' => round($anterior, 2),
-            'valor_anterior_formatado' => $this->moeda($anterior),
-            'diferenca' => $diferenca,
-            'diferenca_formatada' => $this->moeda(abs($diferenca)),
-            'percentual' => $percentual,
-            'direcao' => $direcao,
-        ];
+        return $total > 0 ? round(($parte / $total) * 100, 1) : 0.0;
     }
 
     private function moeda(float $valor): string

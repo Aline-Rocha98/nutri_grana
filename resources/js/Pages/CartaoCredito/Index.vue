@@ -3,14 +3,31 @@ import { computed, ref, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
+import CabecalhoSecao from '@/Components/Ui/CabecalhoSecao.vue';
+import CardAdicionarPlaceholder from '@/Components/Ui/CardAdicionarPlaceholder.vue';
+import ListaInformacoes from '@/Components/Ui/ListaInformacoes.vue';
+import ListaLancamentos from '@/Components/Ui/ListaLancamentos.vue';
+import CartaoCreditoResumo from '@/Components/CartaoCredito/CartaoCreditoResumo.vue';
+import CartaoCreditoVisual from '@/Components/CartaoCredito/CartaoCreditoVisual.vue';
 import FormularioModal from '@/Pages/CartaoCredito/FormularioModal.vue';
+import { varianteSituacaoFatura } from '@/Helpers/badge';
+import { calcularMelhorDiaCompra } from '@/Helpers/cicloFatura';
+import { formatarDia } from '@/Helpers/formatarDia';
 
 const props = defineProps({
     cartoesCredito: {
         type: Array,
         default: () => [],
     },
+    lancamentosRecentesPorCartao: {
+        type: Object,
+        default: () => ({}),
+    },
     bandeiras: {
+        type: Array,
+        default: () => [],
+    },
+    acabamentos: {
         type: Array,
         default: () => [],
     },
@@ -26,6 +43,9 @@ const cartaoEmEdicao = ref(null);
 const modalExclusaoAberto = ref(false);
 const cartaoParaExcluir = ref(null);
 const excluindo = ref(false);
+const idCartaoEmFoco = ref(null);
+const exibirTodosCartoes = ref(false);
+const arquivadosVisiveis = ref(false);
 
 watch(
     () => pagina.props.errors,
@@ -37,17 +57,104 @@ watch(
     { deep: true, immediate: true },
 );
 
+const nomeUsuarioLogado = computed(() => pagina.props.auth?.usuario?.nome ?? '');
 const cartoesAtivos = computed(() => props.cartoesCredito.filter((cartao) => cartao.arquivada !== 'S'));
 const cartoesArquivados = computed(() => props.cartoesCredito.filter((cartao) => cartao.arquivada === 'S'));
-const limiteGeral = computed(() =>
-    cartoesAtivos.value.reduce((total, cartao) => total + Number(cartao.limite_total_numero || 0), 0),
+
+const cartaoEmFoco = computed(() =>
+    cartoesAtivos.value.find((cartao) => cartao.id === idCartaoEmFoco.value)
+    ?? cartoesAtivos.value.find((cartao) => cartao.padrao === 'S')
+    ?? cartoesAtivos.value[0]
+    ?? null,
 );
 
-function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+const nomesCartoesPorId = computed(() =>
+    Object.fromEntries(props.cartoesCredito.map((cartao) => [cartao.id, cartao.nome])),
+);
+
+const lancamentosDaVisao = computed(() => {
+    if (exibirTodosCartoes.value) {
+        return cartoesAtivos.value
+            .flatMap((cartao) => props.lancamentosRecentesPorCartao[cartao.id] ?? [])
+            .sort((primeiro, segundo) => (segundo.data_vencimento ?? '').localeCompare(primeiro.data_vencimento ?? ''));
+    }
+
+    if (!cartaoEmFoco.value) {
+        return [];
+    }
+
+    return props.lancamentosRecentesPorCartao[cartaoEmFoco.value.id] ?? [];
+});
+
+const lancamentosExibidos = computed(() =>
+    lancamentosDaVisao.value.map((lancamento) => ({
+        chave: lancamento.id,
+        descricao: lancamento.descricao,
+        subtitulo: [
+            lancamento.categoria_nome,
+            exibirTodosCartoes.value ? nomesCartoesPorId.value[lancamento.id_cartao_credito] : null,
+            lancamento.data_vencimento_formatada,
+        ].filter(Boolean).join(' · '),
+        valor: lancamento.valor,
+        icone: lancamento.categoria_icone ?? undefined,
+        cor: lancamento.categoria_cor ?? undefined,
+        etiqueta: lancamento.eh_parcelado ? `${lancamento.parcela_atual}/${lancamento.total_parcelas}` : '',
+        badgeTexto: `Fatura ${lancamento.situacao_fatura_rotulo}`,
+        badgeVariante: varianteSituacaoFatura(lancamento.situacao_fatura),
+        negativo: true,
+    })),
+);
+
+const tituloLancamentos = computed(() => {
+    if (exibirTodosCartoes.value || !cartaoEmFoco.value) {
+        return 'Lançamentos Recentes (Todos os cartões)';
+    }
+
+    return `Lançamentos Recentes (${cartaoEmFoco.value.nome})`;
+});
+
+const itensInformacoesConta = computed(() => {
+    const cartao = cartaoEmFoco.value;
+
+    if (!cartao) {
+        return [];
+    }
+
+    return [
+        {
+            chave: 'status',
+            rotulo: 'Status da Conta',
+            valor: 'Ativo e liberado',
+            indicador: 'bg-ng-brand',
+            classeValor: 'text-xs text-ng-brand',
+            separador: true,
+        },
+        {
+            chave: 'melhor-dia',
+            rotulo: 'Melhor dia de compra',
+            valor: `Dia ${formatarDia(calcularMelhorDiaCompra(cartao.dia_fechamento))}`,
+        },
+        {
+            chave: 'vencimento',
+            rotulo: 'Vencimento da fatura',
+            valor: `Dia ${cartao.dia_vencimento_formatado}`,
+        },
+        {
+            chave: 'limite-total',
+            rotulo: 'Limite total',
+            valor: `R$ ${cartao.limite_total}`,
+            classeValor: 'font-mono text-ng-brand',
+        },
+    ];
+});
+
+function selecionarCartaoEmFoco(cartao) {
+    idCartaoEmFoco.value = cartao.id;
+    exibirTodosCartoes.value = false;
+}
+
+function alternarExibicaoTodosCartoes() {
+    exibirTodosCartoes.value = !exibirTodosCartoes.value;
 }
 
 function abrirCriar() {
@@ -63,6 +170,12 @@ function abrirEditar(cartao) {
 function fecharModal() {
     modalAberto.value = false;
     cartaoEmEdicao.value = null;
+}
+
+function definirCartaoPadrao(cartao) {
+    router.patch(cartao.url_definir_padrao, {}, {
+        preserveScroll: true,
+    });
 }
 
 function alternarArquivada(cartao) {
@@ -121,180 +234,172 @@ const mensagemExclusao = computed(() => {
 <template>
     <Head title="Cartões de crédito" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
-                    Cartões de crédito
-                </h2>
-                <button type="button"
-                    class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
-                    @click="abrirCriar"
+    <AutenticadoLayout titulo="Cartões de crédito">
+        <div class="space-y-8 p-6 lg:p-8">
+            <section class="space-y-4">
+                <CabecalhoSecao
+                    titulo="Meus Cartões de Crédito"
+                    subtitulo="Clique em um cartão para inspecionar faturas ou use o botão de edição."
                 >
-                    <span class="material-symbols-outlined text-base leading-none">add</span>
-                    Adicionar cartão
-                </button>
-            </div>
-        </template>
+                    <template #acoes>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-sm font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                            @click="abrirCriar"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            Adicionar Cartão
+                        </button>
+                    </template>
+                </CabecalhoSecao>
 
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <p class="text-sm font-medium text-ng-ink-muted">Limite total</p>
-                <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
-                    R$ {{ formatarMoeda(limiteGeral) }}
-                </p>
-            </div>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <CartaoCreditoResumo
+                        v-for="cartao in cartoesAtivos"
+                        :key="cartao.id"
+                        :nome="cartao.nome"
+                        :ultimos-digitos="cartao.ultimos_digitos ?? ''"
+                        :nome-titular="cartao.nome_titular ?? ''"
+                        :bandeira="cartao.bandeira"
+                        :bandeira-rotulo="cartao.bandeira_rotulo"
+                        :logo="cartao.logo"
+                        :limite-usado="cartao.limite_usado"
+                        :limite-total="cartao.limite_total"
+                        :limite-disponivel="cartao.limite_disponivel"
+                        :percentual-utilizado="cartao.percentual_utilizado"
+                        :dia-fechamento="cartao.dia_fechamento_formatado"
+                        :dia-vencimento="cartao.dia_vencimento_formatado"
+                        :padrao="cartao.padrao === 'S'"
+                        :selecionado="cartaoEmFoco?.id === cartao.id"
+                        :pode-excluir="cartao.pode_excluir"
+                        @selecionar="selecionarCartaoEmFoco(cartao)"
+                        @editar="abrirEditar(cartao)"
+                        @arquivar="alternarArquivada(cartao)"
+                        @excluir="pedirExclusao(cartao)"
+                        @definir-padrao="definirCartaoPadrao(cartao)"
+                    />
 
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Meus cartões</h3>
+                    <CardAdicionarPlaceholder
+                        titulo="Novo Cartão"
+                        descricao="Adicione limites e datas"
+                        @click="abrirCriar"
+                    />
+                </div>
+            </section>
+
+            <section v-if="cartaoEmFoco" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="space-y-4">
+                    <CabecalhoSecao titulo="Cartão em Foco">
+                        <template #acoes>
+                            <button
+                                type="button"
+                                class="text-xs font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                                @click="abrirEditar(cartaoEmFoco)"
+                            >
+                                Editar Dados
+                            </button>
+                        </template>
+                    </CabecalhoSecao>
+
+                    <CartaoCreditoVisual
+                        :nome="cartaoEmFoco.nome"
+                        :nome-titular="cartaoEmFoco.nome_titular ?? ''"
+                        :ultimos-digitos="cartaoEmFoco.ultimos_digitos ?? ''"
+                        :bandeira="cartaoEmFoco.bandeira"
+                        :limite="cartaoEmFoco.limite_total"
+                        :dia-fechamento="cartaoEmFoco.dia_fechamento_formatado"
+                        :dia-vencimento="cartaoEmFoco.dia_vencimento_formatado"
+                        :cor-acabamento="cartaoEmFoco.acabamento_cor"
+                    />
+
+                    <div class="ng-card p-5">
+                        <ListaInformacoes :itens="itensInformacoesConta" />
+                    </div>
                 </div>
 
-                <div class="divide-y divide-ng-line">
-                    <div v-for="cartao in cartoesAtivos"
-                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
+                <div class="space-y-4 lg:col-span-2">
+                    <CabecalhoSecao
+                        :titulo="tituloLancamentos"
+                        subtitulo="Histórico de compras e débitos na fatura atual."
                     >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
-                            <img
-                                v-if="cartao.logo"
-                                :src="cartao.logo"
-                                :alt="cartao.nome"
-                                class="h-full w-full object-cover"
-                            >
-                            <span v-else class="material-symbols-outlined text-[22px]">credit_card</span>
-                        </div>
-
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <p class="truncate font-semibold text-ng-ink">{{ cartao.nome }}</p>
-                                <span v-if="cartao.padrao === 'S'"
-                                    class="shrink-0 rounded-md bg-ng-brand-soft px-1.5 py-0.5 text-[10px] tracking-wide text-[#1fa67e]"
-                                >
-                                    Padrão
-                                </span>
-                            </div>
-                            <p class="text-sm text-ng-ink-muted">
-                                {{ cartao.bandeira_rotulo }}
-                                · Fecha dia {{ cartao.dia_fechamento_formatado }}
-                                · Vence dia {{ cartao.dia_vencimento_formatado }}
-                            </p>
-                        </div>
-
-                        <div class="text-right shrink-0">
-                            <p class="font-semibold text-[#1fa67e]">
-                                R$ {{ cartao.limite_total }}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-1 shrink-0">
+                        <template #acoes>
                             <a
-                                :href="cartao.url_faturas"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                title="Faturas"
+                                v-if="!exibirTodosCartoes"
+                                :href="cartaoEmFoco.url_faturas"
+                                class="rounded-lg px-3 py-1.5 text-xs font-medium text-ng-ink-muted transition hover:text-ng-ink"
                             >
-                                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+                                Ver faturas
                             </a>
-
-                            <button type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                title="Editar" @click="abrirEditar(cartao)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
-
-                            <button type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                :title="cartao.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
-                                @click="alternarArquivada(cartao)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">
-                                    {{ cartao.arquivada === 'S' ? 'unarchive' : 'archive' }}
-                                </span>
-                            </button>
-
                             <button
-                                v-if="!cartao.pode_excluir"
                                 type="button"
-                                class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
-                                title="Dê baixa na fatura antes de excluir"
-                                disabled
+                                class="rounded-lg border border-ng-line-strong bg-ng-card-muted px-3 py-1.5 text-xs font-medium text-ng-ink-secondary transition hover:border-ng-brand hover:text-ng-ink"
+                                @click="alternarExibicaoTodosCartoes"
                             >
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
+                                {{ exibirTodosCartoes ? 'Somente cartão em foco' : 'Todos os cartões' }}
                             </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
-                                title="Excluir"
-                                @click="pedirExclusao(cartao)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                        </div>
-                    </div>
+                        </template>
+                    </CabecalhoSecao>
 
-                    <div v-if="cartoesAtivos.length === 0"
-                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
-                    >
-                        Nenhum cartão cadastrado. Clique em <strong>Adicionar cartão</strong> para começar.
-                    </div>
+                    <ListaLancamentos
+                        :itens="lancamentosExibidos"
+                        mensagem-vazia="Nenhum lançamento em aberto para exibir."
+                    />
                 </div>
-            </div>
+            </section>
 
-            <div v-if="cartoesArquivados.length > 0"
-                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
-            >
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Arquivados</h3>
+            <section v-if="cartoesArquivados.length > 0" class="space-y-4">
+                <CabecalhoSecao
+                    titulo="Arquivados"
+                    :subtitulo="`${cartoesArquivados.length} cartão(ões) fora de uso.`"
+                >
+                    <template #acoes>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-ng-ink-muted transition hover:text-ng-ink"
+                            @click="arquivadosVisiveis = !arquivadosVisiveis"
+                        >
+                            {{ arquivadosVisiveis ? 'Ocultar' : 'Mostrar' }}
+                            <span class="material-symbols-outlined text-[18px]">
+                                {{ arquivadosVisiveis ? 'expand_less' : 'expand_more' }}
+                            </span>
+                        </button>
+                    </template>
+                </CabecalhoSecao>
+
+                <div v-show="arquivadosVisiveis" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <CartaoCreditoResumo
+                        v-for="cartao in cartoesArquivados"
+                        :key="cartao.id"
+                        :nome="cartao.nome"
+                        :ultimos-digitos="cartao.ultimos_digitos ?? ''"
+                        :nome-titular="cartao.nome_titular ?? ''"
+                        :bandeira="cartao.bandeira"
+                        :bandeira-rotulo="cartao.bandeira_rotulo"
+                        :logo="cartao.logo"
+                        :limite-usado="cartao.limite_usado"
+                        :limite-total="cartao.limite_total"
+                        :limite-disponivel="cartao.limite_disponivel"
+                        :percentual-utilizado="cartao.percentual_utilizado"
+                        :dia-fechamento="cartao.dia_fechamento_formatado"
+                        :dia-vencimento="cartao.dia_vencimento_formatado"
+                        :pode-excluir="cartao.pode_excluir"
+                        arquivado
+                        @selecionar="abrirEditar(cartao)"
+                        @editar="abrirEditar(cartao)"
+                        @arquivar="alternarArquivada(cartao)"
+                        @excluir="pedirExclusao(cartao)"
+                    />
                 </div>
-                <div class="divide-y divide-ng-line">
-                    <div v-for="cartao in cartoesArquivados"
-                        :key="cartao.id" class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
-                    >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-brand-soft text-[#1fa67e]">
-                            <img
-                                v-if="cartao.logo"
-                                :src="cartao.logo"
-                                :alt="cartao.nome"
-                                class="h-full w-full object-cover"
-                            >
-                            <span v-else class="material-symbols-outlined text-[22px]">credit_card</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-ng-ink">{{ cartao.nome }}</p>
-                            <p class="text-sm text-ng-ink-muted">{{ cartao.bandeira_rotulo }}</p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="font-semibold text-ng-ink-muted">R$ {{ cartao.limite_total }}</p>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                title="Editar"
-                                @click="abrirEditar(cartao)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                title="Desarquivar"
-                                @click="alternarArquivada(cartao)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">unarchive</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </section>
         </div>
 
         <FormularioModal
             :aberto="modalAberto"
             :bandeiras="bandeiras"
+            :acabamentos="acabamentos"
             :bancos-sugeridos="bancosSugeridos"
             :cartao="cartaoEmEdicao"
+            :nome-titular-padrao="nomeUsuarioLogado"
             @fechar="fecharModal"
         />
 

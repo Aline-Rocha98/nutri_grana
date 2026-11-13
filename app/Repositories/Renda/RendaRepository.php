@@ -11,7 +11,12 @@ class RendaRepository
     {
         return Renda::query()
             ->where('id_usuario', $idUsuario)
-            ->with('contaBancaria')
+            ->with([
+                'contaBancaria',
+                'planoFinanceiro:id_plano_financeiro,nome',
+                'planoFinanceiro.itens.contaBancariaDestino:id_conta_bancaria,nome',
+                'planoFinanceiro.itens.objetivo:id_objetivo,descricao',
+            ])
             ->orderBy('descricao')
             ->get();
     }

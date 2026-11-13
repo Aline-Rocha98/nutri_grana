@@ -140,14 +140,14 @@
 
     .ng-header {
         background-color: var(--ng-header);
-        border: 1px solid var(--ng-line);
+        border-bottom: 1px solid var(--ng-line);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
     }
 
     .ng-sidebar {
         background-color: var(--ng-sidebar);
-        border: 1px solid var(--ng-line);
+        border-right: 1px solid var(--ng-line);
         color: #d4d4d8;
     }
 
@@ -176,6 +176,105 @@
         opacity: 0.7;
     }
 
+    .ng-label {
+        @apply block text-xs font-semibold;
+        color: var(--ng-ink-secondary);
+    }
+
+    .ng-icone-destaque {
+        @apply flex shrink-0 items-center justify-center border;
+        background-color: var(--ng-brand-soft);
+        border-color: rgba(31, 166, 126, 0.35);
+        color: var(--ng-brand);
+    }
+
+    .ng-icone-destaque--red {
+        background-color: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #f43f5e;
+    }
+
+    .ng-icone-destaque--sky {
+        background-color: rgba(14, 165, 233, 0.12);
+        border-color: rgba(14, 165, 233, 0.35);
+        color: #0ea5e9;
+    }
+
+    .ng-icone-destaque--amber {
+        background-color: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.35);
+        color: #f59e0b;
+    }
+
+    .ng-icone-destaque--zinc {
+        background-color: var(--ng-card-muted);
+        border-color: var(--ng-line-strong);
+        color: var(--ng-ink-secondary);
+    }
+
+    .ng-selecionavel {
+        @apply border transition;
+        background-color: var(--ng-card-muted);
+        border-color: var(--ng-line-strong);
+    }
+
+    .ng-selecionavel:hover {
+        border-color: var(--ng-ink-subtle);
+    }
+
+    .ng-selecionavel--ativo,
+    .ng-selecionavel--ativo:hover {
+        background-color: var(--ng-brand-soft);
+        border-color: var(--ng-brand);
+    }
+
+    .ng-selecionavel--ativo-red,
+    .ng-selecionavel--ativo-red:hover {
+        background-color: rgba(239, 68, 68, 0.12);
+        border-color: #f43f5e;
+    }
+
+    .ng-selecionavel--ativo-sky,
+    .ng-selecionavel--ativo-sky:hover {
+        background-color: rgba(14, 165, 233, 0.12);
+        border-color: #0ea5e9;
+    }
+
+    .ng-selecionavel--ativo-amber,
+    .ng-selecionavel--ativo-amber:hover {
+        background-color: rgba(245, 158, 11, 0.12);
+        border-color: #f59e0b;
+    }
+
+    .ng-selecionavel--ativo-zinc,
+    .ng-selecionavel--ativo-zinc:hover {
+        background-color: var(--ng-card-muted);
+        border-color: var(--ng-ink-subtle);
+    }
+
+    .ng-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--ng-line-strong) transparent;
+    }
+
+    .ng-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .ng-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .ng-scroll::-webkit-scrollbar-thumb {
+        background-color: var(--ng-line-strong);
+        border-radius: 9999px;
+    }
+
+    .ng-scroll::-webkit-scrollbar-thumb:hover {
+        background-color: var(--ng-ink-subtle);
+    }
+
     .ng-btn-primary {
         @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white transition disabled:opacity-60;
         background-color: var(--ng-brand);
@@ -194,6 +293,17 @@
 
     .ng-btn-ghost:hover:not(:disabled) {
         background-color: var(--ng-brand-soft);
+    }
+
+    .ng-btn-suave {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition disabled:opacity-60;
+        background-color: var(--ng-brand-soft);
+        border-color: rgba(31, 166, 126, 0.35);
+        color: var(--ng-brand);
+    }
+
+    .ng-btn-suave:hover:not(:disabled) {
+        border-color: var(--ng-brand);
     }
 
     .ng-btn-danger {

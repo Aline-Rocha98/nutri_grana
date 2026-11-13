@@ -17,7 +17,13 @@ class CriarAporteObjetivoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo' => ['required', Rule::enum(TipoAporteObjetivo::class)],
+            'tipo' => [
+                'required',
+                Rule::enum(TipoAporteObjetivo::class)->only([
+                    TipoAporteObjetivo::Manual,
+                    TipoAporteObjetivo::ContaBancaria,
+                ]),
+            ],
             'valor' => ['required', 'numeric', 'decimal:0,2', 'min:0.01'],
             'data_aporte' => ['required', 'date'],
             'id_conta_bancaria' => [

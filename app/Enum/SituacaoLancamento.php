@@ -31,6 +31,16 @@ enum SituacaoLancamento: string
         return $this === self::Pendente || $this === self::Previsto;
     }
 
+    public static function situacoesEfetivadas(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $situacao) => $situacao->estaEfetivado()));
+    }
+
+    public static function situacoesEmAberto(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $situacao) => $situacao->estaAberto()));
+    }
+
     public static function opcoesParaSelect(): array
     {
         return array_map(

@@ -2,6 +2,7 @@
 
 namespace App\Models\CartaoCredito;
 
+use App\Enum\AcabamentoVisual;
 use App\Enum\BandeiraCartaoCredito;
 use App\Enum\SimNao;
 use App\Models\Concerns\TemChaveRotaCriptografada;
@@ -20,10 +21,13 @@ class CartaoCredito extends Model
     protected $fillable = [
         'id_usuario',
         'nome',
+        'nome_titular',
         'limite_total',
         'dia_fechamento',
         'dia_vencimento',
         'bandeira',
+        'ultimos_digitos',
+        'acabamento',
         'padrao',
         'arquivada',
     ];
@@ -35,6 +39,7 @@ class CartaoCredito extends Model
             'dia_fechamento' => 'integer',
             'dia_vencimento' => 'integer',
             'bandeira' => BandeiraCartaoCredito::class,
+            'acabamento' => AcabamentoVisual::class,
             'padrao' => SimNao::class,
             'arquivada' => SimNao::class,
         ];

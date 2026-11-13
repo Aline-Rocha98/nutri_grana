@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Lancamento;
 
+use App\Http\Resources\PlanoFinanceiro\ItemPlanoFinanceiroResource;
+use App\Models\PlanoFinanceiro\PlanoFinanceiro;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,6 +48,7 @@ class LancamentoResource extends JsonResource
             'id_fatura_cartao' => $this->id_fatura_cartao,
             'situacao' => $this->situacao?->value,
             'situacao_rotulo' => $this->situacao?->rotulo(),
+            'esta_efetivado' => (bool) $this->situacao?->estaEfetivado(),
             'id_categoria' => $this->id_categoria,
             'id_categoria_principal' => $idCategoriaPrincipal,
             'id_subcategoria' => $idSubcategoria,
@@ -70,12 +73,35 @@ class LancamentoResource extends JsonResource
             'eh_parcelado' => $ehParcelado,
             'frequencia_recorrencia' => $this->frequencia_recorrencia?->value
                 ?? $pai?->frequencia_recorrencia?->value,
+            'recorrencia_ate' => ($this->recorrencia_ate ?? $pai?->recorrencia_ate)?->format('Y-m-d'),
             'url_atualizar' => route('lancamentos.atualizar', $this->resource),
             'url_excluir' => route('lancamentos.excluir', $this->resource),
             'url_situacao' => route('lancamentos.situacao', $this->resource),
             'url_confirmar_receita' => $this->id_renda
                 ? route('lancamentos.confirmar-receita', $this->resource)
                 : null,
+            'plano_financeiro_nome' => $this->montarPlanoFinanceiroDaRenda()?->nome,
+            'itens_plano_financeiro' => $this->montarItensQueSeparamDoPlanoDaRenda(),
         ];
+    }
+
+    private function montarPlanoFinanceiroDaRenda(): ?PlanoFinanceiro
+    {
+        if ($this->id_renda === null || ! $this->relationLoaded('renda') || $this->renda === null) {
+            return null;
+        }
+
+        return $this->renda->relationLoaded('planoFinanceiro') ? $this->renda->planoFinanceiro : null;
+    }
+
+    private function montarItensQueSeparamDoPlanoDaRenda(): array
+    {
+        $planoFinanceiro = $this->montarPlanoFinanceiroDaRenda();
+
+        if (! $planoFinanceiro || ! $planoFinanceiro->relationLoaded('itensQueSeparamDoSaldo')) {
+            return [];
+        }
+
+        return ItemPlanoFinanceiroResource::collection($planoFinanceiro->itensQueSeparamDoSaldo)->resolve();
     }
 }

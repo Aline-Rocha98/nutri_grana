@@ -3,7 +3,9 @@
 namespace App\Services\Objetivo;
 
 use App\Enum\SimNao;
+use App\Enum\TipoAporteObjetivo;
 use App\Models\Objetivo\Objetivo;
+use App\Repositories\Objetivo\AporteObjetivoRepository;
 use App\Repositories\Objetivo\ObjetivoRepository;
 use App\Support\Dashboard\DashboardCache;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -11,9 +13,12 @@ use Illuminate\Support\Collection;
 
 class ObjetivoService
 {
+    private const OBSERVACAO_VALOR_JA_GUARDADO = 'Valor já guardado ao criar o objetivo';
+
     public function __construct(
         private readonly ObjetivoRepository $objetivoRepository,
         private readonly CalculadoraProgressoObjetivo $calculadoraProgresso,
+        private readonly AporteObjetivoRepository $aporteObjetivoRepository,
     ) {}
 
     public function listarDoUsuario(int $idUsuario): Collection
@@ -40,7 +45,11 @@ class ObjetivoService
             'exibir_dashboard' => $dados['exibir_dashboard'] ?? SimNao::Nao,
         ]);
 
-        $objetivo->setAttribute('valor_guardado', 0);
+        $valorJaGuardado = round((float) ($dados['valor_ja_guardado'] ?? 0), 2);
+
+        $this->registrarValorJaGuardado($objetivo, $idUsuario, $valorJaGuardado);
+
+        $objetivo->setAttribute('valor_guardado', max(0, $valorJaGuardado));
 
         $resumo = $this->anexarResumo($objetivo);
 
@@ -94,6 +103,24 @@ class ObjetivoService
         }
 
         return $objetivo;
+    }
+
+    private function registrarValorJaGuardado(Objetivo $objetivo, int $idUsuario, float $valor): void
+    {
+        if ($valor <= 0) {
+            return;
+        }
+
+        $this->aporteObjetivoRepository->criar([
+            'id_objetivo' => $objetivo->id_objetivo,
+            'id_usuario' => $idUsuario,
+            'tipo' => TipoAporteObjetivo::Manual,
+            'valor' => $valor,
+            'data_aporte' => now()->toDateString(),
+            'id_conta_bancaria' => null,
+            'id_lancamento' => null,
+            'observacao' => self::OBSERVACAO_VALOR_JA_GUARDADO,
+        ]);
     }
 
     public function garantirPropriedade(Objetivo $objetivo, int $idUsuario): void

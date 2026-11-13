@@ -3,7 +3,27 @@ import { computed, ref, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
+import GrupoCategoria from '@/Components/Categoria/GrupoCategoria.vue';
+import LinhaCategoria from '@/Components/Categoria/LinhaCategoria.vue';
+import BotaoAcaoCompacto from '@/Components/Ui/BotaoAcaoCompacto.vue';
+import BotaoAdicionarInline from '@/Components/Ui/BotaoAdicionarInline.vue';
+import BotaoIcone from '@/Components/Ui/BotaoIcone.vue';
+import CabecalhoSecao from '@/Components/Ui/CabecalhoSecao.vue';
+import CampoBusca from '@/Components/Ui/CampoBusca.vue';
+import CardPainel from '@/Components/Ui/CardPainel.vue';
+import GrupoSegmentado from '@/Components/Ui/GrupoSegmentado.vue';
+import LinkAcaoPainel from '@/Components/Ui/LinkAcaoPainel.vue';
+import SecaoRecolhivel from '@/Components/Ui/SecaoRecolhivel.vue';
 import FormularioModal from '@/Pages/Categoria/FormularioModal.vue';
+import { normalizarTextoParaBusca } from '@/Helpers/texto';
+import {
+    TIPO_CATEGORIA_ENTRADA,
+    TIPO_CATEGORIA_SAIDA,
+    iconeTipoCategoria,
+    rotuloTipoCategoria,
+} from '@/Helpers/tipoCategoria';
+
+const MENSAGEM_EXCLUSAO_BLOQUEADA = 'Não é possível excluir com lançamentos vinculados. Arquive em vez disso.';
 
 const props = defineProps({
     categorias: {
@@ -21,8 +41,11 @@ const props = defineProps({
 });
 
 const pagina = usePage();
-const filtroTipo = ref('saida');
-const modalAberto = ref(false);
+const filtroTipo = ref(TIPO_CATEGORIA_SAIDA);
+const termoBusca = ref('');
+const idsCategoriasExpandidas = ref(new Set());
+const secaoArquivadasAberta = ref(false);
+const modalFormularioAberto = ref(false);
 const categoriaEmEdicao = ref(null);
 const categoriaPaiInicial = ref(null);
 const modalExclusaoAberto = ref(false);
@@ -33,61 +56,186 @@ watch(
     () => pagina.props.errors,
     (erros) => {
         if (erros && Object.keys(erros).length > 0) {
-            modalAberto.value = true;
+            modalFormularioAberto.value = true;
         }
     },
     { deep: true, immediate: true },
 );
 
+function estaArquivada(item) {
+    return item.arquivada === 'S';
+}
+
+function subcategoriasAtivasDe(categoria) {
+    return (categoria.subcategorias ?? []).filter((subcategoria) => !estaArquivada(subcategoria));
+}
+
+function contarCategoriasAtivasDoTipo(tipo) {
+    return props.categorias
+        .filter((categoria) => categoria.tipo === tipo && !estaArquivada(categoria))
+        .reduce((total, categoria) => total + 1 + subcategoriasAtivasDe(categoria).length, 0);
+}
+
+const opcoesFiltroTipo = computed(() => [TIPO_CATEGORIA_ENTRADA, TIPO_CATEGORIA_SAIDA].map((tipo) => ({
+    valor: tipo,
+    rotulo: rotuloTipoCategoria(tipo, { plural: true }),
+    icone: iconeTipoCategoria(tipo),
+    variante: tipo === TIPO_CATEGORIA_SAIDA ? 'red' : 'brand',
+    contador: contarCategoriasAtivasDoTipo(tipo),
+})));
+
+const termoBuscaNormalizado = computed(() => normalizarTextoParaBusca(termoBusca.value));
+const buscaAtiva = computed(() => termoBuscaNormalizado.value.length > 0);
+
+function nomeCorrespondeABusca(nome) {
+    return normalizarTextoParaBusca(nome).includes(termoBuscaNormalizado.value);
+}
+
+function montarGrupoCategoriaFiltrado(categoria, subcategorias) {
+    if (!buscaAtiva.value) {
+        return { categoria, subcategorias, possuiSubcategoriaCorrespondente: false };
+    }
+
+    const categoriaCorresponde = nomeCorrespondeABusca(categoria.nome);
+    const subcategoriasCorrespondentes = subcategorias.filter((subcategoria) => nomeCorrespondeABusca(subcategoria.nome));
+
+    if (!categoriaCorresponde && subcategoriasCorrespondentes.length === 0) {
+        return null;
+    }
+
+    return {
+        categoria,
+        subcategorias: categoriaCorresponde ? subcategorias : subcategoriasCorrespondentes,
+        possuiSubcategoriaCorrespondente: subcategoriasCorrespondentes.length > 0,
+    };
+}
+
 const categoriasDoTipo = computed(() =>
     props.categorias.filter((categoria) => categoria.tipo === filtroTipo.value),
 );
 
-const categoriasAtivas = computed(() =>
-    categoriasDoTipo.value.filter((categoria) => categoria.arquivada !== 'S'),
+const categoriasAtivasDoTipo = computed(() =>
+    categoriasDoTipo.value.filter((categoria) => !estaArquivada(categoria)),
 );
 
-const categoriasArquivadas = computed(() =>
-    categoriasDoTipo.value.filter((categoria) => categoria.arquivada === 'S'),
+const gruposCategoriasAtivas = computed(() => categoriasAtivasDoTipo.value
+    .map((categoria) => montarGrupoCategoriaFiltrado(categoria, subcategoriasAtivasDe(categoria)))
+    .filter(Boolean));
+
+const gruposCategoriasArquivadas = computed(() => categoriasDoTipo.value
+    .filter(estaArquivada)
+    .map((categoria) => montarGrupoCategoriaFiltrado(categoria, categoria.subcategorias ?? []))
+    .filter(Boolean));
+
+const subcategoriasArquivadasDeCategoriasAtivas = computed(() => categoriasAtivasDoTipo.value.flatMap((categoria) =>
+    (categoria.subcategorias ?? [])
+        .filter(estaArquivada)
+        .filter((subcategoria) => !buscaAtiva.value
+            || nomeCorrespondeABusca(subcategoria.nome)
+            || nomeCorrespondeABusca(categoria.nome))
+        .map((subcategoria) => ({ subcategoria, pai: categoria })),
+));
+
+const quantidadeArquivadas = computed(
+    () => gruposCategoriasArquivadas.value.length + subcategoriasArquivadasDeCategoriasAtivas.value.length,
 );
+
+const subcategoriasRecolhiveis = computed(() => filtroTipo.value === TIPO_CATEGORIA_SAIDA);
+const rotuloTipoSelecionado = computed(() => rotuloTipoCategoria(filtroTipo.value, { plural: true }));
+
+const subtituloPainelCategorias = computed(() => {
+    const quantidade = categoriasAtivasDoTipo.value.length;
+
+    return quantidade === 1 ? '1 categoria principal' : `${quantidade} categorias principais`;
+});
+
+const mensagemListaVazia = computed(() => (buscaAtiva.value
+    ? 'Nenhuma categoria encontrada para esta busca.'
+    : 'Nenhuma categoria cadastrada. Clique em Adicionar categoria para começar.'));
+
+const gruposComSubcategorias = computed(() =>
+    gruposCategoriasAtivas.value.filter((grupo) => grupo.subcategorias.length > 0),
+);
+
+const todasCategoriasExpandidas = computed(() => gruposComSubcategorias.value.length > 0
+    && gruposComSubcategorias.value.every((grupo) => idsCategoriasExpandidas.value.has(grupo.categoria.id)));
+
+watch(termoBuscaNormalizado, () => {
+    idsCategoriasExpandidas.value = new Set(
+        gruposCategoriasAtivas.value
+            .filter((grupo) => grupo.possuiSubcategoriaCorrespondente)
+            .map((grupo) => grupo.categoria.id),
+    );
+});
+
+function categoriaEstaExpandida(idCategoria) {
+    return idsCategoriasExpandidas.value.has(idCategoria);
+}
+
+function definirExpansaoCategoria(idCategoria, expandida) {
+    const idsAtualizados = new Set(idsCategoriasExpandidas.value);
+
+    if (expandida) {
+        idsAtualizados.add(idCategoria);
+    } else {
+        idsAtualizados.delete(idCategoria);
+    }
+
+    idsCategoriasExpandidas.value = idsAtualizados;
+}
+
+function alternarExpansaoDeTodasCategorias() {
+    idsCategoriasExpandidas.value = todasCategoriasExpandidas.value
+        ? new Set()
+        : new Set(gruposComSubcategorias.value.map((grupo) => grupo.categoria.id));
+}
 
 const categoriasPaisParaModal = computed(() =>
-    props.categorias.filter((categoria) => categoria.arquivada !== 'S'),
+    props.categorias.filter((categoria) => !estaArquivada(categoria)),
 );
 
-function abrirCriar() {
+function abrirCadastroCategoria() {
     categoriaEmEdicao.value = null;
     categoriaPaiInicial.value = null;
-    modalAberto.value = true;
+    modalFormularioAberto.value = true;
 }
 
-function abrirCriarSub(categoriaPai) {
+function abrirCadastroSubcategoria(categoriaPai) {
     categoriaEmEdicao.value = null;
     categoriaPaiInicial.value = categoriaPai;
-    modalAberto.value = true;
+    modalFormularioAberto.value = true;
+    definirExpansaoCategoria(categoriaPai.id, true);
 }
 
-function abrirEditar(categoria, pai = null) {
+function abrirEdicaoCategoria(categoria, categoriaPai = null) {
     categoriaEmEdicao.value = categoria;
-    categoriaPaiInicial.value = pai;
-    modalAberto.value = true;
+    categoriaPaiInicial.value = categoriaPai;
+    modalFormularioAberto.value = true;
 }
 
-function fecharModal() {
-    modalAberto.value = false;
+function fecharFormularioCategoria() {
+    modalFormularioAberto.value = false;
     categoriaEmEdicao.value = null;
     categoriaPaiInicial.value = null;
 }
 
-function alternarArquivada(categoria) {
+function alternarArquivamentoCategoria(categoria) {
     router.patch(categoria.url_arquivar, {
-        arquivada: categoria.arquivada === 'S' ? 'N' : 'S',
+        arquivada: estaArquivada(categoria) ? 'N' : 'S',
     }, {
         preserveScroll: true,
     });
 }
 
-function pedirExclusao(categoria) {
+function rotuloArquivamento(categoria) {
+    return estaArquivada(categoria) ? 'Desarquivar' : 'Arquivar';
+}
+
+function iconeArquivamento(categoria) {
+    return estaArquivada(categoria) ? 'unarchive' : 'archive';
+}
+
+function pedirExclusaoCategoria(categoria) {
     if (!categoria.pode_excluir) {
         return;
     }
@@ -96,7 +244,7 @@ function pedirExclusao(categoria) {
     modalExclusaoAberto.value = true;
 }
 
-function fecharExclusao() {
+function fecharExclusaoCategoria() {
     if (excluindo.value) {
         return;
     }
@@ -105,7 +253,7 @@ function fecharExclusao() {
     categoriaParaExcluir.value = null;
 }
 
-function confirmarExclusao() {
+function confirmarExclusaoCategoria() {
     if (!categoriaParaExcluir.value || excluindo.value) {
         return;
     }
@@ -123,327 +271,179 @@ function confirmarExclusao() {
 }
 
 const mensagemExclusao = computed(() => {
-    const item = categoriaParaExcluir.value;
-    if (!item) {
+    const categoria = categoriaParaExcluir.value;
+
+    if (!categoria) {
         return 'Deseja excluir esta categoria? Esta ação não pode ser desfeita.';
     }
 
-    const tipo = item.id_categoria_pai ? 'subcategoria' : 'categoria';
-    const avisoFilhos = !item.id_categoria_pai && (item.subcategorias?.length ?? 0) > 0
+    const tipoRegistro = categoria.id_categoria_pai ? 'subcategoria' : 'categoria';
+    const avisoSubcategorias = !categoria.id_categoria_pai && (categoria.subcategorias?.length ?? 0) > 0
         ? ' As subcategorias vinculadas também serão excluídas.'
         : '';
 
-    return `Deseja excluir a ${tipo} "${item.nome}"? Esta ação não pode ser desfeita.${avisoFilhos}`;
+    return `Deseja excluir a ${tipoRegistro} "${categoria.nome}"? Esta ação não pode ser desfeita.${avisoSubcategorias}`;
 });
-
-function subcategoriasVisiveis(categoria) {
-    return (categoria.subcategorias ?? []).filter((sub) => sub.arquivada !== 'S');
-}
-
-function subcategoriasArquivadas(categoria) {
-    return (categoria.subcategorias ?? []).filter((sub) => sub.arquivada === 'S');
-}
 </script>
 
 <template>
     <Head title="Categorias" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">
-                    Categorias
-                </h2>
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
-                    @click="abrirCriar"
-                >
-                    <span class="material-symbols-outlined text-base leading-none">add</span>
-                    Adicionar categoria
-                </button>
-            </div>
-        </template>
-
-        <div class="p-6 lg:p-8 space-y-6">
-            <div class="flex gap-2">
-                <button
-                    v-for="tipo in tipos"
-                    :key="tipo.valor"
-                    type="button"
-                    class="rounded-lg px-4 py-2 text-sm font-semibold transition"
-                    :class="filtroTipo === tipo.valor
-                        ? 'bg-[#1fa67e] text-white'
-                        : 'bg-ng-card text-ng-ink-muted border border-ng-line-strong hover:bg-ng-brand-soft'"
-                    @click="filtroTipo = tipo.valor"
-                >
-                    {{ tipo.rotulo === 'Saída' ? 'Despesas' : 'Entradas' }}
-                </button>
-            </div>
-
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">
-                        {{ filtroTipo === 'saida' ? 'Despesas' : 'Entradas' }}
-                    </h3>
-                </div>
-
-                <div class="divide-y divide-ng-line">
-                    <template v-for="categoria in categoriasAtivas" :key="categoria.id">
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition">
-                            <div
-                                class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                :style="{ backgroundColor: `${categoria.cor}20`, color: categoria.cor }"
-                            >
-                                <span class="material-symbols-outlined text-[22px]">{{ categoria.icone }}</span>
-                            </div>
-
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <p class="truncate font-semibold text-ng-ink">{{ categoria.nome }}</p>
-                                    <span
-                                        v-if="categoria.padrao === 'S'"
-                                        class="ng-badge ng-badge--brand shrink-0 !px-1.5 !py-0.5 !text-[10px]"
-                                    >
-                                        Padrão
-                                    </span>
-                                </div>
-                                <p class="text-sm text-ng-ink-muted">
-                                    {{ categoria.tipo_rotulo }}
-                                    <span v-if="(categoria.subcategorias?.length ?? 0) > 0">
-                                        · {{ categoria.subcategorias.length }} subcategoria(s)
-                                    </span>
-                                    <span v-if="categoria.total_lancamentos > 0">
-                                        · {{ categoria.total_lancamentos }} lançamento(s)
-                                    </span>
-                                </p>
-                            </div>
-
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-[#1fa67e]"
-                                    title="Adicionar subcategoria"
-                                    @click="abrirCriarSub(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">add</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                    title="Editar"
-                                    @click="abrirEditar(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">edit</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                    :title="categoria.arquivada === 'S' ? 'Desarquivar' : 'Arquivar'"
-                                    @click="alternarArquivada(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">
-                                        {{ categoria.arquivada === 'S' ? 'unarchive' : 'archive' }}
-                                    </span>
-                                </button>
-
-                                <button
-                                    v-if="!categoria.pode_excluir"
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
-                                    title="Não é possível excluir categoria com lançamentos. Arquive em vez disso."
-                                    disabled
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
-                                    title="Excluir"
-                                    @click="pedirExclusao(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div
-                            v-for="sub in subcategoriasVisiveis(categoria)"
-                            :key="sub.id"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-ng-brand-soft/80 transition bg-ng-input/40"
-                        >
-                            <div
-                                class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                :style="{ backgroundColor: `${sub.cor}20`, color: sub.cor }"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">{{ sub.icone }}</span>
-                            </div>
-
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
-                                <p class="text-xs text-ng-ink-muted">Subcategoria</p>
-                            </div>
-
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                    title="Editar"
-                                    @click="abrirEditar(sub, categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                    title="Arquivar"
-                                    @click="alternarArquivada(sub)"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">archive</span>
-                                </button>
-
-                                <button
-                                    v-if="!sub.pode_excluir"
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-subtle cursor-not-allowed"
-                                    title="Não é possível excluir subcategoria com lançamentos."
-                                    disabled
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
-                                    title="Excluir"
-                                    @click="pedirExclusao(sub)"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div
-                            v-for="sub in subcategoriasArquivadas(categoria)"
-                            :key="`arq-${sub.id}`"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 hover:bg-ng-brand-soft/80 transition bg-ng-input/40 opacity-70"
-                        >
-                            <div
-                                class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                :style="{ backgroundColor: `${sub.cor}20`, color: sub.cor }"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">{{ sub.icone }}</span>
-                            </div>
-
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
-                                <p class="text-xs text-ng-ink-muted">Subcategoria arquivada</p>
-                            </div>
-
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                    title="Editar"
-                                    @click="abrirEditar(sub, categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                    title="Desarquivar"
-                                    @click="alternarArquivada(sub)"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">unarchive</span>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
-
-                    <div
-                        v-if="categoriasAtivas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
-                    >
-                        Nenhuma categoria cadastrada. Clique em <strong>Adicionar categoria</strong> para começar.
-                    </div>
-                </div>
-            </div>
-
-            <div
-                v-if="categoriasArquivadas.length > 0"
-                class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line opacity-80"
+    <AutenticadoLayout titulo="Categorias">
+        <div class="space-y-6 p-6 lg:p-8">
+            <CabecalhoSecao
+                tamanho="pagina"
+                titulo="Categorias"
+                subtitulo="Organize suas despesas e receitas em categorias e subcategorias personalizadas."
             >
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Arquivadas</h3>
-                </div>
-                <div class="divide-y divide-ng-line">
-                    <template v-for="categoria in categoriasArquivadas" :key="categoria.id">
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition">
-                            <div
-                                class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                :style="{ backgroundColor: `${categoria.cor}20`, color: categoria.cor }"
-                            >
-                                <span class="material-symbols-outlined text-[22px]">{{ categoria.icone }}</span>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate font-semibold text-ng-ink">{{ categoria.nome }}</p>
-                                <p class="text-sm text-ng-ink-muted">{{ categoria.tipo_rotulo }}</p>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                    title="Editar"
-                                    @click="abrirEditar(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">edit</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft"
-                                    title="Desarquivar"
-                                    @click="alternarArquivada(categoria)"
-                                >
-                                    <span class="material-symbols-outlined text-[20px]">unarchive</span>
-                                </button>
-                            </div>
-                        </div>
+                <template #acoes>
+                    <BotaoAdicionarInline rotulo="Adicionar categoria" @click="abrirCadastroCategoria" />
+                </template>
+            </CabecalhoSecao>
 
-                        <div
-                            v-for="sub in (categoria.subcategorias ?? [])"
-                            :key="sub.id"
-                            class="flex items-center gap-4 py-3 pl-14 pr-6 bg-ng-input/40"
-                        >
-                            <div
-                                class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                :style="{ backgroundColor: `${sub.cor}20`, color: sub.cor }"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">{{ sub.icone }}</span>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-ng-ink">{{ sub.nome }}</p>
-                                <p class="text-xs text-ng-ink-muted">Subcategoria</p>
-                            </div>
-                        </div>
-                    </template>
-                </div>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <GrupoSegmentado
+                    v-model="filtroTipo"
+                    :opcoes="opcoesFiltroTipo"
+                    rotulo="Filtrar categorias por tipo"
+                    contador-em-badge
+                />
+                <CampoBusca
+                    v-model="termoBusca"
+                    class="w-full sm:w-72"
+                    placeholder="Buscar categoria..."
+                />
             </div>
+
+            <CardPainel
+                class="overflow-hidden"
+                :titulo="rotuloTipoSelecionado"
+                :subtitulo="subtituloPainelCategorias"
+                :vazio="gruposCategoriasAtivas.length === 0"
+                :mensagem-vazio="mensagemListaVazia"
+            >
+                <template #acoes>
+                    <LinkAcaoPainel
+                        v-if="subcategoriasRecolhiveis && gruposComSubcategorias.length"
+                        :rotulo="todasCategoriasExpandidas ? 'Recolher todas' : 'Expandir todas'"
+                        :icone-esquerda="todasCategoriasExpandidas ? 'unfold_less' : 'unfold_more'"
+                        @click="alternarExpansaoDeTodasCategorias"
+                    />
+                </template>
+
+                <div class="-mx-5 -mb-5 divide-y divide-ng-line border-t border-ng-line">
+                    <GrupoCategoria
+                        v-for="grupo in gruposCategoriasAtivas"
+                        :key="grupo.categoria.id"
+                        :categoria="grupo.categoria"
+                        :subcategorias="grupo.subcategorias"
+                        :recolhivel="subcategoriasRecolhiveis"
+                        :expandido="categoriaEstaExpandida(grupo.categoria.id)"
+                        @update:expandido="definirExpansaoCategoria(grupo.categoria.id, $event)"
+                    >
+                        <template #acoes-categoria="{ categoria }">
+                            <BotaoAcaoCompacto
+                                class="mr-1"
+                                icone="add"
+                                rotulo="Subcategoria"
+                                @click="abrirCadastroSubcategoria(categoria)"
+                            />
+                            <BotaoIcone icone="edit" rotulo="Editar" @click="abrirEdicaoCategoria(categoria)" />
+                            <BotaoIcone
+                                :icone="iconeArquivamento(categoria)"
+                                :rotulo="rotuloArquivamento(categoria)"
+                                @click="alternarArquivamentoCategoria(categoria)"
+                            />
+                            <BotaoIcone
+                                icone="delete"
+                                :rotulo="categoria.pode_excluir ? 'Excluir' : MENSAGEM_EXCLUSAO_BLOQUEADA"
+                                variante="perigo"
+                                :desabilitado="!categoria.pode_excluir"
+                                @click="pedirExclusaoCategoria(categoria)"
+                            />
+                        </template>
+
+                        <template #acoes-subcategoria="{ subcategoria, pai }">
+                            <BotaoIcone icone="edit" rotulo="Editar" @click="abrirEdicaoCategoria(subcategoria, pai)" />
+                            <BotaoIcone
+                                :icone="iconeArquivamento(subcategoria)"
+                                :rotulo="rotuloArquivamento(subcategoria)"
+                                @click="alternarArquivamentoCategoria(subcategoria)"
+                            />
+                            <BotaoIcone
+                                icone="delete"
+                                :rotulo="subcategoria.pode_excluir ? 'Excluir' : MENSAGEM_EXCLUSAO_BLOQUEADA"
+                                variante="perigo"
+                                :desabilitado="!subcategoria.pode_excluir"
+                                @click="pedirExclusaoCategoria(subcategoria)"
+                            />
+                        </template>
+                    </GrupoCategoria>
+                </div>
+            </CardPainel>
+
+            <SecaoRecolhivel
+                v-if="quantidadeArquivadas > 0"
+                v-model:aberto="secaoArquivadasAberta"
+                titulo="Arquivadas"
+                descricao="Categorias e subcategorias fora de uso. Desarquive para voltar a utilizá-las."
+                icone="inventory_2"
+                :contador="quantidadeArquivadas"
+            >
+                <div class="divide-y divide-ng-line overflow-hidden rounded-xl border border-ng-line bg-ng-card">
+                    <GrupoCategoria
+                        v-for="grupo in gruposCategoriasArquivadas"
+                        :key="grupo.categoria.id"
+                        :categoria="grupo.categoria"
+                        :subcategorias="grupo.subcategorias"
+                        arquivada
+                    >
+                        <template #acoes-categoria="{ categoria }">
+                            <BotaoIcone icone="edit" rotulo="Editar" @click="abrirEdicaoCategoria(categoria)" />
+                            <BotaoIcone
+                                icone="unarchive"
+                                rotulo="Desarquivar"
+                                @click="alternarArquivamentoCategoria(categoria)"
+                            />
+                        </template>
+                    </GrupoCategoria>
+
+                    <LinhaCategoria
+                        v-for="item in subcategoriasArquivadasDeCategoriasAtivas"
+                        :key="`subcategoria-arquivada-${item.subcategoria.id}`"
+                        :nome="item.subcategoria.nome"
+                        :icone="item.subcategoria.icone"
+                        :cor="item.subcategoria.cor"
+                        :descricao="`Subcategoria de ${item.pai.nome}`"
+                        subcategoria
+                        arquivada
+                    >
+                        <template #acoes>
+                            <BotaoIcone
+                                icone="edit"
+                                rotulo="Editar"
+                                @click="abrirEdicaoCategoria(item.subcategoria, item.pai)"
+                            />
+                            <BotaoIcone
+                                icone="unarchive"
+                                rotulo="Desarquivar"
+                                @click="alternarArquivamentoCategoria(item.subcategoria)"
+                            />
+                        </template>
+                    </LinhaCategoria>
+                </div>
+            </SecaoRecolhivel>
         </div>
 
         <FormularioModal
-            :aberto="modalAberto"
+            :aberto="modalFormularioAberto"
             :tipos="tipos"
             :icones="icones"
             :categorias-pais="categoriasPaisParaModal"
             :categoria="categoriaEmEdicao"
             :categoria-pai-inicial="categoriaPaiInicial"
             :tipo-inicial="filtroTipo"
-            @fechar="fecharModal"
+            @fechar="fecharFormularioCategoria"
         />
 
         <ModalNotificacao
@@ -454,8 +454,8 @@ function subcategoriasArquivadas(categoria) {
             texto-cancelar="Cancelar"
             perigo
             :processando="excluindo"
-            @confirmar="confirmarExclusao"
-            @cancelar="fecharExclusao"
+            @confirmar="confirmarExclusaoCategoria"
+            @cancelar="fecharExclusaoCategoria"
         />
     </AutenticadoLayout>
 </template>

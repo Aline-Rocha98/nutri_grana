@@ -1,16 +1,33 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AutenticadoLayout from '@/Layouts/AutenticadoLayout.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
+import BarraDistribuicaoSegmentada from '@/Components/Ui/BarraDistribuicaoSegmentada.vue';
+import CabecalhoSecao from '@/Components/Ui/CabecalhoSecao.vue';
+import CardAdicionarPlaceholder from '@/Components/Ui/CardAdicionarPlaceholder.vue';
+import ListaInformacoes from '@/Components/Ui/ListaInformacoes.vue';
+import FluxoCapacidadeFinanceira from '@/Components/Renda/FluxoCapacidadeFinanceira.vue';
+import RendaResumo from '@/Components/Renda/RendaResumo.vue';
+import LinhaItemPlanoFinanceiro from '@/Components/PlanoFinanceiro/LinhaItemPlanoFinanceiro.vue';
 import FormularioModal from '@/Pages/Renda/FormularioModal.vue';
+import { formatarNumeroParaMoeda } from '@/Helpers/mascaraMoeda';
+import { distribuirValoresDoPlano, montarSegmentosDistribuicao } from '@/Helpers/planoFinanceiro';
 
 const props = defineProps({
     rendas: {
         type: Array,
         default: () => [],
     },
+    capacidadeFinanceiraGeral: {
+        type: Object,
+        default: () => ({ renda: 0, total_destinado: 0, capacidade: 0, percentual_destinado: 0 }),
+    },
     contasBancarias: {
+        type: Array,
+        default: () => [],
+    },
+    planosFinanceiros: {
         type: Array,
         default: () => [],
     },
@@ -22,6 +39,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    urlPlanosFinanceiros: {
+        type: String,
+        required: true,
+    },
 });
 
 const pagina = usePage();
@@ -30,6 +51,7 @@ const rendaEmEdicao = ref(null);
 const modalExclusaoAberto = ref(false);
 const rendaParaExcluir = ref(null);
 const excluindo = ref(false);
+const idRendaEmFoco = ref(null);
 
 watch(
     () => pagina.props.errors,
@@ -41,11 +63,88 @@ watch(
     { deep: true, immediate: true },
 );
 
-function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+const rendaEmFoco = computed(() =>
+    props.rendas.find((renda) => renda.id === idRendaEmFoco.value)
+    ?? props.rendas[0]
+    ?? null,
+);
+
+const resumoCapacidadeGeral = computed(() =>
+    `Capacidade financeira: R$ ${formatarNumeroParaMoeda(props.capacidadeFinanceiraGeral.capacidade ?? 0)}`
+    + ` de R$ ${formatarNumeroParaMoeda(props.capacidadeFinanceiraGeral.renda ?? 0)} esperados`,
+);
+
+const itensPlanoDaRendaEmFoco = computed(() => (rendaEmFoco.value
+    ? distribuirValoresDoPlano(
+        rendaEmFoco.value.itens_plano_financeiro ?? [],
+        Number(rendaEmFoco.value.valor_esperado_numero ?? 0),
+    )
+    : []));
+
+const segmentosPlanoDaRendaEmFoco = computed(() => montarSegmentosDistribuicao(
+    rendaEmFoco.value?.itens_plano_financeiro ?? [],
+));
+
+const tituloPlanoAplicado = computed(() => {
+    const nomePlano = rendaEmFoco.value?.plano_financeiro_nome;
+
+    return nomePlano ? `Plano aplicado: ${nomePlano}` : 'Plano aplicado';
+});
+
+const itensInformacoesRenda = computed(() => {
+    const renda = rendaEmFoco.value;
+
+    if (!renda) {
+        return [];
+    }
+
+    const capacidade = renda.capacidade_financeira ?? {};
+
+    return [
+        {
+            chave: 'frequencia',
+            rotulo: 'Frequência',
+            valor: renda.frequencia_rotulo ?? '-',
+        },
+        {
+            chave: 'dia',
+            rotulo: 'Dia do recebimento',
+            valor: renda.dia_esperado ? `Dia ${renda.dia_esperado}` : '-',
+        },
+        {
+            chave: 'conta',
+            rotulo: 'Conta de recebimento',
+            valor: renda.conta_bancaria_nome ?? '-',
+        },
+        {
+            chave: 'plano',
+            rotulo: 'Plano financeiro',
+            valor: renda.plano_financeiro_nome ?? 'Nenhum',
+            separador: true,
+        },
+        {
+            chave: 'valor-esperado',
+            rotulo: 'Valor esperado',
+            valor: `R$ ${renda.valor_esperado}`,
+            classeValor: 'font-mono',
+        },
+        {
+            chave: 'separado',
+            rotulo: 'Separado por recebimento',
+            valor: `R$ ${formatarNumeroParaMoeda(capacidade.total_destinado ?? 0)}`,
+            classeValor: 'font-mono text-sky-500',
+        },
+        {
+            chave: 'capacidade',
+            rotulo: 'Capacidade financeira',
+            valor: `R$ ${formatarNumeroParaMoeda(capacidade.capacidade ?? renda.valor_esperado_numero ?? 0)}`,
+            classeValor: 'font-mono text-ng-brand',
+        },
+    ];
+});
+
+function selecionarRendaEmFoco(renda) {
+    idRendaEmFoco.value = renda.id;
 }
 
 function abrirCriar() {
@@ -102,31 +201,13 @@ const mensagemExclusao = computed(() => {
 
     return `Deseja excluir a renda "${nome}"? Os lançamentos previstos serão cancelados.`;
 });
-
-const totalEsperado = computed(() =>
-    props.rendas.reduce((total, renda) => total + Number(renda.valor_esperado_numero ?? 0), 0),
-);
 </script>
 
 <template>
     <Head title="Rendas" />
 
-    <AutenticadoLayout>
-        <template #cabecalho>
-            <div class="flex items-center justify-between gap-4">
-                <h2 class="font-semibold text-xl text-ng-ink leading-tight">Rendas</h2>
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1 rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#198a68] transition"
-                    @click="abrirCriar"
-                >
-                    <span class="material-symbols-outlined text-base leading-none">add</span>
-                    Nova renda
-                </button>
-            </div>
-        </template>
-
-        <div class="p-6 lg:p-8 space-y-6">
+    <AutenticadoLayout titulo="Rendas">
+        <div class="space-y-8 p-6 lg:p-8">
             <div class="ng-alert ng-alert--warning" role="status">
                 <span class="ng-alert__icon" aria-hidden="true">
                     <span class="material-symbols-outlined">priority_high</span>
@@ -137,81 +218,142 @@ const totalEsperado = computed(() =>
                 </p>
             </div>
 
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line p-6">
-                <p class="text-sm font-medium text-ng-ink-muted">Total esperado mensal</p>
-                <p class="mt-1 text-2xl font-bold text-[#1fa67e]">
-                    R$ {{ formatarMoeda(totalEsperado) }}
-                </p>
-            </div>
+            <section class="space-y-4">
+                <CabecalhoSecao titulo="Minhas Rendas" :subtitulo="resumoCapacidadeGeral">
+                    <template #acoes>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-sm font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                            @click="abrirCriar"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            Adicionar Renda
+                        </button>
+                    </template>
+                </CabecalhoSecao>
 
-            <div class="bg-ng-card overflow-hidden shadow-sm rounded-2xl border border-ng-line">
-                <div class="px-6 py-4 border-b border-ng-line">
-                    <h3 class="text-base font-semibold text-ng-ink">Minhas rendas</h3>
-                </div>
-
-                <div class="divide-y divide-ng-line">
-                    <div
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <RendaResumo
                         v-for="renda in rendas"
                         :key="renda.id"
-                        class="flex items-center gap-4 px-6 py-4 hover:bg-ng-brand-soft/80 transition"
-                    >
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ng-brand-soft text-[#1fa67e]">
-                            <span class="material-symbols-outlined text-[22px]">payments</span>
-                        </div>
+                        :descricao="renda.descricao"
+                        :frequencia-rotulo="renda.frequencia_rotulo ?? ''"
+                        :dia-esperado="renda.dia_esperado"
+                        :conta-bancaria-nome="renda.conta_bancaria_nome ?? ''"
+                        :valor-esperado="renda.valor_esperado"
+                        :valor-capacidade="Number(renda.capacidade_financeira?.capacidade ?? renda.valor_esperado_numero ?? 0)"
+                        :valor-destinado="Number(renda.capacidade_financeira?.total_destinado ?? 0)"
+                        :plano-financeiro-nome="renda.plano_financeiro_nome ?? ''"
+                        :selecionado="rendaEmFoco?.id === renda.id"
+                        @selecionar="selecionarRendaEmFoco(renda)"
+                        @editar="abrirEditar(renda)"
+                        @excluir="pedirExclusao(renda)"
+                    />
 
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold text-ng-ink">{{ renda.descricao }}</p>
-                            <p class="text-sm text-ng-ink-muted">
-                                {{ renda.frequencia_rotulo }}
-                                · dia {{ renda.dia_esperado }}
-                                <span v-if="renda.conta_bancaria_nome">
-                                    · {{ renda.conta_bancaria_nome }}
-                                </span>
-                            </p>
-                        </div>
+                    <CardAdicionarPlaceholder
+                        titulo="Nova Renda"
+                        descricao="Salário, freelance ou outra receita"
+                        icone="payments"
+                        @click="abrirCriar"
+                    />
+                </div>
+            </section>
 
-                        <div class="text-right shrink-0">
-                            <p class="font-semibold text-[#1fa67e]">
-                                R$ {{ renda.valor_esperado }}
-                            </p>
-                        </div>
-
-                        <div class="flex items-center gap-1 shrink-0">
+            <section v-if="rendaEmFoco" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="space-y-4">
+                    <CabecalhoSecao titulo="Renda em Foco">
+                        <template #acoes>
                             <button
                                 type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-ng-brand-soft hover:text-ng-ink"
-                                title="Editar"
-                                @click="abrirEditar(renda)"
+                                class="text-xs font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                                @click="abrirEditar(rendaEmFoco)"
                             >
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                                Editar Dados
                             </button>
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-ng-ink-muted hover:bg-red-500/10 hover:text-red-400"
-                                title="Excluir"
-                                @click="pedirExclusao(renda)"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                        </div>
-                    </div>
+                        </template>
+                    </CabecalhoSecao>
 
-                    <div
-                        v-if="rendas.length === 0"
-                        class="px-6 py-10 text-center text-sm text-ng-ink-muted"
-                    >
-                        Nenhuma renda cadastrada. Clique em <strong>Nova renda</strong> para começar.
+                    <div class="ng-card p-5">
+                        <ListaInformacoes :itens="itensInformacoesRenda" />
                     </div>
                 </div>
-            </div>
+
+                <div class="space-y-4 lg:col-span-2">
+                    <CabecalhoSecao
+                        :titulo="tituloPlanoAplicado"
+                        subtitulo="Os itens marcados como guardados são separados quando o recebimento desta renda é confirmado."
+                    >
+                        <template #acoes>
+                            <Link
+                                :href="urlPlanosFinanceiros"
+                                class="inline-flex items-center gap-1 text-xs font-semibold text-ng-brand transition hover:text-ng-brand-hover"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">tune</span>
+                                Gerenciar planos
+                            </Link>
+                        </template>
+                    </CabecalhoSecao>
+
+                    <div class="ng-card overflow-hidden rounded-2xl">
+                        <template v-if="itensPlanoDaRendaEmFoco.length">
+                            <div class="px-4 pb-1 pt-4">
+                                <BarraDistribuicaoSegmentada :segmentos="segmentosPlanoDaRendaEmFoco" />
+                            </div>
+                            <div class="divide-y divide-ng-line">
+                                <LinhaItemPlanoFinanceiro
+                                    v-for="item in itensPlanoDaRendaEmFoco"
+                                    :key="item.id"
+                                    :nome="item.nome"
+                                    :regra="item.regra_formatada"
+                                    :valor-calculado="item.valor_calculado"
+                                    :separar-do-saldo="item.separar_do_saldo"
+                                    :conta-destino="item.conta_bancaria_destino_nome ?? ''"
+                                    :objetivo="item.objetivo_descricao ?? ''"
+                                    :cor="item.cor_hexadecimal"
+                                />
+                            </div>
+                        </template>
+                        <p v-else class="px-5 py-8 text-center text-sm text-ng-ink-muted">
+                            Nenhum plano financeiro nesta renda. Use <strong>Editar Dados</strong> para escolher como distribuí-la.
+                        </p>
+                    </div>
+
+                    <div v-if="rendaEmFoco.capacidade_financeira" class="ng-card space-y-3 rounded-2xl p-5">
+                        <p class="text-xs font-medium text-ng-ink-muted">Capacidade financeira desta renda</p>
+                        <FluxoCapacidadeFinanceira
+                            :valor-renda="Number(rendaEmFoco.capacidade_financeira.renda ?? 0)"
+                            :valor-destinado="Number(rendaEmFoco.capacidade_financeira.total_destinado ?? 0)"
+                            :valor-capacidade="Number(rendaEmFoco.capacidade_financeira.capacidade ?? 0)"
+                            :percentual-destinado="Number(rendaEmFoco.capacidade_financeira.percentual_destinado ?? 0)"
+                        />
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="rendas.length > 1" class="space-y-4">
+                <CabecalhoSecao
+                    titulo="Capacidade financeira geral"
+                    subtitulo="Soma das rendas esperadas, menos o que os planos financeiros separam do saldo, é o que sobra para lançamentos, objetivos e orçamentos."
+                />
+                <div class="ng-card rounded-2xl p-5">
+                    <FluxoCapacidadeFinanceira
+                        :valor-renda="Number(capacidadeFinanceiraGeral.renda ?? 0)"
+                        :valor-destinado="Number(capacidadeFinanceiraGeral.total_destinado ?? 0)"
+                        :valor-capacidade="Number(capacidadeFinanceiraGeral.capacidade ?? 0)"
+                        :percentual-destinado="Number(capacidadeFinanceiraGeral.percentual_destinado ?? 0)"
+                    />
+                </div>
+            </section>
         </div>
 
         <FormularioModal
             :aberto="modalAberto"
             :renda="rendaEmEdicao"
             :contas-bancarias="contasBancarias"
+            :planos-financeiros="planosFinanceiros"
             :frequencias="frequencias"
             :url-criar="urlCriar"
+            :url-planos-financeiros="urlPlanosFinanceiros"
             @fechar="fecharModal"
         />
 

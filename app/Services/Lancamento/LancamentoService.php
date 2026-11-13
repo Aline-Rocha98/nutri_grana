@@ -15,7 +15,9 @@ use App\Models\Lancamento\Lancamento;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\FaturaCartao\FaturaCartaoService;
+use App\Services\ContaBancaria\SaldoGuardadoService;
 use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
+use App\Services\Renda\PrevisorPlanoFinanceiroRenda;
 use App\Services\Renda\RendaGeracaoService;
 use App\Support\Dashboard\DashboardCache;
 use App\Support\Security\SecurityAuditor;
@@ -35,6 +37,8 @@ class LancamentoService
         private readonly FaturaCartaoService $faturaCartaoService,
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly VerificadorUltrapassagemOrcamento $verificadorUltrapassagemOrcamento,
+        private readonly SaldoGuardadoService $saldoGuardadoService,
+        private readonly PrevisorPlanoFinanceiroRenda $previsorPlanoFinanceiroRenda,
     ) {}
 
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
@@ -61,8 +65,25 @@ class LancamentoService
         $totais['total_contas'] = $totalContas;
         $totais['pendentes_anteriores_despesas'] = $pendentesAnteriores['despesas'];
         $totais['saldo'] = $totais['receitas'] - $totais['despesas'];
+        $totais['percentual_poupado'] = $this->calcularPercentualPoupado($totais['receitas'], $totais['saldo']);
+        $totais['destinado_mes'] = $this->previsorPlanoFinanceiroRenda->calcularSeparadoNoMes($idUsuario, $ano, $mes);
+        $totais['saldo_livre'] = round($totais['saldo'] - $totais['destinado_mes'], 2);
 
         return $totais;
+    }
+
+    public function contarPorTipoDoMes(int $idUsuario, int $ano, int $mes, array $filtros = []): array
+    {
+        return $this->lancamentoRepository->contarPorTipoDoMes($idUsuario, $ano, $mes, $filtros);
+    }
+
+    private function calcularPercentualPoupado(float $receitas, float $saldo): float
+    {
+        if ($receitas <= 0) {
+            return 0.0;
+        }
+
+        return round(max(0, min(100, ($saldo / $receitas) * 100)), 1);
     }
 
     public function criar(int $idUsuario, array $dados): Collection
@@ -131,7 +152,14 @@ class LancamentoService
             $payload['data_pagamento'] = null;
         }
 
+        $rendaEstavaRecebida = $lancamento->ehRenda() && $lancamento->situacao === SituacaoLancamento::Recebido;
+        $valorAnterior = round((float) $lancamento->valor, 2);
+
         $atualizado = $this->lancamentoRepository->atualizar($lancamento, $payload);
+
+        if ($rendaEstavaRecebida) {
+            $this->sincronizarSeparacoesDaRendaEditada($atualizado, $valorAnterior);
+        }
 
         DashboardCache::invalidar($idUsuario);
 
@@ -192,6 +220,8 @@ class LancamentoService
             'situacao' => SituacaoLancamento::Recebido,
         ]);
 
+        $this->saldoGuardadoService->separarItensPlanoDoRecebimentoRenda($atualizado);
+
         DashboardCache::invalidar($idUsuario);
 
         return $atualizado;
@@ -247,6 +277,10 @@ class LancamentoService
             return;
         }
 
+        if ($lancamento->ehRenda()) {
+            $this->saldoGuardadoService->estornarSeparacoesDoLancamento($lancamento);
+        }
+
         $this->lancamentoRepository->excluir($lancamento);
 
         DashboardCache::invalidar($idUsuario);
@@ -256,6 +290,22 @@ class LancamentoService
             'id_lancamento' => $idLancamento,
             'modo' => 'excluir',
         ]);
+    }
+
+    private function sincronizarSeparacoesDaRendaEditada(Lancamento $lancamentoRenda, float $valorAnterior): void
+    {
+        $continuaRecebida = $lancamentoRenda->situacao === SituacaoLancamento::Recebido;
+        $valorAlterado = round((float) $lancamentoRenda->valor, 2) !== $valorAnterior;
+
+        if ($continuaRecebida && ! $valorAlterado) {
+            return;
+        }
+
+        $this->saldoGuardadoService->estornarSeparacoesDoLancamento($lancamentoRenda);
+
+        if ($continuaRecebida) {
+            $this->saldoGuardadoService->separarItensPlanoDoRecebimentoRenda($lancamentoRenda);
+        }
     }
 
     private function criarSimples(int $idUsuario, array $dados): Lancamento
@@ -278,7 +328,7 @@ class LancamentoService
         $payload = $this->montarDados($idUsuario, $dados);
         $payload['eh_recorrencia'] = SimNao::Sim;
         $payload['frequencia_recorrencia'] = $frequencia;
-        $payload['recorrencia_ate'] = $dados['recorrencia_ate'] ?? null;
+        $payload['recorrencia_ate'] = $this->definirTerminoDaRecorrencia($dados, $frequencia);
         $payload['situacao'] = SituacaoLancamento::Pendente;
         $payload['data_pagamento'] = null;
         $payload['id_fatura_cartao'] = null;
@@ -291,6 +341,21 @@ class LancamentoService
         $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
 
         return $pai->refresh();
+    }
+
+    private function definirTerminoDaRecorrencia(array $dados, FrequenciaRecorrencia $frequencia): ?string
+    {
+        if (! empty($dados['quantidade_ocorrencias'])) {
+            return $this->recorrenciaService
+                ->calcularDataDaUltimaOcorrencia(
+                    Carbon::parse($dados['data_vencimento']),
+                    $frequencia,
+                    (int) $dados['quantidade_ocorrencias'],
+                )
+                ->toDateString();
+        }
+
+        return $dados['recorrencia_ate'] ?? null;
     }
 
     private function criarParcelado(int $idUsuario, array $dados, int $totalParcelas): Collection

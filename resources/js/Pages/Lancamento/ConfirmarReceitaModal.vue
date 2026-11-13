@@ -2,7 +2,14 @@
 import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
+import AvisoInformativo from '@/Components/Formulario/AvisoInformativo.vue';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import LancamentoVisual from '@/Components/Lancamento/LancamentoVisual.vue';
+import { varianteSituacaoLancamento } from '@/Helpers/badge';
+import { formatarNumeroParaMoeda, moedaParaNumero } from '@/Helpers/mascaraMoeda';
+import { distribuirValoresDoPlano } from '@/Helpers/planoFinanceiro';
+import { formatarDataIsoParaBrasileira } from '@/Helpers/periodo';
 
 const props = defineProps({
     aberto: {
@@ -22,20 +29,10 @@ const formulario = useForm({
     data_recebimento: '',
 });
 
-function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
-
 function reiniciarFormulario() {
     formulario.clearErrors();
-    formulario.valor_recebido = props.lancamento?.valor
-        ?? props.lancamento?.valor_previsto
-        ?? '';
-    formulario.data_recebimento = props.lancamento?.data_vencimento
-        ?? new Date().toISOString().slice(0, 10);
+    formulario.valor_recebido = props.lancamento?.valor ?? props.lancamento?.valor_previsto ?? '0,00';
+    formulario.data_recebimento = props.lancamento?.data_vencimento ?? new Date().toISOString().slice(0, 10);
 }
 
 watch(
@@ -47,19 +44,31 @@ watch(
     },
 );
 
-const valorPrevistoExibicao = computed(() => {
-    if (props.lancamento?.valor_previsto) {
-        return props.lancamento.valor_previsto;
-    }
+const valorPrevistoFormatado = computed(() =>
+    props.lancamento?.valor_previsto ?? formatarNumeroParaMoeda(props.lancamento?.valor_numero),
+);
 
-    return formatarMoeda(props.lancamento?.valor_numero);
-});
+const itensPlanoQueSeraoSeparados = computed(() => distribuirValoresDoPlano(
+    props.lancamento?.itens_plano_financeiro ?? [],
+    moedaParaNumero(formulario.valor_recebido),
+).filter((item) => item.valor_separado > 0));
+
+const totalGuardadoPrevisto = computed(() => itensPlanoQueSeraoSeparados.value
+    .reduce((total, item) => total + item.valor_separado, 0));
+
+const rotuloGuardadoPrevisto = computed(() => (props.lancamento?.plano_financeiro_nome
+    ? `Será guardado pelo plano ${props.lancamento.plano_financeiro_nome}:`
+    : 'Será guardado automaticamente:'));
+
+const nomeOrigem = computed(() =>
+    props.lancamento?.conta_bancaria_nome ?? props.lancamento?.cartao_credito_nome ?? '',
+);
 
 function fechar() {
     emit('fechar');
 }
 
-function confirmar() {
+function confirmarRecebimentoReceita() {
     if (!props.lancamento?.url_confirmar_receita) {
         return;
     }
@@ -72,86 +81,77 @@ function confirmar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto">
-        <form class="p-6" @submit.prevent="confirmar">
-            <h2 class="text-lg font-semibold text-ng-ink">Confirmar receita?</h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                Informe o valor realmente recebido para atualizar o lançamento.
-            </p>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="south_west"
+        titulo="Confirmar receita"
+        subtitulo="Informe o valor realmente recebido para atualizar o lançamento."
+        texto-confirmar="Confirmar recebimento"
+        :processando="formulario.processing"
+        @confirmar="confirmarRecebimentoReceita"
+        @fechar="fechar"
+    >
+        <div class="space-y-5">
+            <LancamentoVisual
+                tipo="receita"
+                :descricao="lancamento?.descricao ?? ''"
+                :valor="formulario.valor_recebido"
+                :data="formatarDataIsoParaBrasileira(formulario.data_recebimento)"
+                :categoria="lancamento?.categoria_nome ?? ''"
+                :situacao-rotulo="lancamento?.situacao_rotulo ?? ''"
+                :situacao-variante="varianteSituacaoLancamento(lancamento?.situacao)"
+                situacao-icone="schedule"
+                :origem="nomeOrigem"
+            />
 
-            <div
-                class="mt-4 flex items-center gap-3 rounded-lg bg-[#e8f4fc] px-4 py-3"
-                role="status"
-            >
-                <span
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white"
-                    aria-hidden="true"
-                >
-                    <span class="material-symbols-outlined text-[18px] leading-none">info</span>
-                </span>
-                <p class="min-w-0 text-sm leading-relaxed text-[#1e3a4c]">
-                    Este lançamento pertence ao valor cadastrado em
-                    <span class="font-semibold">Rendas</span>.
-                    O valor previsto serve apenas como referência, ajuste aqui o valor realmente recebido.
-                </p>
-            </div>
+            <AvisoInformativo
+                variante="sky"
+                rotulo="Valor previsto em Rendas:"
+                :valor="`R$ ${valorPrevistoFormatado}`"
+                complemento="serve apenas como referência"
+            />
 
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="valor-recebido" class="block text-sm font-medium text-ng-ink-muted">
-                        Valor recebido
-                    </label>
-                    <div class="relative mt-1">
-                        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-ng-ink-muted">
-                            R$
-                        </span>
-                        <input
-                            id="valor-recebido"
-                            :value="formulario.valor_recebido"
-                            type="text"
-                            inputmode="numeric"
-                            class="block w-full rounded-lg border-ng-line-strong pl-10 shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                            placeholder="0,00"
-                            @input="formulario.valor_recebido = aoDigitarMoeda($event)"
-                        >
-                    </div>
-                    <p v-if="formulario.errors.valor_recebido" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.valor_recebido }}
-                    </p>
-                </div>
-
-                <div>
-                    <label for="data-recebimento" class="block text-sm font-medium text-ng-ink-muted">
-                        Data recebimento
-                    </label>
-                    <input
-                        id="data-recebimento"
-                        v-model="formulario.data_recebimento"
-                        type="date"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
+            <div v-if="itensPlanoQueSeraoSeparados.length > 0" class="space-y-2">
+                <AvisoInformativo
+                    variante="sky"
+                    :rotulo="rotuloGuardadoPrevisto"
+                    :valor="`R$ ${formatarNumeroParaMoeda(totalGuardadoPrevisto)}`"
+                    complemento="não entra no saldo disponível"
+                />
+                <ul class="space-y-1 px-1 text-xs text-ng-ink-muted">
+                    <li
+                        v-for="item in itensPlanoQueSeraoSeparados"
+                        :key="item.id"
+                        class="flex items-center justify-between gap-3"
                     >
-                    <p v-if="formulario.errors.data_recebimento" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.data_recebimento }}
-                    </p>
-                </div>
+                        <span class="flex min-w-0 items-center gap-1.5 truncate">
+                            <span class="h-2 w-2 shrink-0 rounded-full" :style="{ backgroundColor: item.cor_hexadecimal }" />
+                            {{ item.nome }} ({{ item.regra_formatada }})
+                            <span v-if="item.conta_bancaria_destino_nome">→ {{ item.conta_bancaria_destino_nome }}</span>
+                        </span>
+                        <span class="shrink-0 font-mono text-sky-500">R$ {{ formatarNumeroParaMoeda(item.valor_separado) }}</span>
+                    </li>
+                </ul>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Confirmar
-                </button>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoMoeda
+                    id="receita-valor-recebido"
+                    v-model="formulario.valor_recebido"
+                    rotulo="Valor recebido"
+                    obrigatorio
+                    :erro="formulario.errors.valor_recebido"
+                />
+                <CampoTexto
+                    id="receita-data-recebimento"
+                    v-model="formulario.data_recebimento"
+                    tipo="date"
+                    rotulo="Data de recebimento"
+                    obrigatorio
+                    :erro="formulario.errors.data_recebimento"
+                />
             </div>
-        </form>
+        </div>
     </Modal>
 </template>

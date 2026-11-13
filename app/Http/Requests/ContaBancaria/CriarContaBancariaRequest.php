@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\ContaBancaria;
 
+use App\Enum\AcabamentoVisual;
 use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
 use App\Models\ContaBancaria\ContaBancaria;
@@ -22,6 +23,7 @@ class CriarContaBancariaRequest extends FormRequest
             'nome' => ['required', 'string', 'max:100'],
             'saldo_inicial' => ['required', 'numeric', 'decimal:0,2'],
             'tipo' => ['required', Rule::enum(TipoContaBancaria::class)],
+            'acabamento' => ['required', Rule::enum(AcabamentoVisual::class)],
             'padrao_desconto' => ['nullable', Rule::enum(SimNao::class)],
             'exibir_resumo' => ['nullable', Rule::enum(SimNao::class)],
         ];
@@ -31,6 +33,7 @@ class CriarContaBancariaRequest extends FormRequest
     {
         $this->merge([
             'saldo_inicial' => Valor::normalizarValorMonetario($this->input('saldo_inicial')),
+            'acabamento' => $this->input('acabamento') ?: AcabamentoVisual::padrao()->value,
             'padrao_desconto' => SimNao::fromToggle($this->input('padrao_desconto'))?->value,
             'exibir_resumo' => SimNao::fromToggle($this->input('exibir_resumo'))?->value,
         ]);
@@ -44,6 +47,8 @@ class CriarContaBancariaRequest extends FormRequest
             'saldo_inicial.required' => 'O saldo inicial é obrigatório.',
             'saldo_inicial.numeric' => 'O saldo inicial deve ser um número válido.',
             'tipo.required' => 'O tipo de conta bancária é obrigatório.',
+            'acabamento.required' => 'Selecione o acabamento da conta.',
+            'acabamento.enum' => 'O acabamento selecionado é inválido.',
         ];
     }
 }

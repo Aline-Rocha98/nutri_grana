@@ -1,17 +1,53 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
+import CampoAreaTexto from '@/Components/Formulario/CampoAreaTexto.vue';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoSelecao from '@/Components/Formulario/CampoSelecao.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import CotacaoVisual from '@/Components/Orcamento/CotacaoVisual.vue';
+import GrupoSegmentado from '@/Components/Ui/GrupoSegmentado.vue';
+import { formatarDataIsoParaBrasileira } from '@/Helpers/periodo';
+
+const FORMA_CONTA_BANCARIA = 'conta_bancaria';
+const FORMA_CARTAO_CREDITO = 'cartao_credito';
+const MODALIDADE_A_VISTA = 'a_vista';
+
+const ICONE_POR_FORMA = {
+    [FORMA_CONTA_BANCARIA]: 'account_balance',
+    [FORMA_CARTAO_CREDITO]: 'credit_card',
+};
 
 const props = defineProps({
-    aberto: { type: Boolean, default: false },
-    orcamento: { type: Object, default: null },
-    categorias: { type: Array, default: () => [] },
-    contasBancarias: { type: Array, default: () => [] },
-    cartoesCredito: { type: Array, default: () => [] },
-    formasPagamento: { type: Array, default: () => [] },
-    modalidadesPagamento: { type: Array, default: () => [] },
+    aberto: {
+        type: Boolean,
+        default: false,
+    },
+    orcamento: {
+        type: Object,
+        default: null,
+    },
+    categorias: {
+        type: Array,
+        default: () => [],
+    },
+    contasBancarias: {
+        type: Array,
+        default: () => [],
+    },
+    cartoesCredito: {
+        type: Array,
+        default: () => [],
+    },
+    formasPagamento: {
+        type: Array,
+        default: () => [],
+    },
+    modalidadesPagamento: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['fechar']);
@@ -19,6 +55,7 @@ const emit = defineEmits(['fechar']);
 const pagina = usePage();
 const urlCriar = computed(() => pagina.props.rotas.orcamentosServicoCriar);
 const editando = computed(() => Boolean(props.orcamento));
+const urlAtualizar = ref('');
 
 const formulario = useForm({
     descricao: '',
@@ -29,17 +66,34 @@ const formulario = useForm({
     observacao: '',
     id_categoria: null,
     id_subcategoria: null,
-    modalidade_pagamento: 'a_vista',
-    forma_pagamento: 'conta_bancaria',
+    modalidade_pagamento: MODALIDADE_A_VISTA,
+    forma_pagamento: FORMA_CONTA_BANCARIA,
     id_conta_bancaria: null,
     id_cartao_credito: null,
 });
 
-const estadoUi = reactive({ urlAtualizar: '' });
+const pagamentoComConta = computed(() => formulario.forma_pagamento === FORMA_CONTA_BANCARIA);
 
-const parcelado = computed(() => formulario.modalidade_pagamento === 'parcelado');
-const pagamentoConta = computed(() => formulario.forma_pagamento === 'conta_bancaria');
-const pagamentoCartao = computed(() => formulario.forma_pagamento === 'cartao_credito');
+const opcoesFormaPagamento = computed(() => props.formasPagamento.map((opcao) => ({
+    valor: opcao.valor,
+    rotulo: opcao.valor === FORMA_CONTA_BANCARIA ? 'PIX / conta' : opcao.rotulo,
+    icone: ICONE_POR_FORMA[opcao.valor],
+})));
+
+const opcoesModalidade = computed(() => props.modalidadesPagamento.map((opcao) => ({
+    valor: opcao.valor,
+    rotulo: opcao.rotulo,
+})));
+
+const opcoesContas = computed(() => props.contasBancarias.map((conta) => ({
+    valor: Number(conta.id),
+    rotulo: conta.nome,
+})));
+
+const opcoesCartoes = computed(() => props.cartoesCredito.map((cartao) => ({
+    valor: Number(cartao.id),
+    rotulo: cartao.nome,
+})));
 
 const contaSelecionada = computed(() => props.contasBancarias.find(
     (conta) => Number(conta.id) === Number(formulario.id_conta_bancaria),
@@ -49,7 +103,48 @@ const cartaoSelecionado = computed(() => props.cartoesCredito.find(
     (cartao) => Number(cartao.id) === Number(formulario.id_cartao_credito),
 ) ?? null);
 
-function normalizarId(valor) {
+const dicaContaSelecionada = computed(() => (contaSelecionada.value
+    ? `Saldo disponível nesta conta: R$ ${contaSelecionada.value.saldo_disponivel ?? contaSelecionada.value.saldo_atual}`
+    : ''));
+
+const dicaCartaoSelecionado = computed(() => {
+    const limite = cartaoSelecionado.value
+        ? `Limite disponível: R$ ${cartaoSelecionado.value.limite_disponivel}. `
+        : '';
+
+    return `${limite}O limite é usado apenas na validação, não entra como saldo em conta.`;
+});
+
+const categoriaSelecionada = computed(() => props.categorias.find(
+    (categoria) => categoria.id === formulario.id_categoria,
+) ?? null);
+
+const opcoesCategorias = computed(() => props.categorias.map((categoria) => ({
+    valor: categoria.id,
+    rotulo: categoria.nome,
+})));
+
+const subcategoriasDisponiveis = computed(() => categoriaSelecionada.value?.subcategorias
+    ?.filter((subcategoria) => subcategoria.arquivada !== 'S') ?? []);
+
+const opcoesSubcategorias = computed(() => subcategoriasDisponiveis.value.map((subcategoria) => ({
+    valor: subcategoria.id,
+    rotulo: subcategoria.nome,
+})));
+
+const modalidadePreview = computed(() => props.modalidadesPagamento.find(
+    (opcao) => opcao.valor === formulario.modalidade_pagamento,
+)?.rotulo ?? '');
+
+const origemPreview = computed(() => (pagamentoComConta.value
+    ? contaSelecionada.value?.nome
+    : cartaoSelecionado.value?.nome) ?? '');
+
+const validadePreview = computed(() => (formulario.data_validade
+    ? formatarDataIsoParaBrasileira(formulario.data_validade)
+    : ''));
+
+function normalizarIdSelecionado(valor) {
     if (valor === null || valor === undefined || valor === '') {
         return null;
     }
@@ -59,74 +154,82 @@ function normalizarId(valor) {
     return Number.isNaN(numero) ? null : numero;
 }
 
-const subcategoriasDisponiveis = computed(() => {
-    const categoria = props.categorias.find((c) => c.id === formulario.id_categoria);
-    return categoria?.subcategorias?.filter((s) => s.arquivada !== 'S') ?? [];
-});
-
-function contaPadrao() {
-    return props.contasBancarias.find((c) => c.padrao_desconto === 'S')?.id
+function contaPadraoDaCotacao() {
+    return props.contasBancarias.find((conta) => conta.padrao_desconto === 'S')?.id
         ?? props.contasBancarias[0]?.id
         ?? null;
 }
 
-function cartaoPadrao() {
-    return props.cartoesCredito.find((c) => c.padrao === 'S')?.id
+function cartaoPadraoDaCotacao() {
+    return props.cartoesCredito.find((cartao) => cartao.padrao === 'S')?.id
         ?? props.cartoesCredito[0]?.id
         ?? null;
 }
 
-function dataHoje() {
+function dataDeHojeIso() {
     return new Date().toISOString().slice(0, 10);
 }
 
-function reiniciarFormulario() {
+function preencherFormularioDaCotacao() {
     formulario.clearErrors();
     formulario.descricao = props.orcamento?.descricao ?? '';
     formulario.fornecedor = props.orcamento?.fornecedor ?? '';
     formulario.valor = props.orcamento?.valor ?? '0,00';
-    formulario.data_orcamento = props.orcamento?.data_orcamento ?? dataHoje();
+    formulario.data_orcamento = props.orcamento?.data_orcamento ?? dataDeHojeIso();
     formulario.data_validade = props.orcamento?.data_validade ?? '';
     formulario.observacao = props.orcamento?.observacao ?? '';
     formulario.id_categoria = props.orcamento?.id_categoria ?? null;
     formulario.id_subcategoria = props.orcamento?.id_subcategoria ?? null;
-    formulario.modalidade_pagamento = props.orcamento?.modalidade_pagamento ?? 'a_vista';
-    formulario.forma_pagamento = props.orcamento?.forma_pagamento ?? 'conta_bancaria';
-    formulario.id_conta_bancaria = normalizarId(props.orcamento?.id_conta_bancaria) ?? contaPadrao();
-    formulario.id_cartao_credito = normalizarId(props.orcamento?.id_cartao_credito) ?? cartaoPadrao();
-    estadoUi.urlAtualizar = props.orcamento?.url_atualizar ?? '';
+    formulario.modalidade_pagamento = props.orcamento?.modalidade_pagamento ?? MODALIDADE_A_VISTA;
+    formulario.forma_pagamento = props.orcamento?.forma_pagamento ?? FORMA_CONTA_BANCARIA;
+    formulario.id_conta_bancaria = normalizarIdSelecionado(props.orcamento?.id_conta_bancaria) ?? contaPadraoDaCotacao();
+    formulario.id_cartao_credito = normalizarIdSelecionado(props.orcamento?.id_cartao_credito) ?? cartaoPadraoDaCotacao();
+    urlAtualizar.value = props.orcamento?.url_atualizar ?? '';
 }
 
-watch(() => [props.aberto, props.orcamento], () => {
-    if (props.aberto) {
-        reiniciarFormulario();
-    }
-});
+watch(
+    () => [props.aberto, props.orcamento],
+    () => {
+        if (props.aberto) {
+            preencherFormularioDaCotacao();
+        }
+    },
+);
 
-watch(() => formulario.id_categoria, () => {
-    if (!subcategoriasDisponiveis.value.some((s) => s.id === formulario.id_subcategoria)) {
-        formulario.id_subcategoria = null;
-    }
-});
+watch(
+    () => formulario.id_categoria,
+    () => {
+        if (!subcategoriasDisponiveis.value.some((subcategoria) => subcategoria.id === formulario.id_subcategoria)) {
+            formulario.id_subcategoria = null;
+        }
+    },
+);
 
-watch(() => formulario.forma_pagamento, (forma) => {
-    if (forma === 'conta_bancaria' && !formulario.id_conta_bancaria) {
-        formulario.id_conta_bancaria = contaPadrao();
-    }
-    if (forma === 'cartao_credito' && !formulario.id_cartao_credito) {
-        formulario.id_cartao_credito = cartaoPadrao();
-    }
-});
+watch(
+    () => formulario.forma_pagamento,
+    (forma) => {
+        if (forma === FORMA_CONTA_BANCARIA && !formulario.id_conta_bancaria) {
+            formulario.id_conta_bancaria = contaPadraoDaCotacao();
+        }
 
-function fechar() {
+        if (forma === FORMA_CARTAO_CREDITO && !formulario.id_cartao_credito) {
+            formulario.id_cartao_credito = cartaoPadraoDaCotacao();
+        }
+    },
+);
+
+function fecharFormulario() {
     emit('fechar');
 }
 
-function salvar() {
-    const opcoes = { preserveScroll: true, onSuccess: () => fechar() };
+function salvarCotacaoServico() {
+    const opcoes = {
+        preserveScroll: true,
+        onSuccess: () => fecharFormulario(),
+    };
 
     if (editando.value) {
-        formulario.put(estadoUi.urlAtualizar, opcoes);
+        formulario.put(urlAtualizar.value, opcoes);
         return;
     }
 
@@ -135,204 +238,158 @@ function salvar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto" max-largura="lg">
-        <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-ng-ink">
-                {{ editando ? 'Editar cotação' : 'Nova cotação' }}
-            </h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                Registre a proposta e a forma de pagamento prevista para simular o impacto no fluxo.
-            </p>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="request_quote"
+        :titulo="editando ? 'Editar cotação' : 'Nova cotação'"
+        subtitulo="Registre a proposta e a forma de pagamento prevista para simular o impacto no fluxo."
+        :texto-confirmar="editando ? 'Salvar alterações' : 'Salvar cotação'"
+        :processando="formulario.processing"
+        @fechar="fecharFormulario"
+        @confirmar="salvarCotacaoServico"
+    >
+        <div class="space-y-5">
+            <section>
+                <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ng-ink-subtle">
+                    Visualização da cotação em tempo real
+                </p>
+                <CotacaoVisual
+                    :descricao="formulario.descricao"
+                    :fornecedor="formulario.fornecedor"
+                    :categoria="categoriaSelecionada?.nome ?? ''"
+                    :valor="formulario.valor"
+                    :modalidade="modalidadePreview"
+                    :validade="validadePreview"
+                    :origem="origemPreview"
+                />
+            </section>
 
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="descricao-cotacao" class="block text-sm font-medium text-ng-ink-muted">Descrição</label>
-                    <input
-                        id="descricao-cotacao"
-                        v-model="formulario.descricao"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="Ex.: Pintura do apartamento"
-                    >
-                    <p v-if="formulario.errors.descricao" class="mt-2 text-sm text-red-600">{{ formulario.errors.descricao }}</p>
-                </div>
+            <CampoTexto
+                id="descricao-cotacao"
+                v-model="formulario.descricao"
+                rotulo="Descrição"
+                obrigatorio
+                placeholder="Ex.: Pintura do apartamento"
+                :maxlength="255"
+                :erro="formulario.errors.descricao"
+            />
 
-                <div>
-                    <label for="fornecedor-cotacao" class="block text-sm font-medium text-ng-ink-muted">Fornecedor</label>
-                    <input
-                        id="fornecedor-cotacao"
-                        v-model="formulario.fornecedor"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="Ex.: Loja de móveis XYZ"
-                    >
-                </div>
+            <CampoTexto
+                id="fornecedor-cotacao"
+                v-model="formulario.fornecedor"
+                rotulo="Fornecedor"
+                placeholder="Nome da empresa ou profissional"
+                :maxlength="255"
+                :erro="formulario.errors.fornecedor"
+            />
 
-                <div>
-                    <label for="valor-cotacao" class="block text-sm font-medium text-ng-ink-muted">Valor estimado</label>
-                    <input
-                        id="valor-cotacao"
-                        :value="formulario.valor"
-                        type="text"
-                        inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="0,00"
-                        @input="formulario.valor = aoDigitarMoeda($event)"
-                    >
-                    <p v-if="formulario.errors.valor" class="mt-2 text-sm text-red-600">{{ formulario.errors.valor }}</p>
-                </div>
+            <CampoMoeda
+                id="valor-cotacao"
+                v-model="formulario.valor"
+                rotulo="Valor estimado"
+                obrigatorio
+                :erro="formulario.errors.valor"
+            />
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="data-cotacao" class="block text-sm font-medium text-ng-ink-muted">Data da cotação</label>
-                        <input
-                            id="data-cotacao"
-                            v-model="formulario.data_orcamento"
-                            type="date"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                        <p v-if="formulario.errors.data_orcamento" class="mt-2 text-sm text-red-600">{{ formulario.errors.data_orcamento }}</p>
-                    </div>
-                    <div>
-                        <label for="validade-cotacao" class="block text-sm font-medium text-ng-ink-muted">Validade</label>
-                        <input
-                            id="validade-cotacao"
-                            v-model="formulario.data_validade"
-                            type="date"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                        <p v-if="formulario.errors.data_validade" class="mt-2 text-sm text-red-600">{{ formulario.errors.data_validade }}</p>
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoTexto
+                    id="data-cotacao"
+                    v-model="formulario.data_orcamento"
+                    tipo="date"
+                    rotulo="Data da cotação"
+                    :erro="formulario.errors.data_orcamento"
+                />
+                <CampoTexto
+                    id="validade-cotacao"
+                    v-model="formulario.data_validade"
+                    tipo="date"
+                    rotulo="Validade"
+                    :erro="formulario.errors.data_validade"
+                />
+            </div>
 
-                <div class="rounded-xl border border-ng-line bg-ng-card-muted/50 p-4 space-y-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-ng-ink-muted">Pagamento previsto</p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-ng-ink-muted">Modalidade</label>
-                            <select
-                                v-model="formulario.modalidade_pagamento"
-                                class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                            >
-                                <option v-for="opcao in modalidadesPagamento" :key="opcao.valor" :value="opcao.valor">
-                                    {{ opcao.rotulo }}
-                                </option>
-                            </select>
-                            <p v-if="formulario.errors.modalidade_pagamento" class="mt-1 text-sm text-red-600">
-                                {{ formulario.errors.modalidade_pagamento }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-ng-ink-muted">Forma</label>
-                            <select
-                                v-model="formulario.forma_pagamento"
-                                class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                            >
-                                <option v-for="opcao in formasPagamento" :key="opcao.valor" :value="opcao.valor">
-                                    {{ opcao.valor === 'conta_bancaria' ? 'PIX' : opcao.rotulo }}
-                                </option>
-                            </select>
-                            <p v-if="formulario.errors.forma_pagamento" class="mt-1 text-sm text-red-600">
-                                {{ formulario.errors.forma_pagamento }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div v-if="pagamentoConta">
-                        <label class="block text-sm font-medium text-ng-ink-muted">Conta bancária</label>
-                        <select
-                            v-model.number="formulario.id_conta_bancaria"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option v-for="conta in contasBancarias" :key="conta.id" :value="Number(conta.id)">
-                                {{ conta.nome }}
-                            </option>
-                        </select>
-                        <p v-if="contaSelecionada" class="mt-1 text-xs text-ng-ink-muted">
-                            Saldo disponível nesta conta: R$ {{ contaSelecionada.saldo_atual }}
-                        </p>
-                        <p v-if="formulario.errors.id_conta_bancaria" class="mt-1 text-sm text-red-600">
-                            {{ formulario.errors.id_conta_bancaria }}
-                        </p>
-                    </div>
-
-                    <div v-if="pagamentoCartao">
-                        <label class="block text-sm font-medium text-ng-ink-muted">Cartão de crédito</label>
-                        <select
-                            v-model.number="formulario.id_cartao_credito"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option v-for="cartao in cartoesCredito" :key="cartao.id" :value="Number(cartao.id)">
-                                {{ cartao.nome }}
-                            </option>
-                        </select>
-                        <p v-if="cartaoSelecionado" class="mt-1 text-xs text-ng-ink-muted">
-                            Limite disponível: R$ {{ cartaoSelecionado.limite_disponivel }}
-                        </p>
-                        <p class="mt-1 text-xs text-ng-ink-muted">
-                            O limite do cartão é usado apenas na validação, não entra como saldo em conta.
-                        </p>
-                        <p v-if="formulario.errors.id_cartao_credito" class="mt-1 text-sm text-red-600">
-                            {{ formulario.errors.id_cartao_credito }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="categoria-cotacao" class="block text-sm font-medium text-ng-ink-muted">Categoria</label>
-                        <select
-                            id="categoria-cotacao"
-                            v-model="formulario.id_categoria"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option :value="null">Selecione...</option>
-                            <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nome }}</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="subcategoria-cotacao" class="block text-sm font-medium text-ng-ink-muted">Subcategoria</label>
-                        <select
-                            id="subcategoria-cotacao"
-                            v-model="formulario.id_subcategoria"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                            :disabled="!formulario.id_categoria"
-                        >
-                            <option :value="null">Selecione...</option>
-                            <option v-for="sub in subcategoriasDisponiveis" :key="sub.id" :value="sub.id">{{ sub.nome }}</option>
-                        </select>
-                    </div>
-                </div>
+            <section class="space-y-4 rounded-xl border border-ng-line bg-ng-card-muted p-4">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-ng-ink-subtle">Pagamento previsto</p>
 
                 <div>
-                    <label for="observacao-cotacao" class="block text-sm font-medium text-ng-ink-muted">Observação</label>
-                    <textarea
-                        id="observacao-cotacao"
-                        v-model="formulario.observacao"
-                        rows="3"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="Condições, detalhes da proposta..."
+                    <p class="ng-label mb-1.5">Modalidade</p>
+                    <GrupoSegmentado
+                        v-model="formulario.modalidade_pagamento"
+                        :opcoes="opcoesModalidade"
+                        rotulo="Modalidade de pagamento"
+                        expandido
                     />
+                    <p v-if="formulario.errors.modalidade_pagamento" class="mt-1.5 text-xs text-red-500">
+                        {{ formulario.errors.modalidade_pagamento }}
+                    </p>
                 </div>
+
+                <div>
+                    <p class="ng-label mb-1.5">Forma de pagamento</p>
+                    <GrupoSegmentado
+                        v-model="formulario.forma_pagamento"
+                        :opcoes="opcoesFormaPagamento"
+                        rotulo="Forma de pagamento"
+                        expandido
+                    />
+                    <p v-if="formulario.errors.forma_pagamento" class="mt-1.5 text-xs text-red-500">
+                        {{ formulario.errors.forma_pagamento }}
+                    </p>
+                </div>
+
+                <CampoSelecao
+                    v-if="pagamentoComConta"
+                    id="conta-cotacao"
+                    v-model="formulario.id_conta_bancaria"
+                    rotulo="Conta bancária"
+                    :opcoes="opcoesContas"
+                    placeholder="Selecione a conta"
+                    :dica="dicaContaSelecionada"
+                    :erro="formulario.errors.id_conta_bancaria"
+                />
+                <CampoSelecao
+                    v-else
+                    id="cartao-cotacao"
+                    v-model="formulario.id_cartao_credito"
+                    rotulo="Cartão de crédito"
+                    :opcoes="opcoesCartoes"
+                    placeholder="Selecione o cartão"
+                    :dica="dicaCartaoSelecionado"
+                    :erro="formulario.errors.id_cartao_credito"
+                />
+            </section>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoSelecao
+                    id="categoria-cotacao"
+                    v-model="formulario.id_categoria"
+                    rotulo="Categoria"
+                    :opcoes="opcoesCategorias"
+                    placeholder="Selecione..."
+                    placeholder-selecionavel
+                    :erro="formulario.errors.id_categoria"
+                />
+                <CampoSelecao
+                    id="subcategoria-cotacao"
+                    v-model="formulario.id_subcategoria"
+                    rotulo="Subcategoria"
+                    :opcoes="opcoesSubcategorias"
+                    placeholder="Selecione..."
+                    placeholder-selecionavel
+                    :desabilitado="!formulario.id_categoria"
+                    :erro="formulario.errors.id_subcategoria"
+                />
             </div>
 
-            <div class="mt-6 flex flex-wrap justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Salvar cotação
-                </button>
-            </div>
-        </form>
+            <CampoAreaTexto
+                id="observacao-cotacao"
+                v-model="formulario.observacao"
+                rotulo="Observação"
+                placeholder="Condições, detalhes da proposta..."
+                :linhas="3"
+                :erro="formulario.errors.observacao"
+            />
+        </div>
     </Modal>
 </template>

@@ -7,7 +7,6 @@ use App\Enum\SimNao;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoAporteObjetivo;
 use App\Enum\TipoLancamento;
-use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\Objetivo\AporteObjetivo;
 use App\Models\Objetivo\Objetivo;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
@@ -88,11 +87,11 @@ class AporteObjetivoService
             ]);
         }
 
-        $saldoAtual = $this->obterSaldoAtualDaConta($conta);
+        $saldoDisponivel = $this->contaBancariaRepository->saldoDisponivelDaConta($conta);
 
-        if ($saldoAtual < $valor) {
+        if ($saldoDisponivel < $valor) {
             throw ValidationException::withMessages([
-                'valor' => 'Saldo insuficiente na conta bancária selecionada.',
+                'valor' => 'Saldo disponível insuficiente na conta bancária selecionada.',
             ]);
         }
 
@@ -123,12 +122,5 @@ class AporteObjetivoService
             'id_lancamento' => $lancamento->id_lancamento,
             'observacao' => $dados['observacao'] ?? null,
         ]);
-    }
-
-    private function obterSaldoAtualDaConta(ContaBancaria $conta): float
-    {
-        $movimentado = $this->contaBancariaRepository->saldoMovimentado((int) $conta->id_conta_bancaria);
-
-        return round((float) $conta->saldo_inicial + $movimentado, 2);
     }
 }

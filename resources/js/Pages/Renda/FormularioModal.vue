@@ -1,9 +1,15 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import ModalNotificacao from '@/Components/ModalNotificacao.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
+import CampoAreaTexto from '@/Components/Formulario/CampoAreaTexto.vue';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoSelecao from '@/Components/Formulario/CampoSelecao.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import SecaoRecolhivel from '@/Components/Ui/SecaoRecolhivel.vue';
+import SeletorPlanoFinanceiro from '@/Components/PlanoFinanceiro/SeletorPlanoFinanceiro.vue';
+import { moedaParaNumero } from '@/Helpers/mascaraMoeda';
 
 const props = defineProps({
     aberto: {
@@ -18,6 +24,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    planosFinanceiros: {
+        type: Array,
+        default: () => [],
+    },
     frequencias: {
         type: Array,
         default: () => [],
@@ -26,25 +36,43 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    urlPlanosFinanceiros: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['fechar']);
 
 const editando = computed(() => Boolean(props.renda));
 const modalConfirmacaoAberto = ref(false);
+const secaoPlanoFinanceiroAberta = ref(false);
 
 const formulario = useForm({
     descricao: '',
-    valor_esperado: '',
+    valor_esperado: '0,00',
     id_conta_bancaria: null,
     frequencia: props.frequencias[0]?.valor ?? 'mensal',
     dia_esperado: 1,
     observacao: '',
+    id_plano_financeiro: null,
 });
 
-const estadoUi = reactive({
-    urlAtualizar: '',
-});
+const opcoesContas = computed(() => props.contasBancarias.map((conta) => ({
+    valor: conta.id,
+    rotulo: conta.nome,
+})));
+
+const opcoesFrequencias = computed(() => props.frequencias.map((frequencia) => ({
+    valor: frequencia.valor,
+    rotulo: frequencia.rotulo,
+})));
+
+const valorRendaDigitado = computed(() => moedaParaNumero(formulario.valor_esperado));
+
+const planoFinanceiroPadrao = computed(() => props.planosFinanceiros.find((plano) => plano.padrao) ?? null);
+
+const quantidadePlanosAplicados = computed(() => (formulario.id_plano_financeiro ? 1 : 0));
 
 const mensagemConfirmacao = computed(() => {
     if (editando.value) {
@@ -54,10 +82,10 @@ const mensagemConfirmacao = computed(() => {
     return 'Ao confirmar, será criado automaticamente um lançamento de receita na tela de Lançamentos. Deseja continuar?';
 });
 
-function reiniciarFormulario() {
+function reiniciarFormularioRenda() {
     formulario.clearErrors();
     formulario.descricao = props.renda?.descricao ?? '';
-    formulario.valor_esperado = props.renda?.valor_esperado ?? '';
+    formulario.valor_esperado = props.renda?.valor_esperado ?? '0,00';
     formulario.id_conta_bancaria = props.renda?.id_conta_bancaria
         ?? props.contasBancarias[0]?.id
         ?? null;
@@ -65,7 +93,10 @@ function reiniciarFormulario() {
         ?? (props.frequencias[0]?.valor ?? 'mensal');
     formulario.dia_esperado = props.renda?.dia_esperado ?? 1;
     formulario.observacao = props.renda?.observacao ?? '';
-    estadoUi.urlAtualizar = props.renda?.url_atualizar ?? '';
+    formulario.id_plano_financeiro = editando.value
+        ? (props.renda.id_plano_financeiro ?? null)
+        : (planoFinanceiroPadrao.value?.id ?? null);
+    secaoPlanoFinanceiroAberta.value = Boolean(formulario.id_plano_financeiro);
     modalConfirmacaoAberto.value = false;
 }
 
@@ -73,21 +104,30 @@ watch(
     () => [props.aberto, props.renda],
     () => {
         if (props.aberto) {
-            reiniciarFormulario();
+            reiniciarFormularioRenda();
         }
     },
 );
 
-function fechar() {
+watch(
+    () => formulario.errors.id_plano_financeiro,
+    (erro) => {
+        if (erro) {
+            secaoPlanoFinanceiroAberta.value = true;
+        }
+    },
+);
+
+function fecharFormularioRenda() {
     modalConfirmacaoAberto.value = false;
     emit('fechar');
 }
 
-function pedirConfirmacao() {
+function pedirConfirmacaoRenda() {
     modalConfirmacaoAberto.value = true;
 }
 
-function cancelarConfirmacao() {
+function cancelarConfirmacaoRenda() {
     if (formulario.processing) {
         return;
     }
@@ -95,17 +135,17 @@ function cancelarConfirmacao() {
     modalConfirmacaoAberto.value = false;
 }
 
-function confirmarSalvar() {
+function salvarRenda() {
     const opcoes = {
         preserveScroll: true,
-        onSuccess: () => fechar(),
+        onSuccess: () => fecharFormularioRenda(),
         onFinish: () => {
             modalConfirmacaoAberto.value = false;
         },
     };
 
     if (editando.value) {
-        formulario.put(estadoUi.urlAtualizar, opcoes);
+        formulario.put(props.renda.url_atualizar, opcoes);
         return;
     }
 
@@ -114,146 +154,96 @@ function confirmarSalvar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto">
-        <form class="p-6" @submit.prevent="pedirConfirmacao">
-            <h2 class="text-lg font-semibold text-ng-ink">
-                {{ editando ? 'Editar renda' : 'Nova renda' }}
-            </h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                Cadastre suas rendas mensais, como salários, freelances e outras receitas.
-            </p>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="payments"
+        :titulo="editando ? 'Editar renda' : 'Nova renda'"
+        subtitulo="Cadastre suas rendas, como salários, freelances e outras receitas."
+        :texto-confirmar="editando ? 'Salvar alterações' : 'Salvar renda'"
+        :processando="formulario.processing"
+        @fechar="fecharFormularioRenda"
+        @confirmar="pedirConfirmacaoRenda"
+    >
+        <div class="space-y-5">
+            <CampoTexto
+                id="renda-descricao"
+                v-model="formulario.descricao"
+                rotulo="Descrição"
+                placeholder="Ex.: Salário"
+                maxlength="255"
+                obrigatorio
+                :erro="formulario.errors.descricao"
+            />
 
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="descricao-renda" class="block text-sm font-medium text-ng-ink-muted">
-                        Descrição
-                    </label>
-                    <input
-                        id="descricao-renda"
-                        v-model="formulario.descricao"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="Ex.: Salário"
-                    >
-                    <p v-if="formulario.errors.descricao" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.descricao }}
-                    </p>
-                </div>
+            <CampoMoeda
+                id="renda-valor-esperado"
+                v-model="formulario.valor_esperado"
+                rotulo="Valor esperado"
+                dica="Use o valor médio se ele variar"
+                obrigatorio
+                :erro="formulario.errors.valor_esperado"
+            />
 
-                <div>
-                    <label for="valor-esperado-renda" class="block text-sm font-medium text-ng-ink-muted">
-                        Valor esperado
-                    </label>
-                    <input
-                        id="valor-esperado-renda"
-                        :value="formulario.valor_esperado"
-                        type="text"
-                        inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="0,00"
-                        @input="formulario.valor_esperado = aoDigitarMoeda($event)"
-                    >
-                    <p v-if="formulario.errors.valor_esperado" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.valor_esperado }}
-                    </p>
-                </div>
+            <CampoSelecao
+                id="renda-conta-bancaria"
+                v-model="formulario.id_conta_bancaria"
+                rotulo="Conta bancária de recebimento"
+                :opcoes="opcoesContas"
+                obrigatorio
+                :erro="formulario.errors.id_conta_bancaria"
+            />
 
-                <div>
-                    <label for="conta-renda" class="block text-sm font-medium text-ng-ink-muted">
-                        Conta bancária de recebimento
-                    </label>
-                    <select
-                        id="conta-renda"
-                        v-model="formulario.id_conta_bancaria"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                        <option
-                            v-for="conta in contasBancarias"
-                            :key="conta.id"
-                            :value="conta.id"
-                        >
-                            {{ conta.nome }}
-                        </option>
-                    </select>
-                    <p v-if="formulario.errors.id_conta_bancaria" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.id_conta_bancaria }}
-                    </p>
-                </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoSelecao
+                    id="renda-frequencia"
+                    v-model="formulario.frequencia"
+                    rotulo="Frequência"
+                    :opcoes="opcoesFrequencias"
+                    obrigatorio
+                    :erro="formulario.errors.frequencia"
+                />
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="frequencia-renda" class="block text-sm font-medium text-ng-ink-muted">
-                            Frequência
-                        </label>
-                        <select
-                            id="frequencia-renda"
-                            v-model="formulario.frequencia"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option
-                                v-for="opcao in frequencias"
-                                :key="opcao.valor"
-                                :value="opcao.valor"
-                            >
-                                {{ opcao.rotulo }}
-                            </option>
-                        </select>
-                        <p v-if="formulario.errors.frequencia" class="mt-2 text-sm text-red-600">
-                            {{ formulario.errors.frequencia }}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label for="dia-esperado-renda" class="block text-sm font-medium text-ng-ink-muted">
-                            Dia esperado de recebimento
-                        </label>
-                        <input
-                            id="dia-esperado-renda"
-                            v-model.number="formulario.dia_esperado"
-                            type="number"
-                            min="1"
-                            max="31"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                        <p v-if="formulario.errors.dia_esperado" class="mt-2 text-sm text-red-600">
-                            {{ formulario.errors.dia_esperado }}
-                        </p>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="observacao-renda" class="block text-sm font-medium text-ng-ink-muted">
-                        Observações
-                    </label>
-                    <textarea
-                        id="observacao-renda"
-                        v-model="formulario.observacao"
-                        rows="3"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    />
-                    <p v-if="formulario.errors.observacao" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.observacao }}
-                    </p>
-                </div>
+                <CampoTexto
+                    id="renda-dia-esperado"
+                    :model-value="formulario.dia_esperado"
+                    tipo="number"
+                    inputmode="numeric"
+                    rotulo="Dia do recebimento"
+                    obrigatorio
+                    mono
+                    :erro="formulario.errors.dia_esperado"
+                    @update:model-value="formulario.dia_esperado = Number($event) || ''"
+                />
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Salvar
-                </button>
-            </div>
-        </form>
+            <CampoAreaTexto
+                id="renda-observacao"
+                v-model="formulario.observacao"
+                rotulo="Observações"
+                :linhas="2"
+                maxlength="2000"
+                :erro="formulario.errors.observacao"
+            />
+
+            <SecaoRecolhivel
+                v-model:aberto="secaoPlanoFinanceiroAberta"
+                titulo="Plano financeiro"
+                descricao="Escolha como esta renda será distribuída a cada recebimento."
+                icone="donut_large"
+                :contador="quantidadePlanosAplicados"
+                :destacar-erro="Boolean(formulario.errors.id_plano_financeiro)"
+            >
+                <SeletorPlanoFinanceiro
+                    id="renda-plano-financeiro"
+                    v-model="formulario.id_plano_financeiro"
+                    :planos="planosFinanceiros"
+                    :valor-renda="valorRendaDigitado"
+                    :url-planos-financeiros="urlPlanosFinanceiros"
+                    :erro="formulario.errors.id_plano_financeiro"
+                />
+            </SecaoRecolhivel>
+        </div>
     </Modal>
 
     <ModalNotificacao
@@ -263,7 +253,7 @@ function confirmarSalvar() {
         texto-confirmar="Confirmar"
         texto-cancelar="Cancelar"
         :processando="formulario.processing"
-        @confirmar="confirmarSalvar"
-        @cancelar="cancelarConfirmacao"
+        @confirmar="salvarRenda"
+        @cancelar="cancelarConfirmacaoRenda"
     />
 </template>

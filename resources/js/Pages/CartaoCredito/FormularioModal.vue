@@ -1,9 +1,27 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
-import { opcoesDiasDoMes } from '@/Helpers/formatarDia';
+import AvisoInformativo from '@/Components/Formulario/AvisoInformativo.vue';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoSelecao from '@/Components/Formulario/CampoSelecao.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import ChipsSugestao from '@/Components/Formulario/ChipsSugestao.vue';
+import GradeOpcoes from '@/Components/Formulario/GradeOpcoes.vue';
+import LinhaAlternancia from '@/Components/Formulario/LinhaAlternancia.vue';
+import SeletorCor from '@/Components/Formulario/SeletorCor.vue';
+import CartaoCreditoVisual from '@/Components/CartaoCredito/CartaoCreditoVisual.vue';
+import MarcaBandeiraCartao from '@/Components/CartaoCredito/MarcaBandeiraCartao.vue';
+import { calcularDiasAteVencimento, calcularMelhorDiaCompra } from '@/Helpers/cicloFatura';
+import { formatarDia, opcoesDiasDoMes } from '@/Helpers/formatarDia';
+
+const BANDEIRA_SEM_SELECAO = 'selecione';
+
+const ATALHOS_LIMITE = [
+    { rotulo: '5k', valor: '5.000,00' },
+    { rotulo: '10k', valor: '10.000,00' },
+    { rotulo: '20k', valor: '20.000,00' },
+];
 
 const props = defineProps({
     aberto: {
@@ -11,6 +29,10 @@ const props = defineProps({
         default: false,
     },
     bandeiras: {
+        type: Array,
+        default: () => [],
+    },
+    acabamentos: {
         type: Array,
         default: () => [],
     },
@@ -22,6 +44,10 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    nomeTitularPadrao: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['fechar']);
@@ -29,32 +55,47 @@ const emit = defineEmits(['fechar']);
 const pagina = usePage();
 const urlCriar = computed(() => pagina.props.rotas.cartoesCreditoCriar);
 const editando = computed(() => Boolean(props.cartao));
-const sugestoesAbertas = ref(false);
-const diasDoMes = opcoesDiasDoMes();
+
+const opcoesBandeira = computed(() => props.bandeiras.filter((opcao) => opcao.valor !== BANDEIRA_SEM_SELECAO));
+const acabamentoPadrao = computed(() => props.acabamentos[0]?.valor ?? 'esmeralda');
+const bandeiraPadrao = computed(() => opcoesBandeira.value[0]?.valor ?? 'visa');
+
+const opcoesDias = opcoesDiasDoMes().map((opcao) => ({ ...opcao, rotulo: `Dia ${opcao.rotulo}` }));
+
+const modelosRapidos = computed(() =>
+    props.bancosSugeridos.map((banco) => ({
+        chave: banco.nome,
+        rotulo: banco.nome,
+        acabamento: banco.acabamento,
+        bandeira: banco.bandeira,
+    })),
+);
 
 const formulario = useForm({
     nome: '',
+    nome_titular: '',
+    ultimos_digitos: '',
     limite_total: '0,00',
     dia_fechamento: 1,
     dia_vencimento: 10,
-    bandeira: props.bandeiras[0]?.valor ?? 'visa',
+    bandeira: 'visa',
+    acabamento: 'esmeralda',
     padrao: null,
-});
-
-const estadoUi = reactive({
-    urlAtualizar: '',
 });
 
 function reiniciarFormulario() {
     formulario.clearErrors();
     formulario.nome = props.cartao?.nome ?? '';
+    formulario.nome_titular = props.cartao?.nome_titular ?? props.nomeTitularPadrao;
+    formulario.ultimos_digitos = props.cartao?.ultimos_digitos ?? '';
     formulario.limite_total = props.cartao?.limite_total ?? '0,00';
     formulario.dia_fechamento = props.cartao?.dia_fechamento ?? 1;
     formulario.dia_vencimento = props.cartao?.dia_vencimento ?? 10;
-    formulario.bandeira = props.cartao?.bandeira ?? (props.bandeiras[0]?.valor ?? 'visa');
+    formulario.bandeira = props.cartao?.bandeira && props.cartao.bandeira !== BANDEIRA_SEM_SELECAO
+        ? props.cartao.bandeira
+        : bandeiraPadrao.value;
+    formulario.acabamento = props.cartao?.acabamento ?? acabamentoPadrao.value;
     formulario.padrao = props.cartao?.padrao ?? null;
-    estadoUi.urlAtualizar = props.cartao?.url_atualizar ?? '';
-    sugestoesAbertas.value = false;
 }
 
 watch(
@@ -66,59 +107,39 @@ watch(
     },
 );
 
-const bancosFiltrados = computed(() => {
-    const termo = (formulario.nome || '').trim().toLowerCase();
-    if (!termo) {
-        return props.bancosSugeridos;
+const corAcabamentoSelecionado = computed(() =>
+    props.acabamentos.find((opcao) => opcao.valor === formulario.acabamento)?.cor ?? '#1fa67e',
+);
+
+const melhorDiaCompra = computed(() => formatarDia(calcularMelhorDiaCompra(formulario.dia_fechamento)));
+const diasAteVencimento = computed(() =>
+    calcularDiasAteVencimento(formulario.dia_fechamento, formulario.dia_vencimento),
+);
+
+function selecionarModeloRapido(modelo) {
+    formulario.nome = modelo.rotulo;
+
+    if (modelo.acabamento) {
+        formulario.acabamento = modelo.acabamento;
     }
 
-    return props.bancosSugeridos.filter((banco) =>
-        banco.nome.toLowerCase().includes(termo),
-    );
-});
-
-const logoSelecionada = computed(() => {
-    const nome = (formulario.nome || '').trim().toLowerCase();
-    if (!nome) {
-        return null;
+    if (modelo.bandeira) {
+        formulario.bandeira = modelo.bandeira;
     }
-
-    return props.bancosSugeridos.find((item) => item.nome.toLowerCase() === nome)?.logo ?? null;
-});
-
-function abrirSugestoes() {
-    sugestoesAbertas.value = true;
-}
-
-function fecharSugestoes() {
-    sugestoesAbertas.value = false;
-}
-
-function selecionarBanco(banco) {
-    formulario.nome = banco.nome;
-    sugestoesAbertas.value = false;
-}
-
-function estaAtivo(campo) {
-    return formulario[campo] === 'S';
-}
-
-function toggleSimNao(campo) {
-    formulario[campo] = formulario[campo] === 'S' ? 'N' : 'S';
 }
 
 function fechar() {
     emit('fechar');
 }
 
-function salvar() {
+function salvarCartaoCredito() {
     const opcoes = {
         preserveScroll: true,
         onSuccess: () => fechar(),
     };
 
     if (editando.value) {
-        formulario.put(estadoUi.urlAtualizar, opcoes);
+        formulario.put(props.cartao.url_atualizar, opcoes);
         return;
     }
 
@@ -127,197 +148,136 @@ function salvar() {
 </script>
 
 <template>
-    <Modal :aberto="aberto">
-        <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-ng-ink">
-                {{ editando ? 'Editar cartão' : 'Novo cartão' }}
-            </h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">Preencha os dados do cartão de crédito manual.</p>
+    <Modal
+        :aberto="aberto"
+        max-largura="lg"
+        icone="credit_card"
+        :titulo="editando ? 'Editar cartão' : 'Adicionar novo cartão'"
+        subtitulo="Cadastre seus dados para controle em tempo real de faturas e limites."
+        :texto-confirmar="editando ? 'Salvar alterações' : 'Salvar cartão'"
+        :processando="formulario.processing"
+        @confirmar="salvarCartaoCredito"
+        @fechar="fechar"
+    >
+        <div class="space-y-5">
+            <ChipsSugestao
+                rotulo="Modelos rápidos"
+                icone="bolt"
+                :itens="modelosRapidos"
+                :chave-ativa="formulario.nome"
+                @selecionar="selecionarModeloRapido"
+            />
 
-            <div class="mt-6 space-y-4">
-                <div class="relative" @focusout="fecharSugestoes">
-                    <label for="nome-cartao" class="block text-sm font-medium text-ng-ink-muted">Nome do cartão</label>
-                    <div class="relative mt-1">
-                        <input
-                            id="nome-cartao"
-                            v-model="formulario.nome"
-                            type="text"
-                            class="block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e] pr-12"
-                            autocomplete="off"
-                            @click="abrirSugestoes"
-                            @input="abrirSugestoes"
-                            @keydown.escape.stop="fecharSugestoes"
-                        >
-                        <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-ng-card-muted">
-                                <img
-                                    v-if="logoSelecionada"
-                                    :src="logoSelecionada"
-                                    :alt="formulario.nome"
-                                    class="h-full w-full object-cover"
-                                >
-                                <span v-else class="material-symbols-outlined text-[18px] text-ng-ink-subtle">credit_card</span>
-                            </span>
-                        </span>
-                    </div>
-
-                    <div
-                        v-show="sugestoesAbertas && bancosFiltrados.length > 0"
-                        class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-ng-line bg-ng-card shadow-lg"
-                    >
-                        <ul class="max-h-56 overflow-y-auto py-1">
-                            <li v-for="banco in bancosFiltrados" :key="banco.nome">
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-ng-ink hover:bg-ng-brand-soft transition"
-                                    @mousedown.prevent="selecionarBanco(banco)"
-                                >
-                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ng-card-muted">
-                                        <img
-                                            v-if="banco.logo"
-                                            :src="banco.logo"
-                                            :alt="banco.nome"
-                                            class="h-full w-full object-cover"
-                                        >
-                                        <span v-else class="material-symbols-outlined text-[18px] text-ng-ink-muted">credit_card</span>
-                                    </span>
-                                    <span>{{ banco.nome }}</span>
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                    <p v-if="formulario.errors.nome" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.nome }}
-                    </p>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-ng-ink-subtle">
+                        Visualização em tempo real
+                    </span>
+                    <SeletorCor v-model="formulario.acabamento" rotulo="Acabamento" :opcoes="acabamentos" />
                 </div>
 
-                <div>
-                    <label for="limite-total" class="block text-sm font-medium text-ng-ink-muted">
-                        Limite total
-                    </label>
-                    <input
-                        id="limite-total"
-                        :value="formulario.limite_total"
-                        type="text"
-                        inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong shadow-none bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="0,00"
-                        @input="formulario.limite_total = aoDigitarMoeda($event)"
-                    >
-                    <p v-if="formulario.errors.limite_total" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.limite_total }}
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <label for="dia-fechamento" class="block text-sm font-medium text-ng-ink-muted">
-                            Dia de fechamento
-                        </label>
-                        <select
-                            id="dia-fechamento"
-                            v-model.number="formulario.dia_fechamento"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option
-                                v-for="opcao in diasDoMes"
-                                :key="`fechamento-${opcao.valor}`"
-                                :value="opcao.valor"
-                            >
-                                {{ opcao.rotulo }}
-                            </option>
-                        </select>
-                        <p v-if="formulario.errors.dia_fechamento" class="mt-2 text-sm text-red-600">
-                            {{ formulario.errors.dia_fechamento }}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label for="dia-vencimento" class="block text-sm font-medium text-ng-ink-muted">
-                            Dia de vencimento
-                        </label>
-                        <select
-                            id="dia-vencimento"
-                            v-model.number="formulario.dia_vencimento"
-                            class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        >
-                            <option
-                                v-for="opcao in diasDoMes"
-                                :key="`vencimento-${opcao.valor}`"
-                                :value="opcao.valor"
-                            >
-                                {{ opcao.rotulo }}
-                            </option>
-                        </select>
-                        <p v-if="formulario.errors.dia_vencimento" class="mt-2 text-sm text-red-600">
-                            {{ formulario.errors.dia_vencimento }}
-                        </p>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="bandeira-cartao" class="block text-sm font-medium text-ng-ink-muted">
-                        Bandeira
-                    </label>
-                    <select
-                        id="bandeira-cartao"
-                        v-model="formulario.bandeira"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                        <option
-                            v-for="opcao in bandeiras"
-                            :key="opcao.valor"
-                            :value="opcao.valor"
-                        >
-                            {{ opcao.rotulo }}
-                        </option>
-                    </select>
-                    <p v-if="formulario.errors.bandeira" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.bandeira }}
-                    </p>
-                </div>
-
-                <div class="divide-y divide-ng-line rounded-xl border border-ng-line">
-                    <div class="flex items-center justify-between gap-4 px-4 py-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ng-card-muted text-ng-ink-muted">
-                                <span class="material-symbols-outlined text-[20px]">credit_card</span>
-                            </span>
-                            <span class="text-sm text-ng-ink">Cartão padrão</span>
-                        </div>
-                        <button
-                            type="button"
-                            role="switch"
-                            class="relative h-6 w-11 shrink-0 rounded-full transition"
-                            :class="estaAtivo('padrao') ? 'bg-[#1fa67e]' : 'bg-zinc-300 dark:bg-white/15'"
-                            :aria-checked="estaAtivo('padrao')"
-                            @click="toggleSimNao('padrao')"
-                        >
-                            <span
-                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-ng-card shadow transition"
-                                :class="estaAtivo('padrao') ? 'translate-x-5' : 'translate-x-0'"
-                            />
-                        </button>
-                    </div>
-                </div>
+                <CartaoCreditoVisual
+                    :nome="formulario.nome"
+                    :nome-titular="formulario.nome_titular"
+                    :ultimos-digitos="formulario.ultimos_digitos"
+                    :bandeira="formulario.bandeira"
+                    :limite="formulario.limite_total"
+                    :dia-fechamento="formatarDia(formulario.dia_fechamento)"
+                    :dia-vencimento="formatarDia(formulario.dia_vencimento)"
+                    :cor-acabamento="corAcabamentoSelecionado"
+                />
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Salvar
-                </button>
+            <CampoTexto
+                id="cartao-nome"
+                v-model="formulario.nome"
+                rotulo="Identificação do cartão"
+                dica="Ex: Banco ou apelido"
+                obrigatorio
+                :maxlength="100"
+                :erro="formulario.errors.nome"
+            />
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <CampoTexto
+                    id="cartao-nome-titular"
+                    v-model="formulario.nome_titular"
+                    class="sm:col-span-2"
+                    rotulo="Nome do titular"
+                    obrigatorio
+                    :maxlength="100"
+                    :erro="formulario.errors.nome_titular"
+                />
+                <CampoTexto
+                    id="cartao-ultimos-digitos"
+                    v-model="formulario.ultimos_digitos"
+                    rotulo="Últimos dígitos"
+                    placeholder="0000"
+                    inputmode="numeric"
+                    :maxlength="4"
+                    alinhamento="centro"
+                    mono
+                    somente-digitos
+                    :erro="formulario.errors.ultimos_digitos"
+                />
             </div>
-        </form>
+
+            <CampoMoeda
+                id="cartao-limite-total"
+                v-model="formulario.limite_total"
+                rotulo="Limite total do cartão"
+                obrigatorio
+                :atalhos="ATALHOS_LIMITE"
+                :erro="formulario.errors.limite_total"
+            />
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoSelecao
+                    id="cartao-dia-fechamento"
+                    v-model="formulario.dia_fechamento"
+                    rotulo="Dia de fechamento"
+                    :opcoes="opcoesDias"
+                    :erro="formulario.errors.dia_fechamento"
+                />
+                <CampoSelecao
+                    id="cartao-dia-vencimento"
+                    v-model="formulario.dia_vencimento"
+                    rotulo="Dia de vencimento"
+                    :opcoes="opcoesDias"
+                    :erro="formulario.errors.dia_vencimento"
+                />
+            </div>
+
+            <AvisoInformativo
+                rotulo="Melhor dia de compra:"
+                :valor="`Dia ${melhorDiaCompra}`"
+                :complemento="`${diasAteVencimento} dias até o vencimento`"
+            />
+
+            <GradeOpcoes
+                v-model="formulario.bandeira"
+                rotulo="Bandeira do cartão"
+                :opcoes="opcoesBandeira"
+                carrossel
+                :erro="formulario.errors.bandeira"
+            >
+                <template #icone="{ opcao }">
+                    <span class="flex h-6 items-center">
+                        <MarcaBandeiraCartao :bandeira="opcao.valor" :rotulo="opcao.rotulo" />
+                    </span>
+                </template>
+            </GradeOpcoes>
+
+            <LinhaAlternancia
+                v-model="formulario.padrao"
+                icone="credit_card"
+                titulo="Definir como cartão padrão"
+                descricao="Priorizado para faturas e novos lançamentos no painel"
+            />
+
+            <p v-if="formulario.errors.acabamento" class="text-xs text-red-500">
+                {{ formulario.errors.acabamento }}
+            </p>
+        </div>
     </Modal>
 </template>

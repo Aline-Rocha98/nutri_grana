@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Alocacao\Alocacao;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\Categoria\Categoria;
 use App\Models\ContaBancaria\ContaBancaria;
@@ -10,8 +11,10 @@ use App\Models\Lancamento\Lancamento;
 use App\Models\Objetivo\Objetivo;
 use App\Models\Orcamento\Orcamento;
 use App\Models\Orcamento\OrcamentoServico;
+use App\Models\PlanoFinanceiro\PlanoFinanceiro;
 use App\Models\Renda\Renda;
 use App\Models\Usuario\Usuario;
+use App\Policies\Alocacao\AlocacaoPolicy;
 use App\Policies\CartaoCredito\CartaoCreditoPolicy;
 use App\Policies\Categoria\CategoriaPolicy;
 use App\Policies\ContaBancaria\ContaBancariaPolicy;
@@ -20,6 +23,7 @@ use App\Policies\Lancamento\LancamentoPolicy;
 use App\Policies\Objetivo\ObjetivoPolicy;
 use App\Policies\Orcamento\OrcamentoPolicy;
 use App\Policies\Orcamento\OrcamentoServicoPolicy;
+use App\Policies\PlanoFinanceiro\PlanoFinanceiroPolicy;
 use App\Policies\Renda\RendaPolicy;
 use App\Policies\Usuario\UsuarioPolicy;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Alocacao::class, AlocacaoPolicy::class);
         Gate::policy(ContaBancaria::class, ContaBancariaPolicy::class);
         Gate::policy(CartaoCredito::class, CartaoCreditoPolicy::class);
         Gate::policy(Categoria::class, CategoriaPolicy::class);
@@ -45,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Orcamento::class, OrcamentoPolicy::class);
         Gate::policy(OrcamentoServico::class, OrcamentoServicoPolicy::class);
         Gate::policy(Renda::class, RendaPolicy::class);
+        Gate::policy(PlanoFinanceiro::class, PlanoFinanceiroPolicy::class);
         Model::shouldBeStrict(! app()->isProduction());
     }
 }

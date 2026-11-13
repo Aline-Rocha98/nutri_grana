@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\ContaBancaria;
 
+use App\Enum\AcabamentoVisual;
 use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
 use App\Support\Data\Valor;
@@ -23,6 +24,7 @@ class AtualizarContaBancariaRequest extends FormRequest
             'nome' => ['required', 'string', 'max:100'],
             'saldo_inicial' => ['sometimes', 'numeric', 'decimal:0,2'],
             'tipo' => ['required', Rule::enum(TipoContaBancaria::class)],
+            'acabamento' => ['required', Rule::enum(AcabamentoVisual::class)],
             'arquivada' => ['sometimes', Rule::enum(SimNao::class)],
             'padrao_desconto' => ['nullable', Rule::enum(SimNao::class)],
             'exibir_resumo' => ['nullable', Rule::enum(SimNao::class)],
@@ -31,7 +33,9 @@ class AtualizarContaBancariaRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $dados = [];
+        $dados = [
+            'acabamento' => $this->input('acabamento') ?: AcabamentoVisual::padrao()->value,
+        ];
 
         if ($this->filled('saldo_inicial')) {
             $dados['saldo_inicial'] = Valor::normalizarValorMonetario($this->input('saldo_inicial'));
@@ -49,5 +53,13 @@ class AtualizarContaBancariaRequest extends FormRequest
         }
 
         $this->merge($dados);
+    }
+
+    public function messages(): array
+    {
+        return [
+            'acabamento.required' => 'Selecione o acabamento da conta.',
+            'acabamento.enum' => 'O acabamento selecionado é inválido.',
+        ];
     }
 }

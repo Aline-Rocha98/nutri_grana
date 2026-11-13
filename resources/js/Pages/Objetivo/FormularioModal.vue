@@ -1,8 +1,21 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
-import { aoDigitarMoeda } from '@/Helpers/mascaraMoeda';
+import CampoMoeda from '@/Components/Formulario/CampoMoeda.vue';
+import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
+import LinhaAlternancia from '@/Components/Formulario/LinhaAlternancia.vue';
+import PainelMetaVisual from '@/Components/Ui/PainelMetaVisual.vue';
+import { varianteSituacaoObjetivo } from '@/Helpers/badge';
+import { formatarNumeroParaMoeda, moedaParaNumero } from '@/Helpers/mascaraMoeda';
+import { calcularDepositoMensalSugerido, calcularPercentualDaMeta } from '@/Helpers/objetivo';
+import { formatarDataIsoParaBrasileira } from '@/Helpers/periodo';
+
+const ATALHOS_VALOR_META = [
+    { rotulo: '10k', valor: '10.000,00' },
+    { rotulo: '25k', valor: '25.000,00' },
+    { rotulo: '50k', valor: '50.000,00' },
+];
 
 const props = defineProps({
     aberto: {
@@ -20,164 +33,164 @@ const emit = defineEmits(['fechar']);
 const pagina = usePage();
 const urlCriar = computed(() => pagina.props.rotas.objetivosCriar);
 const editando = computed(() => Boolean(props.objetivo));
+const urlAtualizar = ref('');
 
 const formulario = useForm({
     descricao: '',
     valor_meta: '0,00',
+    valor_ja_guardado: '0,00',
     data_limite: '',
     exibir_dashboard: 'N',
 });
 
-const estadoUi = reactive({
-    urlAtualizar: '',
-});
+const valorMetaNumero = computed(() => moedaParaNumero(formulario.valor_meta));
 
-function reiniciarFormulario() {
+const valorGuardadoNumero = computed(() => (editando.value
+    ? Number(props.objetivo?.valor_guardado_numero ?? 0)
+    : moedaParaNumero(formulario.valor_ja_guardado)));
+
+const percentualPrevisto = computed(() => calcularPercentualDaMeta(valorGuardadoNumero.value, valorMetaNumero.value));
+
+const valorFaltantePrevisto = computed(() => Math.max(0, valorMetaNumero.value - valorGuardadoNumero.value));
+
+const depositoMensalPrevisto = computed(() => calcularDepositoMensalSugerido(
+    valorMetaNumero.value,
+    valorGuardadoNumero.value,
+    formulario.data_limite,
+));
+
+const dataLimiteFormatada = computed(() => formatarDataIsoParaBrasileira(formulario.data_limite));
+
+const itensRodapePreview = computed(() => [
+    { rotulo: 'Guardado', valor: `R$ ${formatarNumeroParaMoeda(valorGuardadoNumero.value)}` },
+    { rotulo: 'Falta juntar', valor: `R$ ${formatarNumeroParaMoeda(valorFaltantePrevisto.value)}` },
+    { rotulo: 'Prazo final', valor: dataLimiteFormatada.value || '—' },
+]);
+
+const dicaDepositoSugerido = computed(() => (formulario.data_limite && valorFaltantePrevisto.value > 0
+    ? `Depósito sugerido: R$ ${formatarNumeroParaMoeda(depositoMensalPrevisto.value)}/mês`
+    : ''));
+
+function preencherFormularioDoObjetivo() {
     formulario.clearErrors();
     formulario.descricao = props.objetivo?.descricao ?? '';
     formulario.valor_meta = props.objetivo?.valor_meta ?? '0,00';
+    formulario.valor_ja_guardado = props.objetivo?.valor_guardado ?? '0,00';
     formulario.data_limite = props.objetivo?.data_limite ?? '';
     formulario.exibir_dashboard = props.objetivo?.exibir_dashboard ?? 'N';
-    estadoUi.urlAtualizar = props.objetivo?.url_atualizar ?? '';
+    urlAtualizar.value = props.objetivo?.url_atualizar ?? '';
 }
 
 watch(
     () => [props.aberto, props.objetivo],
     () => {
         if (props.aberto) {
-            reiniciarFormulario();
+            preencherFormularioDoObjetivo();
         }
     },
 );
 
-function estaAtivo(campo) {
-    return formulario[campo] === 'S';
-}
-
-function toggleSimNao(campo) {
-    formulario[campo] = formulario[campo] === 'S' ? 'N' : 'S';
-}
-
-function fechar() {
+function fecharFormulario() {
     emit('fechar');
 }
 
-function salvar() {
+function salvarObjetivo() {
     const opcoes = {
         preserveScroll: true,
-        onSuccess: () => fechar(),
+        onSuccess: () => fecharFormulario(),
     };
 
     if (editando.value) {
-        formulario.put(estadoUi.urlAtualizar, opcoes);
+        formulario
+            .transform(({ valor_ja_guardado: _valorJaGuardado, ...dados }) => dados)
+            .put(urlAtualizar.value, opcoes);
         return;
     }
 
-    formulario.post(urlCriar.value, opcoes);
+    formulario.transform((dados) => dados).post(urlCriar.value, opcoes);
 }
 </script>
 
 <template>
-    <Modal :aberto="aberto">
-        <form class="p-6" @submit.prevent="salvar">
-            <h2 class="text-lg font-semibold text-ng-ink">
-                {{ editando ? 'Editar objetivo' : 'Novo objetivo' }}
-            </h2>
-            <p class="mt-1 text-sm text-ng-ink-muted">
-                Defina a meta financeira e a data limite para juntar o valor.
-            </p>
+    <Modal
+        :aberto="aberto"
+        icone="track_changes"
+        :titulo="editando ? 'Editar objetivo' : 'Novo objetivo'"
+        subtitulo="Defina a meta financeira e a data limite para juntar o valor."
+        :texto-confirmar="editando ? 'Salvar alterações' : 'Criar objetivo'"
+        :processando="formulario.processing"
+        @fechar="fecharFormulario"
+        @confirmar="salvarObjetivo"
+    >
+        <div class="space-y-5">
+            <section>
+                <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ng-ink-subtle">
+                    Visualização da meta em tempo real
+                </p>
+                <PainelMetaVisual
+                    :titulo="formulario.descricao"
+                    titulo-padrao="Novo objetivo"
+                    :subtitulo="dataLimiteFormatada ? `Meta até ${dataLimiteFormatada}` : ''"
+                    subtitulo-icone="event"
+                    :badge-texto="objetivo?.situacao_ritmo_rotulo ?? ''"
+                    :badge-variante="varianteSituacaoObjetivo(objetivo?.situacao_ritmo)"
+                    destaque-rotulo="Aporte sugerido"
+                    :destaque-valor="formatarNumeroParaMoeda(depositoMensalPrevisto)"
+                    destaque-sufixo="/mês"
+                    :rotulo-progresso="`${percentualPrevisto}% concluído`"
+                    :valor-atual="formatarNumeroParaMoeda(valorGuardadoNumero)"
+                    :valor-meta="formulario.valor_meta"
+                    :percentual="percentualPrevisto"
+                    :rodape="itensRodapePreview"
+                />
+            </section>
 
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="descricao-objetivo" class="block text-sm font-medium text-ng-ink-muted">
-                        Descrição
-                    </label>
-                    <input
-                        id="descricao-objetivo"
-                        v-model="formulario.descricao"
-                        type="text"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="Ex.: Viagem, reserva de emergência..."
-                    >
-                    <p v-if="formulario.errors.descricao" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.descricao }}
-                    </p>
-                </div>
+            <CampoTexto
+                id="descricao-objetivo"
+                v-model="formulario.descricao"
+                rotulo="Descrição"
+                obrigatorio
+                placeholder="Ex.: Viagem, reserva de emergência..."
+                maxlength="255"
+                :erro="formulario.errors.descricao"
+            />
 
-                <div>
-                    <label for="valor-meta" class="block text-sm font-medium text-ng-ink-muted">
-                        Valor meta
-                    </label>
-                    <input
-                        id="valor-meta"
-                        :value="formulario.valor_meta"
-                        type="text"
-                        inputmode="numeric"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                        placeholder="0,00"
-                        @input="formulario.valor_meta = aoDigitarMoeda($event)"
-                    >
-                    <p v-if="formulario.errors.valor_meta" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.valor_meta }}
-                    </p>
-                </div>
-
-                <div>
-                    <label for="data-limite" class="block text-sm font-medium text-ng-ink-muted">
-                        Data limite
-                    </label>
-                    <input
-                        id="data-limite"
-                        v-model="formulario.data_limite"
-                        type="date"
-                        class="mt-1 block w-full rounded-lg border-ng-line-strong bg-ng-card text-ng-ink focus:border-[#1fa67e] focus:ring-[#1fa67e]"
-                    >
-                    <p v-if="formulario.errors.data_limite" class="mt-2 text-sm text-red-600">
-                        {{ formulario.errors.data_limite }}
-                    </p>
-                </div>
-
-                <div class="rounded-xl border border-ng-line">
-                    <div class="flex items-center justify-between gap-4 px-4 py-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ng-card-muted text-ng-ink-muted">
-                                <span class="material-symbols-outlined text-[20px]">dashboard</span>
-                            </span>
-                            <span class="text-sm text-ng-ink">Exibir no dashboard</span>
-                        </div>
-                        <button
-                            type="button"
-                            role="switch"
-                            class="relative h-6 w-11 shrink-0 rounded-full transition"
-                            :class="estaAtivo('exibir_dashboard') ? 'bg-[#1fa67e]' : 'bg-zinc-300 dark:bg-white/15'"
-                            :aria-checked="estaAtivo('exibir_dashboard')"
-                            @click="toggleSimNao('exibir_dashboard')"
-                        >
-                            <span
-                                class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-ng-card shadow transition"
-                                :class="estaAtivo('exibir_dashboard') ? 'translate-x-5' : 'translate-x-0'"
-                            />
-                        </button>
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <CampoMoeda
+                    id="valor-meta"
+                    v-model="formulario.valor_meta"
+                    rotulo="Valor meta"
+                    obrigatorio
+                    :atalhos="ATALHOS_VALOR_META"
+                    :erro="formulario.errors.valor_meta"
+                />
+                <CampoMoeda
+                    id="valor-ja-guardado"
+                    v-model="formulario.valor_ja_guardado"
+                    :rotulo="editando ? 'Valor já guardado' : 'Valor já guardado (opcional)'"
+                    :desabilitado="editando"
+                    :erro="formulario.errors.valor_ja_guardado"
+                />
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 bg-ng-card border border-ng-input-border rounded-md font-semibold text-xs text-ng-ink-secondary uppercase tracking-widest shadow-sm hover:bg-ng-brand-soft"
-                    @click="fechar"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 rounded-md bg-[#1fa67e] text-xs font-semibold uppercase tracking-widest text-white hover:bg-[#198a68] transition"
-                    :disabled="formulario.processing"
-                >
-                    Salvar
-                </button>
-            </div>
-        </form>
+            <CampoTexto
+                id="data-limite"
+                v-model="formulario.data_limite"
+                tipo="date"
+                rotulo="Data limite"
+                obrigatorio
+                :dica="dicaDepositoSugerido"
+                :erro="formulario.errors.data_limite"
+            />
+
+            <LinhaAlternancia
+                v-model="formulario.exibir_dashboard"
+                titulo="Exibir no dashboard principal"
+                descricao="Acompanhe o progresso deste objetivo diretamente na tela inicial."
+                icone="dashboard"
+                valor-ativo="S"
+                valor-inativo="N"
+            />
+        </div>
     </Modal>
 </template>

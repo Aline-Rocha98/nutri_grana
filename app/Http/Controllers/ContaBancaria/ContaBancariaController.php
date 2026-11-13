@@ -3,14 +3,20 @@
 namespace App\Http\Controllers\ContaBancaria;
 
 use App\Data\BancosSugeridos;
+use App\Enum\AcabamentoVisual;
+use App\Enum\SimNao;
 use App\Enum\TipoContaBancaria;
 use App\Http\Controllers\Concerns\RethrowsAuthorizationExceptions;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ContaBancaria\ArquivarContaBancariaRequest;
 use App\Http\Requests\ContaBancaria\AtualizarContaBancariaRequest;
 use App\Http\Requests\ContaBancaria\CriarContaBancariaRequest;
 use App\Http\Resources\ContaBancaria\ContaBancariaResource;
+use App\Http\Resources\ContaBancaria\MovimentacaoRecenteContaResource;
+use App\Http\Resources\ContaBancaria\MovimentacaoSaldoGuardadoResource;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Services\ContaBancaria\ContaBancariaService;
+use App\Services\ContaBancaria\SaldoGuardadoService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +33,7 @@ class ContaBancariaController extends Controller
 
     public function __construct(
         private readonly ContaBancariaService $contaBancariaService,
+        private readonly SaldoGuardadoService $saldoGuardadoService,
     ) {}
 
     public function index(): Response
@@ -34,12 +41,70 @@ class ContaBancariaController extends Controller
         $this->authorize('viewAny', ContaBancaria::class);
 
         $contasBancarias = $this->contaBancariaService->listarPorUsuario((int) Auth::id());
+        $movimentacoesRecentesPorConta = collect(
+            $this->contaBancariaService->listarMovimentacoesRecentesPorConta($contasBancarias)
+        )->map(fn ($movimentacoes) => MovimentacaoRecenteContaResource::collection($movimentacoes)->resolve());
+        $movimentacoesSaldoGuardadoPorConta = collect(
+            $this->saldoGuardadoService->listarMovimentacoesRecentesPorConta($contasBancarias)
+        )->map(fn ($movimentacoes) => MovimentacaoSaldoGuardadoResource::collection($movimentacoes)->resolve());
 
         return Inertia::render('ContaBancaria/Index', [
             'contasBancarias' => ContaBancariaResource::collection($contasBancarias)->resolve(),
+            'movimentacoesRecentesPorConta' => (object) $movimentacoesRecentesPorConta->all(),
+            'movimentacoesSaldoGuardadoPorConta' => (object) $movimentacoesSaldoGuardadoPorConta->all(),
             'tipos' => TipoContaBancaria::opcoesParaSelect(),
-            'bancosSugeridos' => BancosSugeridos::todos(),
+            'acabamentos' => AcabamentoVisual::opcoesParaSelect(),
+            'bancosSugeridos' => BancosSugeridos::modelosRapidos(),
         ]);
+    }
+
+    public function arquivarContaBancaria(ArquivarContaBancariaRequest $request, ContaBancaria $contaBancaria): RedirectResponse
+    {
+        $this->authorize('update', $contaBancaria);
+
+        try {
+            DB::beginTransaction();
+            $arquivada = SimNao::from($request->validated('arquivada'));
+            $this->contaBancariaService->arquivar($contaBancaria, (int) Auth::id(), $arquivada);
+            DB::commit();
+
+            $mensagem = $arquivada === SimNao::Sim
+                ? 'Conta bancária arquivada com sucesso.'
+                : 'Conta bancária desarquivada com sucesso.';
+
+            return redirect()
+                ->route('contas-bancarias.index')
+                ->with('sucesso', $mensagem);
+        } catch (Exception $e) {
+            DB::rollBack();
+            $this->rethrowIfAuthorization($e);
+
+            return redirect()
+                ->route('contas-bancarias.index')
+                ->with('erro', 'Erro ao arquivar conta bancária.');
+        }
+    }
+
+    public function definirContaBancariaPadraoDesconto(ContaBancaria $contaBancaria): RedirectResponse
+    {
+        $this->authorize('update', $contaBancaria);
+
+        try {
+            DB::beginTransaction();
+            $this->contaBancariaService->definirContaBancariaPadraoDesconto($contaBancaria, (int) Auth::id());
+            DB::commit();
+
+            return redirect()
+                ->route('contas-bancarias.index')
+                ->with('sucesso', 'Conta definida como padrão para desconto.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            $this->rethrowIfAuthorization($e);
+
+            return redirect()
+                ->route('contas-bancarias.index')
+                ->with('erro', 'Erro ao definir a conta padrão para desconto.');
+        }
     }
 
     public function criarContaBancaria(CriarContaBancariaRequest $request): RedirectResponse
