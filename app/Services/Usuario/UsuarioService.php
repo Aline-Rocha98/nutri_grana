@@ -6,6 +6,7 @@ use App\Enum\SecurityEvent;
 use App\Mail\CodigoAlteracaoSenhaMail;
 use App\Models\Usuario\Usuario;
 use App\Repositories\Usuario\UsuarioRepository;
+use App\Services\EspacoCompartilhado\MembroEspacoCompartilhadoService;
 use App\Support\Security\SecurityAuditor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +22,7 @@ class UsuarioService
 
     public function __construct(
         private readonly UsuarioRepository $usuarioRepository,
+        private readonly MembroEspacoCompartilhadoService $membroEspacoService,
     ) {}
 
     public function atualizarPerfil(Usuario $usuario, array $dados, ?UploadedFile $foto = null): Usuario
@@ -81,6 +83,7 @@ class UsuarioService
         $email = $usuario->email;
         $fotoPerfil = $usuario->foto_perfil;
 
+        $this->membroEspacoService->tratarEspacosNaExclusaoDaConta($idUsuario);
         $this->removerArquivoFoto($fotoPerfil);
         $this->usuarioRepository->invalidarCodigosAlteracaoSenha($idUsuario);
         $this->usuarioRepository->limparTokensResetSenha($email);

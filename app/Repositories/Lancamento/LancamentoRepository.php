@@ -5,7 +5,9 @@ namespace App\Repositories\Lancamento;
 use App\Enum\SimNao;
 use App\Enum\SituacaoFatura;
 use App\Enum\SituacaoLancamento;
+use App\Enum\StatusLancamentoCompartilhado;
 use App\Enum\TipoLancamento;
+use App\Models\EspacoCompartilhado\LancamentoCompartilhado;
 use App\Models\Lancamento\Lancamento;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -15,6 +17,18 @@ use Illuminate\Support\Collection;
 class LancamentoRepository
 {
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
+    {
+        return $this->consultaListagemDoMes($idUsuario, $ano, $mes, $filtros)
+            ->paginate($porPagina)
+            ->withQueryString();
+    }
+
+    public function listarDoMesSemPaginacao(int $idUsuario, int $ano, int $mes, array $filtros = []): Collection
+    {
+        return $this->consultaListagemDoMes($idUsuario, $ano, $mes, $filtros)->get();
+    }
+
+    private function consultaListagemDoMes(int $idUsuario, int $ano, int $mes, array $filtros = []): Builder
     {
         $query = Lancamento::query()
             ->with([
@@ -29,12 +43,10 @@ class LancamentoRepository
 
         $this->aplicarFiltrosListagem($query, $filtros);
 
-        $query
+        return $query
             ->orderByRaw("CASE WHEN id_renda IS NOT NULL AND situacao = 'previsto' THEN 0 ELSE 1 END")
             ->orderBy('data_vencimento')
             ->orderBy('id_lancamento');
-
-        return $query->paginate($porPagina)->withQueryString();
     }
 
     public function contarPorTipoDoMes(int $idUsuario, int $ano, int $mes, array $filtros = []): array
@@ -198,6 +210,14 @@ class LancamentoRepository
             'receitas' => $receitas,
             'despesas' => $despesas,
         ];
+    }
+
+    public function buscarLancamentoDoUsuario(int $idLancamento, int $idUsuario): ?Lancamento
+    {
+        return Lancamento::query()
+            ->where('id_lancamento', $idLancamento)
+            ->where('id_usuario', $idUsuario)
+            ->first();
     }
 
     public function criar(array $dados): Lancamento
@@ -474,7 +494,7 @@ class LancamentoRepository
 
     public function somarUsoEmAbertoDoCartao(int $idCartaoCredito): float
     {
-        return (float) Lancamento::query()
+        $usoPessoal = (float) Lancamento::query()
             ->where('id_cartao_credito', $idCartaoCredito)
             ->where('tipo', TipoLancamento::Despesa)
             ->where('eh_recorrencia', SimNao::Nao)
@@ -489,6 +509,13 @@ class LancamentoRepository
                     });
             })
             ->sum('valor');
+
+        $usoCompartilhado = (float) LancamentoCompartilhado::query()
+            ->where('id_cartao_credito', $idCartaoCredito)
+            ->where('status', StatusLancamentoCompartilhado::Pago)
+            ->sum('valor');
+
+        return round($usoPessoal + $usoCompartilhado, 2);
     }
 
     public function somarPendenciasEmCartoesNoPeriodo(int $idUsuario, Carbon $inicio, Carbon $fim): array 

@@ -9,11 +9,16 @@ use App\Enum\TipoLancamento;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\FaturaCartao\FaturaCartao;
 use App\Models\Lancamento\Lancamento;
+use App\Repositories\EspacoCompartilhado\LancamentoCompartilhadoRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class CartaoCreditoRepository
 {
+    public function __construct(
+        private readonly LancamentoCompartilhadoRepository $lancamentoCompartilhadoRepository,
+    ) {}
+
     public function listarPorUsuario(int $idUsuario): Collection
     {
         $cartoes = CartaoCredito::query()
@@ -57,7 +62,10 @@ class CartaoCreditoRepository
 
     public function somarUsoEmAberto(int $idCartaoCredito): float
     {
-        return (float) $this->consultaLancamentosEmAbertoDoCartao($idCartaoCredito)->sum('valor');
+        $usoPessoal = (float) $this->consultaLancamentosEmAbertoDoCartao($idCartaoCredito)->sum('valor');
+        $usoCompartilhado = $this->lancamentoCompartilhadoRepository->somarDespesasPagasDoCartao($idCartaoCredito);
+
+        return round($usoPessoal + $usoCompartilhado, 2);
     }
 
     public function listarLancamentosRecentesDoCartao(int $idCartaoCredito, int $limite): Collection

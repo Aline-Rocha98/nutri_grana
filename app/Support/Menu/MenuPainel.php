@@ -3,6 +3,8 @@
 namespace App\Support\Menu;
 
 use App\Models\Usuario\Usuario;
+use App\Services\EspacoCompartilhado\EspacoCompartilhadoService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
 
 class MenuPainel
@@ -15,12 +17,13 @@ class MenuPainel
         'objetivos' => 'flag',
         'alocacoes' => 'savings',
         'orcamentos' => 'donut_large',
+        'compartilhados' => 'group',
         'perfil' => 'person',
     ];
 
-    public static function obterItens(): array
+    public static function obterItens(?Usuario $usuario = null): array
     {
-        return [
+        $itens = [
             [
                 'tipo' => 'link',
                 'id' => 'home',
@@ -89,23 +92,30 @@ class MenuPainel
                     ],
                 ],
             ],
-            [
-                'tipo' => 'link',
-                'id' => 'perfil',
-                'rotulo' => 'Perfil',
-                'icone' => 'perfil',
-                'rota' => 'usuario.perfil',
-            ],
         ];
+
+        if ($usuario?->possuiCompartilhamentoHabilitado()) {
+            $itens[] = self::montarGrupoCompartilhados($usuario);
+        }
+
+        $itens[] = [
+            'tipo' => 'link',
+            'id' => 'perfil',
+            'rotulo' => 'Perfil',
+            'icone' => 'perfil',
+            'rota' => 'usuario.perfil',
+        ];
+
+        return $itens;
     }
 
-    public static function prepararItens(): array
+    public static function prepararItens(?Usuario $usuario = null): array
     {
         return array_map(
             fn (array $item) => $item['tipo'] === 'grupo'
                 ? self::prepararGrupo($item)
                 : self::prepararLink($item),
-            self::obterItens()
+            self::obterItens($usuario)
         );
     }
 
@@ -132,11 +142,11 @@ class MenuPainel
         ];
     }
 
-    public static function gruposInicialmenteAbertos(): array
+    public static function gruposInicialmenteAbertos(?Usuario $usuario = null): array
     {
         $estado = [];
 
-        foreach (self::obterItens() as $item) {
+        foreach (self::obterItens($usuario) as $item) {
             if ($item['tipo'] !== 'grupo') {
                 continue;
             }
@@ -145,6 +155,14 @@ class MenuPainel
         }
 
         return $estado;
+    }
+
+    public static function extrairGruposAbertosDosItensPreparados(array $itensPreparados): array
+    {
+        return collect($itensPreparados)
+            ->where('tipo', 'grupo')
+            ->mapWithKeys(fn (array $grupo) => [$grupo['id'] => (bool) $grupo['ativo']])
+            ->all();
     }
 
     public static function resolverUrl(?string $nomeRota, array $parametros = []): string
@@ -163,6 +181,14 @@ class MenuPainel
         }
 
         foreach ($parametros as $chave => $valor) {
+            if ($valor instanceof Model) {
+                if (! self::parametroDeRotaCorrespondeAoModelo($chave, $valor)) {
+                    return false;
+                }
+
+                continue;
+            }
+
             $atual = request()->query($chave);
 
             if ($chave === 'tipo' && ($valor === 'por_categoria' || $valor === null || $valor === '')) {
@@ -188,41 +214,89 @@ class MenuPainel
         return false;
     }
 
+    private static function montarGrupoCompartilhados(Usuario $usuario): array
+    {
+        $espacos = app(EspacoCompartilhadoService::class)
+            ->listarOpcoesDeEspacosDoUsuario((int) $usuario->id_usuario);
+
+        $filhosDosEspacos = $espacos
+            ->map(fn ($espaco) => [
+                'rotulo' => $espaco->nome,
+                'rota' => 'compartilhados.show',
+                'parametros' => ['espacoCompartilhado' => $espaco],
+            ])
+            ->all();
+
+        return [
+            'tipo' => 'grupo',
+            'id' => 'compartilhados',
+            'rotulo' => 'Compartilhados',
+            'icone' => 'compartilhados',
+            'manterOrdemDosFilhos' => true,
+            'filhos' => [
+                ...$filhosDosEspacos,
+                ['rotulo' => 'Gerenciar espaços', 'rota' => 'compartilhados.index'],
+            ],
+        ];
+    }
+
+    private static function parametroDeRotaCorrespondeAoModelo(string $chave, Model $modelo): bool
+    {
+        $parametroAtual = request()->route($chave);
+
+        return $parametroAtual instanceof Model
+            && $parametroAtual::class === $modelo::class
+            && (string) $parametroAtual->getKey() === (string) $modelo->getKey();
+    }
+
     private static function prepararLink(array $item): array
     {
         $parametros = $item['parametros'] ?? [];
 
-        return array_merge($item, [
+        return self::removerParametrosDoItem(array_merge($item, [
             'url' => self::resolverUrl($item['rota'] ?? null, $parametros),
             'ativo' => self::linkAtivo($item['rota'] ?? null, $parametros),
             'iconeMaterial' => self::iconeMaterial($item['icone']),
-        ]);
+        ]));
     }
 
     private static function prepararGrupo(array $item): array
     {
-        $filhosOrdenados = collect($item['filhos'])
-            ->sortBy(fn (array $filho) => mb_strtolower($filho['rotulo'] ?? ''), SORT_NATURAL)
-            ->values()
-            ->all();
+        $filhosOrdenados = ($item['manterOrdemDosFilhos'] ?? false)
+            ? $item['filhos']
+            : collect($item['filhos'])
+                ->sortBy(fn (array $filho) => mb_strtolower($filho['rotulo'] ?? ''), SORT_NATURAL)
+                ->values()
+                ->all();
 
         $filhos = array_map(
             function (array $filho) {
                 $parametros = $filho['parametros'] ?? [];
 
-                return array_merge($filho, [
+                return self::removerParametrosDoItem(array_merge($filho, [
                     'url' => self::resolverUrl($filho['rota'] ?? null, $parametros),
                     'ativo' => self::linkAtivo($filho['rota'] ?? null, $parametros),
-                ]);
+                ]));
             },
             $filhosOrdenados
         );
 
-        return array_merge($item, [
+        $grupo = array_merge($item, [
             'filhos' => $filhos,
             'ativo' => self::grupoAtivo($filhosOrdenados),
             'iconeMaterial' => self::iconeMaterial($item['icone']),
         ]);
+
+        unset($grupo['manterOrdemDosFilhos']);
+
+        return $grupo;
+    }
+
+    private static function removerParametrosDoItem(array $item): array
+    {
+        unset($item['parametros']);
+
+        return $item;
     }
 
     private static function iconeMaterial(string $chave): string

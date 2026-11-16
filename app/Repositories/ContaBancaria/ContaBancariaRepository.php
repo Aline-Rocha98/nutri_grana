@@ -7,12 +7,14 @@ use App\Enum\SituacaoLancamento;
 use App\Enum\TipoLancamento;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\Lancamento\Lancamento;
+use App\Repositories\EspacoCompartilhado\LancamentoCompartilhadoRepository;
 use Illuminate\Support\Collection;
 
 class ContaBancariaRepository
 {
     public function __construct(
         private readonly MovimentacaoSaldoGuardadoRepository $movimentacaoSaldoGuardadoRepository,
+        private readonly LancamentoCompartilhadoRepository $lancamentoCompartilhadoRepository,
     ) {}
 
     public function listarPorUsuario(int $idUsuario): Collection
@@ -147,7 +149,9 @@ class ContaBancariaRepository
             ->where('eh_recorrencia', SimNao::Nao)
             ->sum('valor');
 
-        return $receitas - $despesas;
+        $despesasCompartilhadas = $this->lancamentoCompartilhadoRepository->somarDespesasPagasDaConta($idContaBancaria);
+
+        return $receitas - $despesas - $despesasCompartilhadas;
     }
 
     public function saldoTotalDaConta(ContaBancaria $conta): float

@@ -61,12 +61,16 @@ function montarSubtituloCompromisso(compromisso) {
         .join(' • ');
 }
 
+function chaveDoCompromisso(compromisso) {
+    return `${compromisso.origem ?? 'pessoal'}-${compromisso.id}`;
+}
+
 function pagarCompromisso(compromisso) {
-    if (idLancamentoPagando.value) {
+    if (idLancamentoPagando.value || compromisso.origem === 'compartilhado' || !compromisso.url_situacao) {
         return;
     }
 
-    idLancamentoPagando.value = compromisso.id;
+    idLancamentoPagando.value = chaveDoCompromisso(compromisso);
 
     router.patch(compromisso.url_situacao, { situacao: 'pago' }, {
         preserveScroll: true,
@@ -149,7 +153,7 @@ function pagarCompromisso(compromisso) {
                     </template>
 
                     <ul class="space-y-3">
-                        <li v-for="compromisso in compromissos" :key="compromisso.id" class="ng-card-muted">
+                        <li v-for="compromisso in compromissos" :key="chaveDoCompromisso(compromisso)" class="ng-card-muted">
                             <LinhaLancamento
                                 :descricao="compromisso.descricao"
                                 :subtitulo="montarSubtituloCompromisso(compromisso)"
@@ -157,13 +161,23 @@ function pagarCompromisso(compromisso) {
                                 :valor="compromisso.valor"
                                 :icone="compromisso.icone"
                                 :cor="compromisso.cor"
+                                :etiqueta="compromisso.origem === 'compartilhado' ? 'Compartilhado' : ''"
+                                etiqueta-icone="group"
                                 :badge-texto="compromisso.atrasado ? 'Atrasado' : ''"
                                 badge-variante="amber"
                                 badge-na-descricao
                                 negativo
                             >
                                 <template #acoes>
+                                    <Link
+                                        v-if="compromisso.origem === 'compartilhado' && compromisso.url_situacao"
+                                        :href="compromisso.url_situacao"
+                                        class="ng-selecionavel ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-ng-ink-secondary hover:text-ng-ink"
+                                    >
+                                        Abrir espaço
+                                    </Link>
                                     <button
+                                        v-else
                                         type="button"
                                         class="ng-selecionavel ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-ng-ink-secondary hover:text-ng-ink disabled:cursor-wait disabled:opacity-50"
                                         :disabled="idLancamentoPagando !== null"
@@ -171,7 +185,7 @@ function pagarCompromisso(compromisso) {
                                         @click="pagarCompromisso(compromisso)"
                                     >
                                         <span
-                                            v-if="idLancamentoPagando === compromisso.id"
+                                            v-if="idLancamentoPagando === chaveDoCompromisso(compromisso)"
                                             class="material-symbols-outlined animate-spin text-[14px]"
                                         >progress_activity</span>
                                         Pagar

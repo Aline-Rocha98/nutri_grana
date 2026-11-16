@@ -1,6 +1,7 @@
 <script setup>
 import BarraLateral from '@/Components/BarraLateral.vue';
 import BarraSuperior from '@/Components/BarraSuperior.vue';
+import AvisoConvitesRecebidosModal from '@/Components/EspacoCompartilhado/AvisoConvitesRecebidosModal.vue';
 
 defineProps({
     titulo: {
@@ -29,5 +30,7 @@ defineProps({
                 <slot />
             </div>
         </div>
+
+        <AvisoConvitesRecebidosModal />
     </div>
 </template>

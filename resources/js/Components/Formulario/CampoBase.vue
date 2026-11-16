@@ -20,6 +20,10 @@ defineProps({
         type: String,
         default: '',
     },
+    ajuda: {
+        type: String,
+        default: '',
+    },
 });
 </script>
 
@@ -37,6 +41,7 @@ defineProps({
 
         <slot />
 
+        <p v-if="ajuda" class="mt-1.5 text-[11px] leading-relaxed text-ng-ink-subtle">{{ ajuda }}</p>
         <p v-if="erro" class="mt-1.5 text-xs text-red-500">{{ erro }}</p>
     </div>
 </template>

@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Usuario;
 
+use App\Enum\SimNao;
 use App\Models\Usuario\CodigoAlteracaoSenha;
 use App\Models\Usuario\Usuario;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,20 @@ class UsuarioRepository
     public function excluir(Usuario $usuario): void
     {
         $usuario->delete();
+    }
+
+    public function buscarUsuarioPorEmail(string $email): ?Usuario
+    {
+        return Usuario::query()
+            ->where('email', mb_strtolower(trim($email)))
+            ->first();
+    }
+
+    public function definirCompartilhamentoHabilitado(Usuario $usuario, SimNao $habilitado): Usuario
+    {
+        $usuario->forceFill(['compartilhamento_habilitado' => $habilitado])->save();
+
+        return $usuario->refresh();
     }
 
     public function invalidarCodigosAlteracaoSenha(int $idUsuario): void

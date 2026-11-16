@@ -13,7 +13,7 @@ import GrupoSegmentado from '@/Components/Ui/GrupoSegmentado.vue';
 import ListaLancamentos from '@/Components/Ui/ListaLancamentos.vue';
 import NavegadorPeriodo from '@/Components/Ui/NavegadorPeriodo.vue';
 import Paginacao from '@/Components/Ui/Paginacao.vue';
-import FormularioModal from '@/Pages/Lancamento/FormularioModal.vue';
+import FormularioLancamentoModal from '@/Components/Lancamento/FormularioLancamentoModal.vue';
 import ConfirmarReceitaModal from '@/Pages/Lancamento/ConfirmarReceitaModal.vue';
 import { varianteSituacaoLancamento } from '@/Helpers/badge';
 import { formatarNumeroParaMoeda } from '@/Helpers/mascaraMoeda';
@@ -103,14 +103,16 @@ const saldoPositivo = computed(() => Number(props.totais.saldo ?? 0) >= 0);
 const lancamentosExibidos = computed(() =>
     lista.value.map((lancamento) => {
         const iconePadrao = ICONE_PADRAO_POR_TIPO[lancamento.tipo] ?? ICONE_PADRAO_POR_TIPO.despesa;
+        const ehCompartilhado = lancamento.origem === 'compartilhado';
 
         return {
-            chave: lancamento.id,
+            chave: `${lancamento.origem ?? 'pessoal'}-${lancamento.id_referencia ?? lancamento.id}`,
             original: lancamento,
             descricao: lancamento.descricao,
             subtitulo: [
                 lancamento.data_vencimento_formatada,
                 lancamento.categoria_nome,
+                ehCompartilhado ? lancamento.nome_espaco : null,
                 lancamento.conta_bancaria_nome ?? lancamento.cartao_credito_nome,
             ].filter(Boolean).join(' · '),
             subtituloMono: true,
@@ -130,6 +132,10 @@ const lancamentosExibidos = computed(() =>
 );
 
 function montarEtiquetaDoLancamento(lancamento) {
+    if (lancamento.origem === 'compartilhado') {
+        return { etiqueta: lancamento.origem_rotulo || 'Compartilhado', etiquetaIcone: 'group' };
+    }
+
     if (lancamento.eh_parcelado) {
         return { etiqueta: `${lancamento.parcela_atual}/${lancamento.total_parcelas}`, etiquetaIcone: 'repeat' };
     }
@@ -139,6 +145,16 @@ function montarEtiquetaDoLancamento(lancamento) {
     }
 
     return { etiqueta: '', etiquetaIcone: '' };
+}
+
+function ehLancamentoCompartilhado(lancamento) {
+    return lancamento.origem === 'compartilhado';
+}
+
+function abrirEspacoDoLancamento(lancamento) {
+    if (lancamento.url_espaco) {
+        router.visit(lancamento.url_espaco);
+    }
 }
 
 function montarParametrosDeFiltro(alteracoes = {}) {
@@ -362,14 +378,24 @@ const mensagemListaVazia = computed(() => (possuiFiltrosAtivos.value
 
                 <ListaLancamentos :itens="lancamentosExibidos" :mensagem-vazia="mensagemListaVazia" sem-moldura>
                     <template #acoes="{ item }">
-                        <BotaoIcone
-                            v-if="podeAlternarSituacao(item.original)"
-                            :icone="item.original.situacao === 'pago' ? 'undo' : 'check_circle'"
-                            :rotulo="rotuloAlternarSituacao(item.original)"
-                            @click="alternarSituacaoLancamento(item.original)"
-                        />
-                        <BotaoIcone icone="edit" rotulo="Editar" @click="abrirEditar(item.original)" />
-                        <BotaoIcone icone="delete" rotulo="Excluir" variante="perigo" @click="pedirExclusao(item.original)" />
+                        <template v-if="ehLancamentoCompartilhado(item.original)">
+                            <BotaoIcone
+                                v-if="item.original.url_espaco"
+                                icone="open_in_new"
+                                rotulo="Abrir espaço"
+                                @click="abrirEspacoDoLancamento(item.original)"
+                            />
+                        </template>
+                        <template v-else>
+                            <BotaoIcone
+                                v-if="podeAlternarSituacao(item.original)"
+                                :icone="item.original.situacao === 'pago' ? 'undo' : 'check_circle'"
+                                :rotulo="rotuloAlternarSituacao(item.original)"
+                                @click="alternarSituacaoLancamento(item.original)"
+                            />
+                            <BotaoIcone icone="edit" rotulo="Editar" @click="abrirEditar(item.original)" />
+                            <BotaoIcone icone="delete" rotulo="Excluir" variante="perigo" @click="pedirExclusao(item.original)" />
+                        </template>
                     </template>
                 </ListaLancamentos>
 
@@ -379,7 +405,7 @@ const mensagemListaVazia = computed(() => (possuiFiltrosAtivos.value
             </section>
         </div>
 
-        <FormularioModal
+        <FormularioLancamentoModal
             :aberto="modalAberto"
             :lancamento="lancamentoEmEdicao"
             :ano="ano"

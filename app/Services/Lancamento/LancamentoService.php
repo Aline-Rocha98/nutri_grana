@@ -14,8 +14,9 @@ use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\Lancamento\Lancamento;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
-use App\Services\FaturaCartao\FaturaCartaoService;
 use App\Services\ContaBancaria\SaldoGuardadoService;
+use App\Services\FaturaCartao\FaturaCartaoService;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use App\Services\Orcamento\VerificadorUltrapassagemOrcamento;
 use App\Services\Renda\PrevisorPlanoFinanceiroRenda;
 use App\Services\Renda\RendaGeracaoService;
@@ -39,22 +40,17 @@ class LancamentoService
         private readonly VerificadorUltrapassagemOrcamento $verificadorUltrapassagemOrcamento,
         private readonly SaldoGuardadoService $saldoGuardadoService,
         private readonly PrevisorPlanoFinanceiroRenda $previsorPlanoFinanceiroRenda,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
     ) {}
 
     public function listarDoMes(int $idUsuario, int $ano, int $mes, array $filtros = [], int $porPagina = 20): LengthAwarePaginator 
     {
-        $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
-        $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
-
-        return $this->lancamentoRepository->listarDoMes($idUsuario, $ano, $mes, $filtros, $porPagina);
+        return $this->consultaFinanceiraUsuarioService->listarDoMes($idUsuario, $ano, $mes, $filtros, $porPagina);
     }
 
     public function totaisDoMes(int $idUsuario, int $ano, int $mes): array
     {
-        $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
-        $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
-
-        $totais = $this->lancamentoRepository->totaisDoMes($idUsuario, $ano, $mes);
+        $totais = $this->consultaFinanceiraUsuarioService->totaisDoMes($idUsuario, $ano, $mes);
         $pendentesAnteriores = $this->lancamentoRepository->totaisPendentesAnteriores($idUsuario, $ano, $mes);
 
         $totalContas = (float) ContaBancaria::query()
@@ -74,7 +70,7 @@ class LancamentoService
 
     public function contarPorTipoDoMes(int $idUsuario, int $ano, int $mes, array $filtros = []): array
     {
-        return $this->lancamentoRepository->contarPorTipoDoMes($idUsuario, $ano, $mes, $filtros);
+        return $this->consultaFinanceiraUsuarioService->contarPorTipoDoMes($idUsuario, $ano, $mes, $filtros);
     }
 
     private function calcularPercentualPoupado(float $receitas, float $saldo): float

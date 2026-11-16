@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureAbsoluteSessionTimeout;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\EspacoCompartilhado\AvisoConvitesPendentesService;
 use App\Support\Autenticacao\PaginaAcesso;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Response;
@@ -18,6 +19,10 @@ class AuthenticatedSessionController extends Controller
         return PaginaAcesso::renderizarPaginaAcesso(PaginaAcesso::MODO_LOGIN);
     }
 
+    public function __construct(
+        private readonly AvisoConvitesPendentesService $avisoConvitesPendentesService,
+    ) {}
+
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
@@ -26,6 +31,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->put(
             EnsureAbsoluteSessionTimeout::SESSION_LOGIN_AT,
             now()->getTimestamp()
+        );
+
+        $this->avisoConvitesPendentesService->marcarVerificacaoDeConvitesAposLogin(
+            $request->user(),
+            $request->session()
         );
 
         return redirect()->intended(route('home', absolute: false));
