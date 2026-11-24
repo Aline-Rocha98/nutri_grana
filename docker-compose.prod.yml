@@ -1,0 +1,7 @@
+services:
+  app:
+    volumes:
+      - app_public_storage:/var/www/html/storage/app/public
+
+volumes:
+  app_public_storage:

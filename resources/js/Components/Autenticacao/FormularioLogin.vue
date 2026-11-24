@@ -1,5 +1,5 @@
 <script setup>
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, onDeactivated } from 'vue';
 import CampoTexto from '@/Components/Formulario/CampoTexto.vue';
 import CampoSenha from '@/Components/Formulario/CampoSenha.vue';
@@ -50,13 +50,7 @@ onDeactivated(limparErrosLogin);
             placeholder="Sua senha"
             :erro="formularioLogin.errors.password"
             obrigatorio
-        >
-            <template #rotulo-extra>
-                <Link :href="rotas.passwordRequest" class="text-xs font-medium text-ng-brand hover:underline">
-                    Esqueceu a senha?
-                </Link>
-            </template>
-        </CampoSenha>
+        />
 
         <CampoCaixaSelecao
             id="login_lembrar"
