@@ -33,12 +33,14 @@ Route::middleware('auth')->group(function () {
     Route::redirect('/profile', '/usuario/perfil');
     Route::get('/usuario/perfil', [UsuarioController::class, 'perfil'])->name('usuario.perfil');
     Route::patch('/usuario', [UsuarioController::class, 'atualizar'])->name('usuario.atualizar');
-    Route::post('/usuario/senha/enviar-codigo', [UsuarioController::class, 'solicitarCodigoSenha'])
-        ->middleware('throttle:5,1')
-        ->name('usuario.senha.enviar-codigo');
-    Route::put('/usuario/senha', [UsuarioController::class, 'confirmarAlteracaoSenha'])
-        ->middleware('throttle:5,1')
-        ->name('usuario.senha.confirmar');
+    // Temporário: alteração de senha por código de e-mail desabilitada (sem SMTP contratado).
+    // Use PUT /password (password.update) com senha atual + nova senha.
+    // Route::post('/usuario/senha/enviar-codigo', [UsuarioController::class, 'solicitarCodigoSenha'])
+    //     ->middleware('throttle:5,1')
+    //     ->name('usuario.senha.enviar-codigo');
+    // Route::put('/usuario/senha', [UsuarioController::class, 'confirmarAlteracaoSenha'])
+    //     ->middleware('throttle:5,1')
+    //     ->name('usuario.senha.confirmar');
     Route::delete('/usuario', [UsuarioController::class, 'excluir'])->name('usuario.excluir');
 
     // Contas Bancárias

@@ -36,21 +36,22 @@ class UsuarioService
 
     public function solicitarCodigoAlteracaoSenha(Usuario $usuario): void
     {
-        $this->usuarioRepository->invalidarCodigosAlteracaoSenha((int) $usuario->id_usuario);
-
-        $codigo = (string) random_int(100000, 999999);
-
-        $this->usuarioRepository->criarCodigoAlteracaoSenha(
-            (int) $usuario->id_usuario,
-            Hash::make($codigo),
-            now()->addMinutes(self::TTL_CODIGO_MINUTOS),
-        );
-
-        Mail::to($usuario->email)->send(new CodigoAlteracaoSenhaMail(
-            nome: $usuario->nome,
-            codigo: $codigo,
-            minutosValidade: self::TTL_CODIGO_MINUTOS,
-        ));
+        // Temporário: e-mail desabilitado até contratação de SMTP na Hostinger.
+        // $this->usuarioRepository->invalidarCodigosAlteracaoSenha((int) $usuario->id_usuario);
+        // $codigo = (string) random_int(100000, 999999);
+        // $this->usuarioRepository->criarCodigoAlteracaoSenha(
+        //     (int) $usuario->id_usuario,
+        //     Hash::make($codigo),
+        //     now()->addMinutes(self::TTL_CODIGO_MINUTOS),
+        // );
+        // Mail::to($usuario->email)->send(new CodigoAlteracaoSenhaMail(
+        //     nome: $usuario->nome,
+        //     codigo: $codigo,
+        //     minutosValidade: self::TTL_CODIGO_MINUTOS,
+        // ));
+        throw ValidationException::withMessages([
+            'email' => 'Envio de e-mail temporariamente indisponível.',
+        ]);
     }
 
     public function confirmarAlteracaoSenha(Usuario $usuario, string $codigo, string $novaSenha): void

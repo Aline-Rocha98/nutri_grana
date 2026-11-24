@@ -23,7 +23,6 @@ const rotas = computed(() => pagina.props.rotas);
 
 const editando = ref(false);
 const modalSenhaAberto = ref(false);
-const etapaSenha = ref('solicitar');
 const modalExclusaoAberto = ref(false);
 const autenticacaoDoisFatores = ref(true);
 const previewFoto = ref(props.usuario.foto_url);
@@ -38,7 +37,7 @@ const formularioPerfil = useForm({
 });
 
 const formularioSenha = useForm({
-    codigo: '',
+    current_password: '',
     password: '',
     password_confirmation: '',
 });
@@ -120,7 +119,6 @@ function salvarPerfil() {
 }
 
 function abrirModalSenha() {
-    etapaSenha.value = 'solicitar';
     formularioSenha.reset();
     formularioSenha.clearErrors();
     modalSenhaAberto.value = true;
@@ -128,30 +126,12 @@ function abrirModalSenha() {
 
 function fecharModalSenha() {
     modalSenhaAberto.value = false;
-    etapaSenha.value = 'solicitar';
     formularioSenha.reset();
     formularioSenha.clearErrors();
 }
 
-function enviarCodigoSenha() {
-    formularioSenha
-        .transform(() => ({}))
-        .post(rotas.value.usuarioSenhaEnviarCodigo, {
-            preserveScroll: true,
-            onSuccess: () => {
-                etapaSenha.value = 'confirmar';
-                formularioSenha.transform((dados) => dados);
-                formularioSenha.reset();
-                formularioSenha.clearErrors();
-            },
-            onError: () => {
-                formularioSenha.transform((dados) => dados);
-            },
-        });
-}
-
 function confirmarNovaSenha() {
-    formularioSenha.put(rotas.value.usuarioSenhaConfirmar, {
+    formularioSenha.put(rotas.value.passwordUpdate, {
         preserveScroll: true,
         onSuccess: () => {
             fecharModalSenha();
@@ -547,55 +527,27 @@ function aoErroFoto() {
 
         <!-- Modal alteração de senha -->
         <Modal :aberto="modalSenhaAberto" max-largura="md">
-            <div class="p-6">
+            <form class="p-6" @submit.prevent="confirmarNovaSenha">
                 <h2 class="text-lg font-semibold text-ng-ink">Alterar senha</h2>
+                <p class="mt-2 text-sm text-ng-ink-muted">
+                    Informe a senha atual e defina a nova senha.
+                </p>
 
-                <template v-if="etapaSenha === 'solicitar'">
-                    <p class="mt-2 text-sm text-ng-ink-muted">
-                        Enviaremos um código de confirmação para
-                        <strong>{{ usuario.email }}</strong>.
-                        Use esse código para definir uma nova senha.
-                    </p>
-
-                    <div class="mt-6 flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
-                            :disabled="formularioSenha.processing"
-                            @click="fecharModalSenha"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#198a68] disabled:opacity-60"
-                            :disabled="formularioSenha.processing"
-                            @click="enviarCodigoSenha"
-                        >
-                            {{ formularioSenha.processing ? 'Enviando...' : 'Enviar código' }}
-                        </button>
-                    </div>
-                </template>
-
-                <form v-else class="mt-4 space-y-4" @submit.prevent="confirmarNovaSenha">
-                    <p class="text-sm text-ng-ink-muted">
-                        Digite o código recebido por e-mail e a nova senha.
-                    </p>
-
+                <div class="mt-4 space-y-4">
                     <div>
-                        <label for="codigo" class="block text-sm font-medium text-ng-ink-secondary">Código</label>
+                        <label for="current_password" class="block text-sm font-medium text-ng-ink-secondary">
+                            Senha atual
+                        </label>
                         <input
-                            id="codigo"
-                            v-model="formularioSenha.codigo"
-                            type="text"
-                            maxlength="6"
-                            inputmode="numeric"
-                            autocomplete="one-time-code"
+                            id="current_password"
+                            v-model="formularioSenha.current_password"
+                            type="password"
+                            autocomplete="current-password"
                             class="mt-1 block w-full rounded-lg border-ng-line-strong focus:border-[#1fa67e] focus:ring-[#1fa67e]"
                             required
                         >
-                        <p v-if="formularioSenha.errors.codigo" class="mt-2 text-sm text-red-600">
-                            {{ formularioSenha.errors.codigo }}
+                        <p v-if="formularioSenha.errors.current_password" class="mt-2 text-sm text-red-600">
+                            {{ formularioSenha.errors.current_password }}
                         </p>
                     </div>
 
@@ -627,26 +579,26 @@ function aoErroFoto() {
                             required
                         >
                     </div>
+                </div>
 
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button
-                            type="button"
-                            class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
-                            :disabled="formularioSenha.processing"
-                            @click="fecharModalSenha"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#198a68] disabled:opacity-60"
-                            :disabled="formularioSenha.processing"
-                        >
-                            {{ formularioSenha.processing ? 'Salvando...' : 'Confirmar senha' }}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        class="rounded-lg border border-ng-line-strong px-4 py-2 text-sm font-semibold text-ng-ink-secondary hover:bg-ng-brand-soft"
+                        :disabled="formularioSenha.processing"
+                        @click="fecharModalSenha"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="rounded-lg bg-[#1fa67e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#198a68] disabled:opacity-60"
+                        :disabled="formularioSenha.processing"
+                    >
+                        {{ formularioSenha.processing ? 'Salvando...' : 'Confirmar senha' }}
+                    </button>
+                </div>
+            </form>
         </Modal>
 
         <!-- Modal exclusão -->

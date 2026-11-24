@@ -43,9 +43,8 @@ The MVP covers that full cycle:
 
 ### Authentication and account
 - Register, login, logout (Laravel Breeze + session)
-- Email verification and password recovery
 - User profile (data, photo, account deletion)
-- Password change via email code + throttle
+- Password change with current password + throttle (email recovery temporarily disabled until SMTP is contracted)
 - Absolute session timeout (`SESSION_ABSOLUTE_LIFETIME`)
 
 ### Accounts and cards
@@ -230,6 +229,16 @@ Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml) (`Rel
 
 On push to `release` (or manual `workflow_dispatch`), the pipeline opens or updates a PR from `release` into `main`, so promotion only happens after review and a green CI check.
 
+### Production deploy (Hostinger VPS)
+
+Workflow: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (`Deploy to Hostinger VPS`)
+
+On push/merge to `main` (or manual `workflow_dispatch`), GitHub Actions SSHs into the VPS and runs [`scripts/deploy.sh`](scripts/deploy.sh): `git pull`, Docker rebuild/up (MySQL + app), migrations, `storage:link`, and config/route/view caches.
+
+Full runbook (initial VPS setup, `.env`, secrets, HTTPS, email off): [docs/deploy-hostinger.md](docs/deploy-hostinger.md).
+
+Production env template: [`.env.production.example`](.env.production.example).
+
 ---
 
 ## Getting started
@@ -259,5 +268,6 @@ Optional (project script): `composer dev` starts server + queue + logs + Vite.
 - Multi-currency / Open Finance
 - Feature tests covering critical Services
 - Observability (cache hit metrics, dashboard latency)
+- Re-enable SMTP (password recovery + email change codes) after contracting mail on Hostinger
 
 ---
