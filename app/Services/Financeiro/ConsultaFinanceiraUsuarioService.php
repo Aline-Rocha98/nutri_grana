@@ -4,23 +4,28 @@ namespace App\Services\Financeiro;
 
 use App\Enum\OrigemLancamentoFinanceiro;
 use App\Enum\SituacaoLancamento;
-use App\Enum\StatusLancamentoCompartilhado;
 use App\Enum\TipoLancamento;
 use App\Http\Resources\EspacoCompartilhado\ItemFinanceiroUnificadoResource;
 use App\Models\EspacoCompartilhado\LancamentoCompartilhado;
 use App\Models\Lancamento\Lancamento;
+use App\Models\Usuario\Usuario;
 use App\Repositories\EspacoCompartilhado\EspacoCompartilhadoRepository;
 use App\Repositories\EspacoCompartilhado\LancamentoCompartilhadoRepository;
 use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\EspacoCompartilhado\RecorrenciaCompartilhadaService;
 use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Renda\RendaGeracaoService;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 
 class ConsultaFinanceiraUsuarioService
 {
+    /** @var array<int, bool> */
+    private array $cacheInclusaoCompartilhados = [];
+
     public function __construct(
         private readonly LancamentoRepository $lancamentoRepository,
         private readonly LancamentoCompartilhadoRepository $lancamentoCompartilhadoRepository,
@@ -35,7 +40,9 @@ class ConsultaFinanceiraUsuarioService
         $this->gerarDependenciasDoMes($idUsuario, $ano, $mes);
 
         $pessoais = $this->lancamentoRepository->listarDoMesSemPaginacao($idUsuario, $ano, $mes, $filtros);
-        $compartilhados = $this->lancamentoCompartilhadoRepository->listarDoResponsavelNoMes($idUsuario, $ano, $mes, $filtros);
+        $compartilhados = $this->deveIncluirLancamentosCompartilhados($idUsuario)
+            ? $this->lancamentoCompartilhadoRepository->listarDoResponsavelNoMes($idUsuario, $ano, $mes, $filtros)
+            : collect();
 
         $itens = $pessoais
             ->map(fn (Lancamento $lancamento) => $this->montarItemPessoal($lancamento))
@@ -71,6 +78,11 @@ class ConsultaFinanceiraUsuarioService
         $this->gerarDependenciasDoMes($idUsuario, $ano, $mes);
 
         $pessoais = $this->lancamentoRepository->totaisDoMes($idUsuario, $ano, $mes);
+
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return $pessoais;
+        }
+
         $compartilhados = $this->lancamentoCompartilhadoRepository->somarTotaisDoResponsavelNoMes($idUsuario, $ano, $mes);
 
         $pessoais['despesas'] = round($pessoais['despesas'] + $compartilhados['despesas'], 2);
@@ -86,6 +98,11 @@ class ConsultaFinanceiraUsuarioService
         $this->gerarDependenciasDoMes($idUsuario, $ano, $mes);
 
         $contadores = $this->lancamentoRepository->contarPorTipoDoMes($idUsuario, $ano, $mes, $filtros);
+
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return $contadores;
+        }
+
         $quantidadeCompartilhada = $this->lancamentoCompartilhadoRepository->contarDoResponsavelNoMes($idUsuario, $ano, $mes, $filtros);
 
         $contadores['despesas'] += $quantidadeCompartilhada;
@@ -110,6 +127,10 @@ class ConsultaFinanceiraUsuarioService
             $excetoIdLancamentoPessoal
         );
 
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return round($pessoal, 2);
+        }
+
         $compartilhado = $this->lancamentoCompartilhadoRepository->somarDespesasDasCategoriasDoResponsavelNoMes(
             $idUsuario,
             $idsCategorias,
@@ -124,7 +145,9 @@ class ConsultaFinanceiraUsuarioService
     public function despesasAgrupadasPorCategoriaNoMes(int $idUsuario, int $ano, int $mes): Collection
     {
         $pessoais = $this->lancamentoRepository->despesasAgrupadasPorCategoriaNoMes($idUsuario, $ano, $mes);
-        $compartilhados = $this->lancamentoCompartilhadoRepository->despesasAgrupadasPorCategoriaDoResponsavelNoMes($idUsuario, $ano, $mes);
+        $compartilhados = $this->deveIncluirLancamentosCompartilhados($idUsuario)
+            ? $this->lancamentoCompartilhadoRepository->despesasAgrupadasPorCategoriaDoResponsavelNoMes($idUsuario, $ano, $mes)
+            : collect();
 
         return $pessoais
             ->concat($compartilhados)
@@ -144,21 +167,117 @@ class ConsultaFinanceiraUsuarioService
             ->values();
     }
 
-    public function somarMovimentacaoDaConta(int $idContaBancaria, float $movimentacaoPessoal): float
+    public function somarDespesasPagasDaContaSeModuloHabilitado(int $idUsuario, int $idContaBancaria): float
     {
-        return round($movimentacaoPessoal - $this->lancamentoCompartilhadoRepository->somarDespesasPagasDaConta($idContaBancaria), 2);
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return 0.0;
+        }
+
+        return $this->lancamentoCompartilhadoRepository->somarDespesasPagasDaConta($idContaBancaria);
     }
 
-    public function somarUsoEmAbertoDoCartao(int $idCartaoCredito, float $usoPessoal): float
+    public function somarDespesasPagasDoCartaoSeModuloHabilitado(int $idUsuario, int $idCartaoCredito): float
     {
-        return round($usoPessoal + $this->lancamentoCompartilhadoRepository->somarDespesasPagasDoCartao($idCartaoCredito), 2);
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return 0.0;
+        }
+
+        return $this->lancamentoCompartilhadoRepository->somarDespesasPagasDoCartao($idCartaoCredito);
     }
 
-    public function listarPendentesCompartilhadosDoResponsavelAte(int $idUsuario, \Carbon\CarbonInterface $ate): Collection
+    public function listarPendentesCompartilhadosDoResponsavelAte(int $idUsuario, CarbonInterface $ate): Collection
     {
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return collect();
+        }
+
         return $this->lancamentoCompartilhadoRepository
             ->listarPendentesDoResponsavelAte($idUsuario, $ate)
             ->map(fn (LancamentoCompartilhado $lancamento) => $this->montarItemCompartilhado($lancamento));
+    }
+
+    public function listarPendentesUnificadosAte(
+        int $idUsuario,
+        CarbonInterface $hoje,
+        CarbonInterface $ate,
+        int $limite,
+        string $iconePadrao,
+        string $corPadrao,
+    ): Collection {
+        $pessoais = $this->lancamentoRepository
+            ->listarDespesasPendentesAte($idUsuario, Carbon::parse($ate->toDateString()))
+            ->map(fn (Lancamento $lancamento) => [
+                'id' => (int) $lancamento->id_lancamento,
+                'descricao' => $lancamento->descricao,
+                'valor_numero' => (float) $lancamento->valor,
+                'data_vencimento' => $lancamento->data_vencimento?->format('Y-m-d'),
+                'data_vencimento_formatada' => $lancamento->data_vencimento?->format('d/m/Y'),
+                'conta_bancaria_nome' => $lancamento->contaBancaria?->nome
+                    ?? $lancamento->cartaoCredito?->nome,
+                'icone' => $lancamento->categoria?->icone ?: $iconePadrao,
+                'cor' => $lancamento->categoria?->cor ?: $corPadrao,
+                'atrasado' => (bool) $lancamento->data_vencimento?->lt($hoje),
+                'origem' => OrigemLancamentoFinanceiro::Pessoal->value,
+                'url_situacao' => route('lancamentos.situacao', $lancamento),
+            ]);
+
+        $compartilhados = $this->listarPendentesCompartilhadosDoResponsavelAte($idUsuario, $ate)
+            ->map(fn (array $item) => [
+                'id' => (int) $item['id_referencia'],
+                'descricao' => $item['descricao'],
+                'valor_numero' => (float) $item['valor_numero'],
+                'data_vencimento' => $item['data_vencimento'],
+                'data_vencimento_formatada' => $item['data_vencimento_formatada'],
+                'conta_bancaria_nome' => $item['nome_espaco'] ? "Espaço {$item['nome_espaco']}" : 'Compartilhado',
+                'icone' => $item['categoria_icone'] ?: $iconePadrao,
+                'cor' => $item['categoria_cor'] ?: $corPadrao,
+                'atrasado' => Carbon::parse($item['data_vencimento'])->lt($hoje),
+                'origem' => OrigemLancamentoFinanceiro::Compartilhado->value,
+                'url_situacao' => $item['url_espaco'],
+            ]);
+
+        return $pessoais
+            ->concat($compartilhados)
+            ->sortBy([
+                ['data_vencimento', 'asc'],
+                ['descricao', 'asc'],
+            ])
+            ->take($limite)
+            ->values();
+    }
+
+    public function resumirPendentesUnificadosAte(int $idUsuario, CarbonInterface $ate): array
+    {
+        $pessoal = $this->lancamentoRepository->resumirDespesasPendentesAte(
+            $idUsuario,
+            Carbon::parse($ate->toDateString())
+        );
+
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return $pessoal;
+        }
+
+        $compartilhados = $this->lancamentoCompartilhadoRepository->listarPendentesDoResponsavelAte($idUsuario, $ate);
+        $totalCompartilhado = round((float) $compartilhados->sum('valor'), 2);
+        $quantidadeCompartilhada = $compartilhados->count();
+
+        return [
+            'total' => round($pessoal['total'] + $totalCompartilhado, 2),
+            'quantidade' => $pessoal['quantidade'] + $quantidadeCompartilhada,
+        ];
+    }
+
+    public function somarDespesasRecorrentesDoMes(int $idUsuario, int $ano, int $mes): float
+    {
+        $pessoal = $this->lancamentoRepository->somarDespesasRecorrentesDoMes($idUsuario, $ano, $mes);
+
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return $pessoal;
+        }
+
+        $compartilhado = $this->lancamentoCompartilhadoRepository->somarDespesasRecorrentesDoResponsavelNoMes($idUsuario, $ano, $mes);
+
+        return round($pessoal + $compartilhado, 2);
     }
 
     public function resolverItensDoPaginator(LengthAwarePaginator $paginator): array
@@ -166,10 +285,26 @@ class ConsultaFinanceiraUsuarioService
         return ItemFinanceiroUnificadoResource::collection(collect($paginator->items()))->resolve();
     }
 
+    private function deveIncluirLancamentosCompartilhados(int $idUsuario): bool
+    {
+        if (array_key_exists($idUsuario, $this->cacheInclusaoCompartilhados)) {
+            return $this->cacheInclusaoCompartilhados[$idUsuario];
+        }
+
+        $usuario = Usuario::query()->find($idUsuario);
+        $deveIncluir = $usuario?->possuiCompartilhamentoHabilitado() ?? false;
+
+        return $this->cacheInclusaoCompartilhados[$idUsuario] = $deveIncluir;
+    }
+
     private function gerarDependenciasDoMes(int $idUsuario, int $ano, int $mes): void
     {
         $this->recorrenciaService->gerarParaMes($idUsuario, $ano, $mes);
         $this->rendaGeracaoService->gerarParaMes($idUsuario, $ano, $mes);
+
+        if (! $this->deveIncluirLancamentosCompartilhados($idUsuario)) {
+            return;
+        }
 
         foreach ($this->espacoCompartilhadoRepository->listarEspacosAtivosDoUsuario($idUsuario) as $espaco) {
             $this->recorrenciaCompartilhadaService->gerarOcorrenciasAteOFimDoMes(

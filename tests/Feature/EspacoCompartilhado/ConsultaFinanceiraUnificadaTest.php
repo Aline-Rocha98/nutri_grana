@@ -241,6 +241,103 @@ class ConsultaFinanceiraUnificadaTest extends TestCase
         $this->assertSame(320.0, $uso);
     }
 
+    public function test_com_modulo_desabilitado_nao_inclui_compartilhado_na_lista_nem_totais(): void
+    {
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->carolina);
+        $this->criarLancamentoPessoal($this->carolina, 'Mercado', 100);
+        $this->criarLancamentoCompartilhado($this->espaco, $this->carolina, [
+            'descricao' => 'Aluguel',
+            'valor' => '1500.00',
+            'data_vencimento' => '2026-11-20',
+            'id_categoria' => $categoria->id_categoria,
+        ]);
+
+        $this->carolina->forceFill(['compartilhamento_habilitado' => SimNao::Nao])->save();
+
+        $this->autenticarComo($this->carolina)
+            ->get('/lancamentos/2026/11')
+            ->assertOk()
+            ->assertInertia(fn ($pagina) => $pagina
+                ->has('lancamentos.data', 1)
+                ->where('lancamentos.data.0.descricao', 'Mercado')
+                ->where('totais.despesas', 100)
+                ->where('totais.pendentes', 100)
+                ->where('contadoresPorTipo.despesas', 1)
+            );
+    }
+
+    public function test_com_modulo_desabilitado_saldo_ignora_compartilhado_pago(): void
+    {
+        $conta = ContaBancaria::query()->create([
+            'id_usuario' => $this->carolina->id_usuario,
+            'nome' => 'Inter',
+            'saldo_inicial' => 1000,
+            'tipo' => TipoContaBancaria::Corrente,
+            'arquivada' => SimNao::Nao,
+            'padrao_desconto' => SimNao::Sim,
+            'exibir_resumo' => SimNao::Sim,
+        ]);
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->carolina);
+
+        LancamentoCompartilhado::factory()
+            ->doEspaco($this->espaco)
+            ->sobResponsabilidadeDe($this->carolina)
+            ->comCategoria($categoria->id_categoria)
+            ->pago()
+            ->create([
+                'valor' => '250.00',
+                'forma_pagamento' => FormaPagamento::ContaBancaria,
+                'id_conta_bancaria' => $conta->id_conta_bancaria,
+            ]);
+
+        $this->carolina->forceFill(['compartilhamento_habilitado' => SimNao::Nao])->save();
+
+        $contas = app(ContaBancariaRepository::class)->listarPorUsuario((int) $this->carolina->id_usuario);
+        $contaComSaldo = $contas->firstWhere('id_conta_bancaria', $conta->id_conta_bancaria);
+
+        $this->assertSame(1000.0, (float) $contaComSaldo->saldo_atual);
+    }
+
+    public function test_home_a_pagar_inclui_pendente_compartilhado_do_responsavel(): void
+    {
+        $this->criarContaBancariaPadrao($this->carolina);
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->carolina);
+        $this->criarLancamentoCompartilhado($this->espaco, $this->carolina, [
+            'descricao' => 'Condominio',
+            'valor' => '400.00',
+            'data_vencimento' => '2026-11-15',
+            'id_categoria' => $categoria->id_categoria,
+        ]);
+
+        $resumo = app(\App\Services\Home\HomeService::class)
+            ->obterResumoDoDia((int) $this->carolina->id_usuario, Carbon::create(2026, 11, 13));
+
+        $this->assertSame(1, $resumo['a_pagar']['quantidade']);
+        $this->assertSame('400,00', $resumo['a_pagar']['total']);
+        $this->assertSame(OrigemLancamentoFinanceiro::Compartilhado->value, collect($resumo['compromissos'])->first()['origem'] ?? null);
+        $this->assertSame('Condominio', $resumo['compromissos'][0]['descricao']);
+    }
+
+    public function test_home_com_modulo_desabilitado_nao_inclui_compartilhado_em_a_pagar(): void
+    {
+        $this->criarContaBancariaPadrao($this->carolina);
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->carolina);
+        $this->criarLancamentoCompartilhado($this->espaco, $this->carolina, [
+            'descricao' => 'Condominio',
+            'valor' => '400.00',
+            'data_vencimento' => '2026-11-15',
+            'id_categoria' => $categoria->id_categoria,
+        ]);
+
+        $this->carolina->forceFill(['compartilhamento_habilitado' => SimNao::Nao])->save();
+
+        $resumo = app(\App\Services\Home\HomeService::class)
+            ->obterResumoDoDia((int) $this->carolina->id_usuario, Carbon::create(2026, 11, 13));
+
+        $this->assertSame(0, $resumo['a_pagar']['quantidade']);
+        $this->assertSame([], $resumo['compromissos']);
+    }
+
     private function criarLancamentoPessoal(Usuario $usuario, string $descricao, float $valor): Lancamento
     {
         $conta = ContaBancaria::query()

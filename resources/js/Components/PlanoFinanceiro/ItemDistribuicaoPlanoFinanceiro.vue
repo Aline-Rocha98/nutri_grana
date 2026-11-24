@@ -99,7 +99,7 @@ const descricaoSeparacao = computed(() => (separarDoSaldo.value
                 :class="erros.nome ? '!border-red-500' : ''"
             >
 
-            <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2">
                 <GrupoSegmentado v-model="tipoCalculo" :opcoes="tiposCalculo" rotulo="Tipo de cálculo" />
                 <div class="w-32">
                     <CampoPercentual
@@ -113,15 +113,14 @@ const descricaoSeparacao = computed(() => (separarDoSaldo.value
                         v-model="valorFixo"
                     />
                 </div>
+                <BotaoIcone
+                    icone="delete"
+                    rotulo="Remover categoria"
+                    variante="perigo"
+                    :desabilitado="!podeRemover"
+                    @click="emit('remover')"
+                />
             </div>
-
-            <BotaoIcone
-                icone="delete"
-                rotulo="Remover categoria"
-                variante="perigo"
-                :desabilitado="!podeRemover"
-                @click="emit('remover')"
-            />
         </div>
 
         <input

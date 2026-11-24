@@ -60,7 +60,7 @@ watch(
     { deep: true, immediate: true },
 );
 
-const tituloSecaoPlanos = computed(() => `Planos de distribuição (${props.planosFinanceiros.length})`);
+const tituloSecaoPlanos = computed(() => `Planos de distribuição`);
 
 function abrirCriarPlanoFinanceiro() {
     planoEmEdicao.value = null;

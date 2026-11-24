@@ -339,7 +339,6 @@ const mensagemListaVazia = computed(() => (possuiFiltrosAtivos.value
                 variante="sky"
                 rotulo="Separado no mês (guardado pelo plano financeiro das rendas):"
                 :valor="`R$ ${formatarNumeroParaMoeda(totais.destinado_mes)}`"
-                :complemento="`saldo livre: R$ ${formatarNumeroParaMoeda(totais.saldo_livre ?? 0)}`"
             />
 
             <section class="ng-card overflow-hidden rounded-2xl">

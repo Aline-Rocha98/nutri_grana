@@ -222,6 +222,17 @@ class LancamentoCompartilhadoRepository
             ]);
     }
 
+    public function somarDespesasRecorrentesDoResponsavelNoMes(int $idUsuarioResponsavel, int $ano, int $mes): float
+    {
+        $inicio = sprintf('%04d-%02d-01', $ano, $mes);
+        $fim = date('Y-m-t', strtotime($inicio));
+
+        return round((float) $this->consultaDoResponsavel($idUsuarioResponsavel)
+            ->whereNotNull('id_recorrencia_compartilhada')
+            ->whereBetween('data_vencimento', [$inicio, $fim])
+            ->sum('valor'), 2);
+    }
+
     public function somarDespesasPagasDaConta(int $idContaBancaria): float
     {
         return (float) LancamentoCompartilhado::query()

@@ -4,10 +4,8 @@ namespace App\Services\Home;
 
 use App\Enum\SimNao;
 use App\Enum\SituacaoRitmoObjetivo;
-use App\Models\Lancamento\Lancamento;
 use App\Repositories\CartaoCredito\CartaoCreditoRepository;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
-use App\Repositories\Lancamento\LancamentoRepository;
 use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Objetivo\ObjetivoService;
@@ -31,7 +29,6 @@ class HomeService
     private const COR_PADRAO_COMPROMISSO = '#f59e0b';
 
     public function __construct(
-        private readonly LancamentoRepository $lancamentoRepository,
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly CartaoCreditoRepository $cartaoCreditoRepository,
         private readonly ObjetivoService $objetivoService,
@@ -99,7 +96,7 @@ class HomeService
 
     private function montarResumoAPagar(int $idUsuario, Carbon $fimDaJanela, array $compromissos): array
     {
-        $resumo = $this->lancamentoRepository->resumirDespesasPendentesEmContasAte($idUsuario, $fimDaJanela);
+        $resumo = $this->consultaFinanceiraUsuarioService->resumirPendentesUnificadosAte($idUsuario, $fimDaJanela);
 
         return [
             'total' => $this->moeda($resumo['total']),
@@ -129,48 +126,19 @@ class HomeService
 
     private function montarCompromissosPendentes(int $idUsuario, Carbon $hoje, Carbon $fimDaJanela): array
     {
-        $pessoais = $this->lancamentoRepository
-            ->listarDespesasPendentesEmContasAte($idUsuario, $fimDaJanela, self::LIMITE_COMPROMISSOS)
-            ->map(fn (Lancamento $lancamento) => [
-                'id' => (int) $lancamento->id_lancamento,
-                'descricao' => $lancamento->descricao,
-                'valor' => $this->moeda((float) $lancamento->valor),
-                'valor_numero' => (float) $lancamento->valor,
-                'data_vencimento' => $lancamento->data_vencimento?->format('Y-m-d'),
-                'data_vencimento_formatada' => $lancamento->data_vencimento?->format('d/m/Y'),
-                'conta_bancaria_nome' => $lancamento->contaBancaria?->nome,
-                'icone' => $lancamento->categoria?->icone ?: self::ICONE_PADRAO_COMPROMISSO,
-                'cor' => $lancamento->categoria?->cor ?: self::COR_PADRAO_COMPROMISSO,
-                'atrasado' => (bool) $lancamento->data_vencimento?->lt($hoje),
-                'origem' => 'pessoal',
-                'url_situacao' => route('lancamentos.situacao', $lancamento),
-            ]);
-
-        $compartilhados = $this->consultaFinanceiraUsuarioService
-            ->listarPendentesCompartilhadosDoResponsavelAte($idUsuario, $fimDaJanela)
+        return $this->consultaFinanceiraUsuarioService
+            ->listarPendentesUnificadosAte(
+                $idUsuario,
+                $hoje,
+                $fimDaJanela,
+                self::LIMITE_COMPROMISSOS,
+                self::ICONE_PADRAO_COMPROMISSO,
+                self::COR_PADRAO_COMPROMISSO,
+            )
             ->map(fn (array $item) => [
-                'id' => (int) $item['id_referencia'],
-                'descricao' => $item['descricao'],
+                ...$item,
                 'valor' => $this->moeda((float) $item['valor_numero']),
-                'valor_numero' => (float) $item['valor_numero'],
-                'data_vencimento' => $item['data_vencimento'],
-                'data_vencimento_formatada' => $item['data_vencimento_formatada'],
-                'conta_bancaria_nome' => $item['nome_espaco'] ? "Espaço {$item['nome_espaco']}" : 'Compartilhado',
-                'icone' => $item['categoria_icone'] ?: self::ICONE_PADRAO_COMPROMISSO,
-                'cor' => $item['categoria_cor'] ?: self::COR_PADRAO_COMPROMISSO,
-                'atrasado' => Carbon::parse($item['data_vencimento'])->lt($hoje),
-                'origem' => 'compartilhado',
-                'url_situacao' => $item['url_espaco'],
-            ]);
-
-        return $pessoais
-            ->concat($compartilhados)
-            ->sortBy([
-                ['data_vencimento', 'asc'],
-                ['descricao', 'asc'],
             ])
-            ->take(self::LIMITE_COMPROMISSOS)
-            ->values()
             ->all();
     }
 
@@ -212,9 +180,9 @@ class HomeService
     private function montarDicaFinanceira(int $idUsuario, Collection $contas, Carbon $hoje): array
     {
         $totalGuardado = round((float) $contas->sum('saldo_guardado'), 2);
-        $receitasDoMes = (float) $this->lancamentoRepository
+        $receitasDoMes = (float) $this->consultaFinanceiraUsuarioService
             ->totaisDoMes($idUsuario, (int) $hoje->year, (int) $hoje->month)['receitas'];
-        $contasFixasDoMes = $this->lancamentoRepository
+        $contasFixasDoMes = $this->consultaFinanceiraUsuarioService
             ->somarDespesasRecorrentesDoMes($idUsuario, (int) $hoje->year, (int) $hoje->month);
 
         $percentualContasFixas = $receitasDoMes > 0

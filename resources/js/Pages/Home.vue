@@ -96,7 +96,6 @@ function pagarCompromisso(compromisso) {
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <CardResumoAcao
-                    rotulo="Saldo Livre para o Dia"
                     icone="account_balance_wallet"
                     :variante-valor="saldoLivre.valor_numero < 0 ? 'red' : 'brand'"
                     :valor="saldoLivre.valor"

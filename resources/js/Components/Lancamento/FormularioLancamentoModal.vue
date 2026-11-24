@@ -204,6 +204,10 @@ const rotuloSituacaoAtual = computed(() =>
     props.situacoes.find((opcao) => opcao.valor === formulario.situacao)?.rotulo ?? '',
 );
 
+const rotuloDataDoLancamento = computed(() =>
+    formulario.tipo === 'receita' ? 'Data do lançamento' : 'Data de vencimento',
+);
+
 const mostrarRepeticao = computed(() => !props.ocultarRepeticao && (!editando.value || repeticaoAtiva.value));
 
 const criandoParcelado = computed(
@@ -615,7 +619,7 @@ function confirmarUltrapassagemOrcamento() {
                     id="lancamento-data"
                     v-model="formulario.data_vencimento"
                     tipo="date"
-                    rotulo="Data do lançamento"
+                    :rotulo="rotuloDataDoLancamento"
                     obrigatorio
                     :erro="formulario.errors.data_vencimento"
                 />

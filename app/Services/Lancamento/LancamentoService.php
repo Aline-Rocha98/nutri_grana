@@ -60,10 +60,10 @@ class LancamentoService
 
         $totais['total_contas'] = $totalContas;
         $totais['pendentes_anteriores_despesas'] = $pendentesAnteriores['despesas'];
-        $totais['saldo'] = $totais['receitas'] - $totais['despesas'];
-        $totais['percentual_poupado'] = $this->calcularPercentualPoupado($totais['receitas'], $totais['saldo']);
         $totais['destinado_mes'] = $this->previsorPlanoFinanceiroRenda->calcularSeparadoNoMes($idUsuario, $ano, $mes);
-        $totais['saldo_livre'] = round($totais['saldo'] - $totais['destinado_mes'], 2);
+        $totais['saldo'] = round($totais['receitas'] - $totais['destinado_mes'] - $totais['despesas'], 2);
+        $totais['percentual_poupado'] = $this->calcularPercentualPoupado($totais['receitas'], $totais['saldo']);
+        $totais['saldo_livre'] = $totais['saldo'];
 
         return $totais;
     }

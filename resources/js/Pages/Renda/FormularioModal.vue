@@ -70,8 +70,6 @@ const opcoesFrequencias = computed(() => props.frequencias.map((frequencia) => (
 
 const valorRendaDigitado = computed(() => moedaParaNumero(formulario.valor_esperado));
 
-const planoFinanceiroPadrao = computed(() => props.planosFinanceiros.find((plano) => plano.padrao) ?? null);
-
 const quantidadePlanosAplicados = computed(() => (formulario.id_plano_financeiro ? 1 : 0));
 
 const mensagemConfirmacao = computed(() => {
@@ -95,8 +93,9 @@ function reiniciarFormularioRenda() {
     formulario.observacao = props.renda?.observacao ?? '';
     formulario.id_plano_financeiro = editando.value
         ? (props.renda.id_plano_financeiro ?? null)
-        : (planoFinanceiroPadrao.value?.id ?? null);
-    secaoPlanoFinanceiroAberta.value = Boolean(formulario.id_plano_financeiro);
+        : null;
+    secaoPlanoFinanceiroAberta.value = Boolean(formulario.id_plano_financeiro)
+        || (!editando.value && props.planosFinanceiros.length === 0);
     modalConfirmacaoAberto.value = false;
 }
 

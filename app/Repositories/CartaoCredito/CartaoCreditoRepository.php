@@ -9,14 +9,14 @@ use App\Enum\TipoLancamento;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\FaturaCartao\FaturaCartao;
 use App\Models\Lancamento\Lancamento;
-use App\Repositories\EspacoCompartilhado\LancamentoCompartilhadoRepository;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class CartaoCreditoRepository
 {
     public function __construct(
-        private readonly LancamentoCompartilhadoRepository $lancamentoCompartilhadoRepository,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
     ) {}
 
     public function listarPorUsuario(int $idUsuario): Collection
@@ -63,7 +63,13 @@ class CartaoCreditoRepository
     public function somarUsoEmAberto(int $idCartaoCredito): float
     {
         $usoPessoal = (float) $this->consultaLancamentosEmAbertoDoCartao($idCartaoCredito)->sum('valor');
-        $usoCompartilhado = $this->lancamentoCompartilhadoRepository->somarDespesasPagasDoCartao($idCartaoCredito);
+        $cartao = CartaoCredito::query()->find($idCartaoCredito);
+        $usoCompartilhado = $cartao
+            ? $this->consultaFinanceiraUsuarioService->somarDespesasPagasDoCartaoSeModuloHabilitado(
+                (int) $cartao->id_usuario,
+                $idCartaoCredito
+            )
+            : 0.0;
 
         return round($usoPessoal + $usoCompartilhado, 2);
     }
