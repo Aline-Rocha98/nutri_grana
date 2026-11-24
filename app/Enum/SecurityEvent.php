@@ -11,4 +11,5 @@ enum SecurityEvent: string
     case TransactionUpdated = 'TRANSACTION_UPDATED';
     case TransactionDeleted = 'TRANSACTION_DELETED';
     case AccountDeleted = 'ACCOUNT_DELETED';
+    case SharedSpaceActivity = 'SHARED_SPACE_ACTIVITY';
 }

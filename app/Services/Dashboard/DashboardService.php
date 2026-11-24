@@ -10,8 +10,8 @@ use App\Models\Orcamento\Orcamento;
 use App\Repositories\CartaoCredito\CartaoCreditoRepository;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
 use App\Repositories\FaturaCartao\FaturaCartaoRepository;
-use App\Repositories\Lancamento\LancamentoRepository;
 use App\Repositories\Orcamento\OrcamentoRepository;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Objetivo\ObjetivoService;
 use App\Services\Renda\RendaGeracaoService;
@@ -27,7 +27,6 @@ class DashboardService
     private ?array $cartoesCarregados = null;
 
     public function __construct(
-        private readonly LancamentoRepository $lancamentoRepository,
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly CartaoCreditoRepository $cartaoCreditoRepository,
         private readonly FaturaCartaoRepository $faturaCartaoRepository,
@@ -35,6 +34,7 @@ class DashboardService
         private readonly ObjetivoService $objetivoService,
         private readonly RecorrenciaService $recorrenciaService,
         private readonly RendaGeracaoService $rendaGeracaoService,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
     ) {}
 
     public function obterDados(int $idUsuario, array $widgets, PeriodoDashboard $periodo = PeriodoDashboard::Atual, ?Carbon $referencia = null): array
@@ -277,7 +277,7 @@ class DashboardService
 
     private function montarCategorias(int $idUsuario, Carbon $referencia): array
     {
-        $despesas = $this->lancamentoRepository->despesasAgrupadasPorCategoriaNoMes(
+        $despesas = $this->consultaFinanceiraUsuarioService->despesasAgrupadasPorCategoriaNoMes(
             $idUsuario,
             (int) $referencia->year,
             (int) $referencia->month,
@@ -334,7 +334,7 @@ class DashboardService
         $series = [];
 
         foreach ($meses as $mesRef) {
-            $totais = $this->lancamentoRepository->totaisDoMes(
+            $totais = $this->consultaFinanceiraUsuarioService->totaisDoMes(
                 $idUsuario,
                 (int) $mesRef->year,
                 (int) $mesRef->month,

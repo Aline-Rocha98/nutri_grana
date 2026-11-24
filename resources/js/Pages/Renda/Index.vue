@@ -317,16 +317,6 @@ const mensagemExclusao = computed(() => {
                             Nenhum plano financeiro nesta renda. Use <strong>Editar Dados</strong> para escolher como distribuí-la.
                         </p>
                     </div>
-
-                    <div v-if="rendaEmFoco.capacidade_financeira" class="ng-card space-y-3 rounded-2xl p-5">
-                        <p class="text-xs font-medium text-ng-ink-muted">Capacidade financeira desta renda</p>
-                        <FluxoCapacidadeFinanceira
-                            :valor-renda="Number(rendaEmFoco.capacidade_financeira.renda ?? 0)"
-                            :valor-destinado="Number(rendaEmFoco.capacidade_financeira.total_destinado ?? 0)"
-                            :valor-capacidade="Number(rendaEmFoco.capacidade_financeira.capacidade ?? 0)"
-                            :percentual-destinado="Number(rendaEmFoco.capacidade_financeira.percentual_destinado ?? 0)"
-                        />
-                    </div>
                 </div>
             </section>
 

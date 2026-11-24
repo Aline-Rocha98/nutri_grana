@@ -3,15 +3,23 @@
 namespace Tests\Feature;
 
 use App\Enum\AcabamentoVisual;
+use App\Enum\CorItemPlanoFinanceiro;
 use App\Enum\FormaPagamento;
+use App\Enum\FrequenciaRecorrencia;
 use App\Enum\SimNao;
 use App\Enum\SituacaoLancamento;
+use App\Enum\SituacaoPlanoFinanceiro;
+use App\Enum\TipoCalculoItemPlano;
 use App\Enum\TipoCategoria;
 use App\Enum\TipoContaBancaria;
 use App\Enum\TipoLancamento;
+use App\Models\Alocacao\Alocacao;
 use App\Models\Categoria\Categoria;
 use App\Models\ContaBancaria\ContaBancaria;
 use App\Models\Lancamento\Lancamento;
+use App\Models\PlanoFinanceiro\ItemPlanoFinanceiro;
+use App\Models\PlanoFinanceiro\PlanoFinanceiro;
+use App\Models\Renda\Renda;
 use App\Models\Usuario\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -165,6 +173,71 @@ class LancamentoListagemTest extends TestCase
         $this->actingAs($this->usuario)
             ->get(self::URL_MES.'?status=qualquer')
             ->assertSessionHasErrors('status');
+    }
+
+    public function test_saldo_liquido_desconta_valor_separado_pelo_plano_financeiro(): void
+    {
+        $plano = PlanoFinanceiro::query()->create([
+            'id_usuario' => $this->usuario->id_usuario,
+            'nome' => 'Essencial',
+            'situacao' => SituacaoPlanoFinanceiro::Ativo,
+            'padrao' => SimNao::Sim,
+        ]);
+
+        $alocacao = Alocacao::query()->create([
+            'id_usuario' => $this->usuario->id_usuario,
+            'nome' => 'Reserva',
+            'saldo_consolidado' => 0,
+        ]);
+
+        ItemPlanoFinanceiro::query()->create([
+            'id_plano_financeiro' => $plano->id_plano_financeiro,
+            'id_usuario' => $this->usuario->id_usuario,
+            'id_alocacao' => $alocacao->id_alocacao,
+            'nome' => 'Reserva',
+            'cor' => CorItemPlanoFinanceiro::padrao(),
+            'tipo_calculo' => TipoCalculoItemPlano::ValorFixo,
+            'valor' => 1400,
+            'separar_do_saldo' => SimNao::Sim,
+            'id_conta_bancaria_destino' => $this->contaNubank->id_conta_bancaria,
+            'ordem' => 0,
+        ]);
+
+        $renda = Renda::query()->create([
+            'id_usuario' => $this->usuario->id_usuario,
+            'descricao' => 'Salário',
+            'valor_esperado' => 4000,
+            'id_conta_bancaria' => $this->contaInter->id_conta_bancaria,
+            'id_plano_financeiro' => $plano->id_plano_financeiro,
+            'frequencia' => FrequenciaRecorrencia::Mensal,
+            'dia_esperado' => 5,
+            'data_inicio' => '2026-09-01',
+        ]);
+
+        $this->criarLancamento('Salário', TipoLancamento::Receita, SituacaoLancamento::Previsto, [
+            'valor' => 4000,
+            'id_renda' => $renda->id_renda,
+            'data_vencimento' => '2026-09-05',
+        ]);
+        $this->criarLancamento('Freela', TipoLancamento::Receita, SituacaoLancamento::Pendente, [
+            'valor' => 1000,
+            'data_vencimento' => '2026-09-12',
+        ]);
+        $this->criarLancamento('Condomínio', TipoLancamento::Despesa, SituacaoLancamento::Pendente, [
+            'valor' => 115,
+            'data_vencimento' => '2026-09-10',
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->get(self::URL_MES)
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('totais.receitas', 5000)
+                ->where('totais.despesas', 115)
+                ->where('totais.destinado_mes', 1400)
+                ->where('totais.saldo', 3485)
+                ->where('totais.saldo_livre', 3485)
+            );
     }
 
     private function criarContaBancaria(string $nome): ContaBancaria

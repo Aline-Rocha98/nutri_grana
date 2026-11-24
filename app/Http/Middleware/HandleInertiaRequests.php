@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\EspacoCompartilhado\AvisoConvitesPendentesService;
 use App\Support\Menu\MenuPainel;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -18,6 +19,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $usuario = $request->user();
+        $itensMenu = $usuario ? MenuPainel::prepararItens($usuario) : [];
 
         return [
             ...parent::share($request),
@@ -32,10 +34,14 @@ class HandleInertiaRequests extends Middleware
                 'sucesso' => fn () => $request->session()->get('sucesso'),
                 'erro' => fn () => $request->session()->get('erro'),
                 'status' => fn () => $request->session()->get('status'),
+                'codigoConvite' => fn () => $request->session()->get('codigoConvite'),
             ],
+            'convitesPendentesAoEntrar' => fn () => $usuario
+                ? app(AvisoConvitesPendentesService::class)->consumirConvitesPendentesParaAviso($usuario, $request->session())
+                : [],
             'menu' => $usuario ? [
-                'itens' => MenuPainel::prepararItens(),
-                'gruposAbertos' => MenuPainel::gruposInicialmenteAbertos(),
+                'itens' => $itensMenu,
+                'gruposAbertos' => MenuPainel::extrairGruposAbertosDosItensPreparados($itensMenu),
                 'perfil' => MenuPainel::obterPerfilUsuario($usuario),
                 'urlLogout' => route('logout'),
             ] : null,

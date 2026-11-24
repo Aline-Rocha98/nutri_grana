@@ -6,8 +6,8 @@ use App\Enum\TipoLancamento;
 use App\Enum\TipoOrcamento;
 use App\Models\Categoria\Categoria;
 use App\Models\Lancamento\Lancamento;
-use App\Repositories\Lancamento\LancamentoRepository;
 use App\Repositories\Orcamento\OrcamentoRepository;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -15,12 +15,17 @@ class VerificadorUltrapassagemOrcamento
 {
     public function __construct(
         private readonly OrcamentoRepository $orcamentoRepository,
-        private readonly LancamentoRepository $lancamentoRepository,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
         private readonly OrcamentoService $orcamentoService,
     ) {}
 
-    public function garantirDentroDoLimiteOuConfirmado(int $idUsuario, array $dados, ?Lancamento $lancamentoAtual = null,): void 
-    {
+    public function garantirDentroDoLimiteOuConfirmado(
+        int $idUsuario,
+        array $dados,
+        ?Lancamento $lancamentoAtual = null,
+        ?int $excetoIdLancamentoCompartilhado = null,
+    ): void {
+
         if ($this->confirmouUltrapassagem($dados)) {
             return;
         }
@@ -58,12 +63,13 @@ class VerificadorUltrapassagemOrcamento
         $dataReferencia = Carbon::parse($dados['data_vencimento'] ?? now());
         $idsCategorias = $this->orcamentoService->idsDaCategoriaEFilhas((int) $categoriaPai->id_categoria);
 
-        $gastoAtual = $this->lancamentoRepository->somarDespesasDasCategoriasNoMes(
+        $gastoAtual = $this->consultaFinanceiraUsuarioService->somarDespesasDasCategoriasNoMes(
             $idUsuario,
             $idsCategorias,
             (int) $dataReferencia->year,
             (int) $dataReferencia->month,
             $lancamentoAtual?->id_lancamento,
+            $excetoIdLancamentoCompartilhado,
         );
 
         $gastoProjetado = round($gastoAtual + $valorImpacto, 2);

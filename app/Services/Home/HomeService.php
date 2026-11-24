@@ -4,10 +4,9 @@ namespace App\Services\Home;
 
 use App\Enum\SimNao;
 use App\Enum\SituacaoRitmoObjetivo;
-use App\Models\Lancamento\Lancamento;
 use App\Repositories\CartaoCredito\CartaoCreditoRepository;
 use App\Repositories\ContaBancaria\ContaBancariaRepository;
-use App\Repositories\Lancamento\LancamentoRepository;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use App\Services\Lancamento\RecorrenciaService;
 use App\Services\Objetivo\ObjetivoService;
 use App\Services\Renda\RendaGeracaoService;
@@ -30,13 +29,13 @@ class HomeService
     private const COR_PADRAO_COMPROMISSO = '#f59e0b';
 
     public function __construct(
-        private readonly LancamentoRepository $lancamentoRepository,
         private readonly ContaBancariaRepository $contaBancariaRepository,
         private readonly CartaoCreditoRepository $cartaoCreditoRepository,
         private readonly ObjetivoService $objetivoService,
         private readonly RecorrenciaService $recorrenciaService,
         private readonly RendaGeracaoService $rendaGeracaoService,
         private readonly MontadorDicaFinanceira $montadorDicaFinanceira,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
     ) {}
 
     public function obterResumoDoDia(int $idUsuario, ?Carbon $hoje = null): array
@@ -97,7 +96,7 @@ class HomeService
 
     private function montarResumoAPagar(int $idUsuario, Carbon $fimDaJanela, array $compromissos): array
     {
-        $resumo = $this->lancamentoRepository->resumirDespesasPendentesEmContasAte($idUsuario, $fimDaJanela);
+        $resumo = $this->consultaFinanceiraUsuarioService->resumirPendentesUnificadosAte($idUsuario, $fimDaJanela);
 
         return [
             'total' => $this->moeda($resumo['total']),
@@ -127,20 +126,19 @@ class HomeService
 
     private function montarCompromissosPendentes(int $idUsuario, Carbon $hoje, Carbon $fimDaJanela): array
     {
-        return $this->lancamentoRepository
-            ->listarDespesasPendentesEmContasAte($idUsuario, $fimDaJanela, self::LIMITE_COMPROMISSOS)
-            ->map(fn (Lancamento $lancamento) => [
-                'id' => (int) $lancamento->id_lancamento,
-                'descricao' => $lancamento->descricao,
-                'valor' => $this->moeda((float) $lancamento->valor),
-                'data_vencimento_formatada' => $lancamento->data_vencimento?->format('d/m/Y'),
-                'conta_bancaria_nome' => $lancamento->contaBancaria?->nome,
-                'icone' => $lancamento->categoria?->icone ?: self::ICONE_PADRAO_COMPROMISSO,
-                'cor' => $lancamento->categoria?->cor ?: self::COR_PADRAO_COMPROMISSO,
-                'atrasado' => (bool) $lancamento->data_vencimento?->lt($hoje),
-                'url_situacao' => route('lancamentos.situacao', $lancamento),
+        return $this->consultaFinanceiraUsuarioService
+            ->listarPendentesUnificadosAte(
+                $idUsuario,
+                $hoje,
+                $fimDaJanela,
+                self::LIMITE_COMPROMISSOS,
+                self::ICONE_PADRAO_COMPROMISSO,
+                self::COR_PADRAO_COMPROMISSO,
+            )
+            ->map(fn (array $item) => [
+                ...$item,
+                'valor' => $this->moeda((float) $item['valor_numero']),
             ])
-            ->values()
             ->all();
     }
 
@@ -182,9 +180,9 @@ class HomeService
     private function montarDicaFinanceira(int $idUsuario, Collection $contas, Carbon $hoje): array
     {
         $totalGuardado = round((float) $contas->sum('saldo_guardado'), 2);
-        $receitasDoMes = (float) $this->lancamentoRepository
+        $receitasDoMes = (float) $this->consultaFinanceiraUsuarioService
             ->totaisDoMes($idUsuario, (int) $hoje->year, (int) $hoje->month)['receitas'];
-        $contasFixasDoMes = $this->lancamentoRepository
+        $contasFixasDoMes = $this->consultaFinanceiraUsuarioService
             ->somarDespesasRecorrentesDoMes($idUsuario, (int) $hoje->year, (int) $hoje->month);
 
         $percentualContasFixas = $receitasDoMes > 0

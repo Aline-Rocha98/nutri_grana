@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enum\AcabamentoVisual;
 use App\Enum\BandeiraCartaoCredito;
 use App\Enum\FormaPagamento;
+use App\Enum\OrigemLancamentoFinanceiro;
 use App\Enum\SimNao;
 use App\Enum\SituacaoLancamento;
 use App\Enum\TipoContaBancaria;
@@ -17,10 +18,12 @@ use App\Models\Usuario\Usuario;
 use App\Services\Home\HomeService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\PreparaEspacoCompartilhado;
 use Tests\TestCase;
 
 class HomeTest extends TestCase
 {
+    use PreparaEspacoCompartilhado;
     use RefreshDatabase;
 
     private Usuario $usuario;
@@ -59,28 +62,84 @@ class HomeTest extends TestCase
         $this->assertSame('Conta atrasada, Mercado e mais 1', $resumo['a_pagar']['resumo_descricoes']);
     }
 
-    public function test_despesas_de_cartao_nao_entram_nos_compromissos(): void
+    public function test_despesas_de_cartao_entram_nos_compromissos(): void
     {
         $cartao = $this->criarCartaoCredito('Nubank', SimNao::Nao);
+        $this->criarDespesaNoCartao($cartao, 'Compra no cartão', '2026-09-12', 150);
 
-        Lancamento::query()->create([
-            'id_usuario' => $this->usuario->id_usuario,
-            'descricao' => 'Compra no cartão',
-            'valor' => 150,
-            'data_vencimento' => '2026-09-12',
-            'tipo' => TipoLancamento::Despesa,
-            'forma_pagamento' => FormaPagamento::CartaoCredito,
-            'id_cartao_credito' => $cartao->id_cartao_credito,
-            'situacao' => SituacaoLancamento::Pendente,
-            'eh_recorrencia' => SimNao::Nao,
-            'parcela_atual' => 1,
-            'total_parcelas' => 1,
+        $resumo = $this->obterResumoDoDia();
+
+        $this->assertSame(['Compra no cartão'], array_column($resumo['compromissos'], 'descricao'));
+        $this->assertSame('Nubank', $resumo['compromissos'][0]['conta_bancaria_nome']);
+        $this->assertSame(OrigemLancamentoFinanceiro::Pessoal->value, $resumo['compromissos'][0]['origem']);
+        $this->assertSame(1, $resumo['a_pagar']['quantidade']);
+        $this->assertSame('150,00', $resumo['a_pagar']['total']);
+    }
+
+    public function test_compromissos_mistos_conta_cartao_e_compartilhado_respeitam_janela(): void
+    {
+        $this->usuario->forceFill(['compartilhamento_habilitado' => SimNao::Sim])->save();
+        $cartao = $this->criarCartaoCredito('Nubank', SimNao::Nao);
+        $espaco = $this->criarEspacoComMembros($this->usuario);
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->usuario);
+
+        $this->criarDespesaNaConta('Mercado', '2026-09-12', 200);
+        $this->criarDespesaNoCartao($cartao, 'Compra Nubank', '2026-09-11', 500);
+        $this->criarDespesaNoCartao($cartao, 'Cartão fora da janela', '2026-09-18', 999);
+        $this->criarLancamentoCompartilhado($espaco, $this->usuario, [
+            'descricao' => 'Condominio',
+            'valor' => '200.00',
+            'data_vencimento' => '2026-09-13',
+            'id_categoria' => $categoria->id_categoria,
+        ]);
+        $this->criarLancamentoCompartilhado($espaco, $this->usuario, [
+            'descricao' => 'Compartilhado fora',
+            'valor' => '80.00',
+            'data_vencimento' => '2026-09-18',
+            'id_categoria' => $categoria->id_categoria,
         ]);
 
         $resumo = $this->obterResumoDoDia();
 
-        $this->assertSame([], $resumo['compromissos']);
-        $this->assertSame(0, $resumo['a_pagar']['quantidade']);
+        $this->assertSame(
+            ['Compra Nubank', 'Mercado', 'Condominio'],
+            array_column($resumo['compromissos'], 'descricao'),
+        );
+        $this->assertSame('Nubank', $resumo['compromissos'][0]['conta_bancaria_nome']);
+        $this->assertSame('Banco Inter', $resumo['compromissos'][1]['conta_bancaria_nome']);
+        $this->assertSame(OrigemLancamentoFinanceiro::Compartilhado->value, $resumo['compromissos'][2]['origem']);
+        $this->assertSame(3, $resumo['a_pagar']['quantidade']);
+        $this->assertSame('900,00', $resumo['a_pagar']['total']);
+    }
+
+    public function test_com_modulo_desabilitado_cartao_e_conta_entram_e_compartilhado_nao(): void
+    {
+        $this->usuario->forceFill(['compartilhamento_habilitado' => SimNao::Nao])->save();
+        $cartao = $this->criarCartaoCredito('Nubank', SimNao::Nao);
+        $espaco = $this->criarEspacoComMembros($this->usuario);
+        $categoria = $this->criarCategoriaDeSaidaDoUsuario($this->usuario);
+
+        $this->criarDespesaNaConta('Mercado', '2026-09-12', 200);
+        $this->criarDespesaNoCartao($cartao, 'Compra Nubank', '2026-09-11', 500);
+        $this->criarLancamentoCompartilhado($espaco, $this->usuario, [
+            'descricao' => 'Condominio',
+            'valor' => '200.00',
+            'data_vencimento' => '2026-09-13',
+            'id_categoria' => $categoria->id_categoria,
+        ]);
+
+        $resumo = $this->obterResumoDoDia();
+
+        $this->assertSame(
+            ['Compra Nubank', 'Mercado'],
+            array_column($resumo['compromissos'], 'descricao'),
+        );
+        $this->assertSame(2, $resumo['a_pagar']['quantidade']);
+        $this->assertSame('700,00', $resumo['a_pagar']['total']);
+        $this->assertNotContains(
+            OrigemLancamentoFinanceiro::Compartilhado->value,
+            array_column($resumo['compromissos'], 'origem'),
+        );
     }
 
     public function test_saldo_livre_usa_saldo_disponivel_e_conta_principal(): void
@@ -182,6 +241,28 @@ class HomeTest extends TestCase
             'tipo' => TipoLancamento::Despesa,
             'forma_pagamento' => FormaPagamento::ContaBancaria,
             'id_conta_bancaria' => $this->conta->id_conta_bancaria,
+            'situacao' => $situacao,
+            'eh_recorrencia' => SimNao::Nao,
+            'parcela_atual' => 1,
+            'total_parcelas' => 1,
+        ]);
+    }
+
+    private function criarDespesaNoCartao(
+        CartaoCredito $cartao,
+        string $descricao,
+        string $dataVencimento,
+        float $valor,
+        SituacaoLancamento $situacao = SituacaoLancamento::Pendente,
+    ): Lancamento {
+        return Lancamento::query()->create([
+            'id_usuario' => $this->usuario->id_usuario,
+            'descricao' => $descricao,
+            'valor' => $valor,
+            'data_vencimento' => $dataVencimento,
+            'tipo' => TipoLancamento::Despesa,
+            'forma_pagamento' => FormaPagamento::CartaoCredito,
+            'id_cartao_credito' => $cartao->id_cartao_credito,
             'situacao' => $situacao,
             'eh_recorrencia' => SimNao::Nao,
             'parcela_atual' => 1,

@@ -57,12 +57,25 @@ const props = defineProps({
     categorias: { type: Array, default: () => [] },
     situacoes: { type: Array, default: () => [] },
     frequencias: { type: Array, default: () => [] },
-    urlCriar: { type: String, required: true },
+    urlCriar: { type: String, default: '' },
+    urlEnvio: { type: String, default: '' },
+    valoresIniciais: { type: Object, default: null },
+    camposBloqueados: { type: Array, default: () => [] },
+    ocultarRepeticao: { type: Boolean, default: false },
+    dadosExtrasEnvio: { type: Object, default: () => ({}) },
+    titulo: { type: String, default: '' },
+    subtitulo: { type: String, default: '' },
+    textoConfirmar: { type: String, default: '' },
 });
 
-const emit = defineEmits(['fechar']);
+const emit = defineEmits(['fechar', 'salvo']);
 
 const editando = computed(() => Boolean(props.lancamento));
+const tipoBloqueado = computed(() => props.camposBloqueados.includes('tipo'));
+const valorBloqueado = computed(() => props.camposBloqueados.includes('valor'));
+const tituloDoModal = computed(() => props.titulo || (editando.value ? 'Editar lançamento' : 'Novo lançamento'));
+const subtituloDoModal = computed(() => props.subtitulo || 'Controle receitas e despesas vinculadas a contas bancárias e cartões.');
+const textoConfirmarDoModal = computed(() => props.textoConfirmar || (editando.value ? 'Salvar alterações' : 'Salvar lançamento'));
 const modalOrcamentoAberto = ref(false);
 const mensagemOrcamento = ref('');
 const situacaoEfetivadaOriginal = ref('pago');
@@ -191,7 +204,11 @@ const rotuloSituacaoAtual = computed(() =>
     props.situacoes.find((opcao) => opcao.valor === formulario.situacao)?.rotulo ?? '',
 );
 
-const mostrarRepeticao = computed(() => !editando.value || repeticaoAtiva.value);
+const rotuloDataDoLancamento = computed(() =>
+    formulario.tipo === 'receita' ? 'Data do lançamento' : 'Data de vencimento',
+);
+
+const mostrarRepeticao = computed(() => !props.ocultarRepeticao && (!editando.value || repeticaoAtiva.value));
 
 const criandoParcelado = computed(
     () => !editando.value && repeticaoAtiva.value && modoRepeticao.value === 'parcelado',
@@ -321,6 +338,19 @@ function preencherNovoLancamento() {
     formulario.reset();
     formulario.data_vencimento = dataPadraoDoMes();
     selecionarOrigemLancamento(origemPadraoParaNovoLancamento());
+    aplicarValoresIniciais();
+}
+
+function aplicarValoresIniciais() {
+    if (!props.valoresIniciais) {
+        return;
+    }
+
+    Object.entries(props.valoresIniciais).forEach(([campo, valor]) => {
+        if (campo in formulario.data()) {
+            formulario[campo] = valor;
+        }
+    });
 }
 
 function reiniciarFormulario() {
@@ -336,7 +366,7 @@ function reiniciarFormulario() {
     }
 
     registrarSituacoesOriginais(formulario.situacao);
-    repeticaoAtiva.value = formulario.recorrente || Number(formulario.total_parcelas) > 1;
+    repeticaoAtiva.value = !props.ocultarRepeticao && (formulario.recorrente || Number(formulario.total_parcelas) > 1);
     modoRepeticao.value = formulario.recorrente || !repeticaoAtiva.value ? 'recorrente' : 'parcelado';
     reiniciarTerminoRecorrencia();
 }
@@ -443,7 +473,7 @@ function montarDadosEnvio() {
         delete dados.recorrencia_ate;
     }
 
-    return dados;
+    return { ...dados, ...props.dadosExtrasEnvio };
 }
 
 function terminoDaRecorrenciaEstaIncompleto() {
@@ -463,6 +493,7 @@ function enviarLancamento() {
         preserveScroll: true,
         onSuccess: () => {
             modalOrcamentoAberto.value = false;
+            emit('salvo');
             fechar();
         },
     };
@@ -472,7 +503,7 @@ function enviarLancamento() {
         return;
     }
 
-    formulario.transform(() => dados).post(props.urlCriar, opcoes);
+    formulario.transform(() => dados).post(props.urlEnvio || props.urlCriar, opcoes);
 }
 
 function salvarLancamento() {
@@ -498,9 +529,9 @@ function confirmarUltrapassagemOrcamento() {
         max-largura="lg"
         :icone="iconeDoTipo"
         :variante-icone="varianteDoTipo"
-        :titulo="editando ? 'Editar lançamento' : 'Novo lançamento'"
-        subtitulo="Controle receitas e despesas vinculadas a contas bancárias e cartões."
-        :texto-confirmar="editando ? 'Salvar alterações' : 'Salvar lançamento'"
+        :titulo="tituloDoModal"
+        :subtitulo="subtituloDoModal"
+        :texto-confirmar="textoConfirmarDoModal"
         :processando="formulario.processing"
         @confirmar="salvarLancamento"
         @fechar="fechar"
@@ -523,7 +554,13 @@ function confirmarUltrapassagemOrcamento() {
                 />
             </div>
 
-            <GrupoSegmentado v-model="formulario.tipo" :opcoes="OPCOES_TIPO" rotulo="Tipo do lançamento" expandido />
+            <GrupoSegmentado
+                v-model="formulario.tipo"
+                :opcoes="OPCOES_TIPO"
+                rotulo="Tipo do lançamento"
+                expandido
+                :desabilitado="tipoBloqueado"
+            />
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <CampoTexto
@@ -542,6 +579,7 @@ function confirmarUltrapassagemOrcamento() {
                     obrigatorio
                     :variante="varianteDoTipo"
                     :atalhos="atalhosValor"
+                    :desabilitado="valorBloqueado"
                     :erro="formulario.errors.valor"
                 />
             </div>
@@ -581,7 +619,7 @@ function confirmarUltrapassagemOrcamento() {
                     id="lancamento-data"
                     v-model="formulario.data_vencimento"
                     tipo="date"
-                    rotulo="Data do lançamento"
+                    :rotulo="rotuloDataDoLancamento"
                     obrigatorio
                     :erro="formulario.errors.data_vencimento"
                 />

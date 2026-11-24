@@ -34,8 +34,6 @@ const emit = defineEmits(['alternar-modulo', 'alternar-visibilidade-modulos']);
             <div class="min-w-0">
                 <p class="flex flex-wrap items-center gap-2 text-xs">
                     <span class="font-semibold text-ng-brand">Visão Geral das Finanças</span>
-                    <span class="text-ng-ink-subtle" aria-hidden="true">·</span>
-                    <span class="font-mono text-[11px] text-ng-ink-muted">Atualizado em tempo real</span>
                 </p>
                 <h2 class="mt-2 text-xl font-bold text-ng-ink">Olá, {{ nomeUsuario }}!</h2>
                 <p class="mt-1 text-sm text-ng-ink-muted">

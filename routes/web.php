@@ -5,6 +5,10 @@ use App\Http\Controllers\CartaoCredito\CartaoCreditoController;
 use App\Http\Controllers\Categoria\CategoriaController;
 use App\Http\Controllers\ContaBancaria\ContaBancariaController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\EspacoCompartilhado\ConviteCompartilhamentoController;
+use App\Http\Controllers\EspacoCompartilhado\EspacoCompartilhadoController;
+use App\Http\Controllers\EspacoCompartilhado\LancamentoCompartilhadoController;
+use App\Http\Controllers\EspacoCompartilhado\MembroEspacoCompartilhadoController;
 use App\Http\Controllers\FaturaCartao\FaturaCartaoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Lancamento\LancamentoController;
@@ -135,6 +139,55 @@ Route::middleware('auth')->group(function () {
         ->name('orcamentos.servico.recusar');
     Route::delete('/orcamentos/servico/{orcamentoServico}', [OrcamentoServicoController::class, 'excluir'])
         ->name('orcamentos.servico.excluir');
+
+    // Espaços compartilhados
+    Route::middleware('can:acessarModuloCompartilhado')
+        ->prefix('compartilhados')
+        ->name('compartilhados.')
+        ->group(function () {
+            Route::get('/', [EspacoCompartilhadoController::class, 'index'])->name('index');
+            Route::post('/', [EspacoCompartilhadoController::class, 'criarEspacoCompartilhado'])->name('criar');
+
+            Route::post('/convites/{conviteCompartilhamento}/aceitar', [ConviteCompartilhamentoController::class, 'aceitarConviteComCodigo'])
+                ->middleware('throttle:5,1')
+                ->name('convites.aceitar');
+            Route::post('/convites/{conviteCompartilhamento}/recusar', [ConviteCompartilhamentoController::class, 'recusarConvite'])
+                ->name('convites.recusar');
+
+            Route::get('/{espacoCompartilhado}/{ano?}/{mes?}', [EspacoCompartilhadoController::class, 'show'])
+                ->whereNumber('ano')
+                ->whereNumber('mes')
+                ->name('show');
+            Route::put('/{espacoCompartilhado}', [EspacoCompartilhadoController::class, 'atualizarEspacoCompartilhado'])->name('atualizar');
+            Route::patch('/{espacoCompartilhado}/arquivar', [EspacoCompartilhadoController::class, 'arquivarEspacoCompartilhado'])->name('arquivar');
+            Route::post('/{espacoCompartilhado}/sair', [MembroEspacoCompartilhadoController::class, 'sairDoEspacoCompartilhado'])->name('sair');
+
+            Route::post('/{espacoCompartilhado}/convites', [ConviteCompartilhamentoController::class, 'enviarConviteParaUsuario'])
+                ->middleware('throttle:10,1')
+                ->name('convites.enviar');
+
+            Route::scopeBindings()->group(function () {
+                Route::get('/{espacoCompartilhado}/membros/{membroEspaco}/categorias', [MembroEspacoCompartilhadoController::class, 'listarCategoriasDoMembro'])
+                    ->name('membros.categorias');
+                Route::delete('/{espacoCompartilhado}/membros/{membroEspaco}', [MembroEspacoCompartilhadoController::class, 'removerMembroDoEspaco'])
+                    ->name('membros.remover');
+                Route::patch('/{espacoCompartilhado}/convites/{conviteCompartilhamento}/revogar', [ConviteCompartilhamentoController::class, 'revogarConvite'])
+                    ->name('convites.revogar');
+
+                Route::post('/{espacoCompartilhado}/lancamentos', [LancamentoCompartilhadoController::class, 'criarLancamentoCompartilhado'])
+                    ->name('lancamentos.criar');
+                Route::put('/{espacoCompartilhado}/lancamentos/{lancamentoCompartilhado}', [LancamentoCompartilhadoController::class, 'atualizarLancamentoCompartilhado'])
+                    ->name('lancamentos.atualizar');
+                Route::delete('/{espacoCompartilhado}/lancamentos/{lancamentoCompartilhado}', [LancamentoCompartilhadoController::class, 'excluirLancamentoCompartilhado'])
+                    ->name('lancamentos.excluir');
+                Route::post('/{espacoCompartilhado}/lancamentos/{lancamentoCompartilhado}/baixa', [LancamentoCompartilhadoController::class, 'darBaixaLancamentoCompartilhado'])
+                    ->name('lancamentos.dar-baixa');
+                Route::post('/{espacoCompartilhado}/lancamentos/{lancamentoCompartilhado}/estornar-baixa', [LancamentoCompartilhadoController::class, 'estornarBaixaLancamentoCompartilhado'])
+                    ->name('lancamentos.estornar-baixa');
+                Route::post('/{espacoCompartilhado}/lancamentos/{lancamentoCompartilhado}/assumir', [LancamentoCompartilhadoController::class, 'assumirLancamentoCompartilhado'])
+                    ->name('lancamentos.assumir');
+            });
+        });
 });
 
 require __DIR__.'/auth.php';

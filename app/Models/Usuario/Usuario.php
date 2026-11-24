@@ -2,6 +2,7 @@
 
 namespace App\Models\Usuario;
 
+use App\Enum\SimNao;
 use Database\Factories\UsuarioFactory;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -34,6 +35,7 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
 
     protected $attributes = [
         'foto_perfil' => null,
+        'compartilhamento_habilitado' => 'N',
     ];
 
     protected $hidden = [
@@ -45,9 +47,15 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
     {
         return [
             'data_nascimento' => 'date',
+            'compartilhamento_habilitado' => SimNao::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    public function possuiCompartilhamentoHabilitado(): bool
+    {
+        return $this->compartilhamento_habilitado === SimNao::Sim;
     }
 
     protected static function newFactory(): UsuarioFactory

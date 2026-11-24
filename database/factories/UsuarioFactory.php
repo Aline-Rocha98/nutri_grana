@@ -24,6 +24,13 @@ class UsuarioFactory extends Factory
         ];
     }
 
+    public function comCompartilhamentoHabilitado(): static
+    {
+        return $this->state(fn () => [
+            'compartilhamento_habilitado' => 'S',
+        ]);
+    }
+
     public function configure(): static
     {
         return $this->afterMaking(function (Usuario $usuario) {

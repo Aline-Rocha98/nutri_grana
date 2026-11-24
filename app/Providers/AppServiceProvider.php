@@ -6,6 +6,9 @@ use App\Models\Alocacao\Alocacao;
 use App\Models\CartaoCredito\CartaoCredito;
 use App\Models\Categoria\Categoria;
 use App\Models\ContaBancaria\ContaBancaria;
+use App\Models\EspacoCompartilhado\ConviteCompartilhamento;
+use App\Models\EspacoCompartilhado\EspacoCompartilhado;
+use App\Models\EspacoCompartilhado\LancamentoCompartilhado;
 use App\Models\FaturaCartao\FaturaCartao;
 use App\Models\Lancamento\Lancamento;
 use App\Models\Objetivo\Objetivo;
@@ -18,6 +21,9 @@ use App\Policies\Alocacao\AlocacaoPolicy;
 use App\Policies\CartaoCredito\CartaoCreditoPolicy;
 use App\Policies\Categoria\CategoriaPolicy;
 use App\Policies\ContaBancaria\ContaBancariaPolicy;
+use App\Policies\EspacoCompartilhado\ConviteCompartilhamentoPolicy;
+use App\Policies\EspacoCompartilhado\EspacoCompartilhadoPolicy;
+use App\Policies\EspacoCompartilhado\LancamentoCompartilhadoPolicy;
 use App\Policies\FaturaCartao\FaturaCartaoPolicy;
 use App\Policies\Lancamento\LancamentoPolicy;
 use App\Policies\Objetivo\ObjetivoPolicy;
@@ -51,6 +57,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(OrcamentoServico::class, OrcamentoServicoPolicy::class);
         Gate::policy(Renda::class, RendaPolicy::class);
         Gate::policy(PlanoFinanceiro::class, PlanoFinanceiroPolicy::class);
+        Gate::policy(EspacoCompartilhado::class, EspacoCompartilhadoPolicy::class);
+        Gate::policy(LancamentoCompartilhado::class, LancamentoCompartilhadoPolicy::class);
+        Gate::policy(ConviteCompartilhamento::class, ConviteCompartilhamentoPolicy::class);
+        Gate::define(
+            'acessarModuloCompartilhado',
+            fn (Usuario $usuario) => $usuario->possuiCompartilhamentoHabilitado()
+        );
         Model::shouldBeStrict(! app()->isProduction());
     }
 }

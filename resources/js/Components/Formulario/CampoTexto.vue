@@ -26,6 +26,10 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    ajuda: {
+        type: String,
+        default: '',
+    },
     tipo: {
         type: String,
         default: 'text',
@@ -79,7 +83,7 @@ function aoDigitar(evento) {
 </script>
 
 <template>
-    <CampoBase :id="id" :rotulo="rotulo" :obrigatorio="obrigatorio" :dica="dica" :erro="erro">
+    <CampoBase :id="id" :rotulo="rotulo" :obrigatorio="obrigatorio" :dica="dica" :erro="erro" :ajuda="ajuda">
         <input
             :id="id || undefined"
             :value="modelValue"

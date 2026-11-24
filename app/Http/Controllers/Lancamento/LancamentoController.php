@@ -73,7 +73,7 @@ class LancamentoController extends Controller
             'ano' => $ano,
             'mes' => $mes,
             'lancamentos' => [
-                'data' => LancamentoResource::collection($paginator->getCollection())->resolve(),
+                'data' => $paginator->getCollection()->values()->all(),
                 'links' => $paginator->linkCollection()->values()->all(),
                 'meta' => [
                     'current_page' => $paginator->currentPage(),

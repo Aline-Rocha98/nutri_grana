@@ -92,15 +92,8 @@ const classeCorDoValor = computed(() => {
         <IconeCategoria :icone="icone" :cor="cor" tamanho="sm" />
 
         <div class="min-w-0 flex-1">
-            <div class="flex min-w-0 items-center gap-2">
+            <div class="mb-[5px] flex min-w-0 items-center gap-2">
                 <p class="truncate text-sm font-semibold text-ng-ink">{{ descricao }}</p>
-                <span
-                    v-if="etiqueta"
-                    class="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-ng-line-strong bg-ng-card-muted px-1.5 py-0.5 font-mono text-[10px] text-ng-ink-muted"
-                >
-                    <span v-if="etiquetaIcone" class="material-symbols-outlined text-[12px] text-ng-brand">{{ etiquetaIcone }}</span>
-                    {{ etiqueta }}
-                </span>
                 <BadgeStatus
                     v-if="badgeTexto && badgeNaDescricao"
                     :texto="badgeTexto"
@@ -108,6 +101,13 @@ const classeCorDoValor = computed(() => {
                     :icone="badgeIcone"
                     compacto
                 />
+                <span
+                    v-if="etiqueta"
+                    class="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-ng-line-strong bg-ng-card-muted px-1.5 py-0.5 font-mono text-[10px] text-ng-ink-muted"
+                >
+                    <span v-if="etiquetaIcone" class="material-symbols-outlined text-[12px] text-ng-brand">{{ etiquetaIcone }}</span>
+                    {{ etiqueta }}
+                </span>
             </div>
             <p
                 v-if="subtitulo"

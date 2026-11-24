@@ -7,8 +7,8 @@ use App\Enum\TipoCategoria;
 use App\Enum\TipoOrcamento;
 use App\Models\Categoria\Categoria;
 use App\Models\Orcamento\Orcamento;
-use App\Repositories\Lancamento\LancamentoRepository;
 use App\Repositories\Orcamento\OrcamentoRepository;
+use App\Services\Financeiro\ConsultaFinanceiraUsuarioService;
 use App\Support\Dashboard\DashboardCache;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -19,7 +19,7 @@ class OrcamentoService
 {
     public function __construct(
         private readonly OrcamentoRepository $orcamentoRepository,
-        private readonly LancamentoRepository $lancamentoRepository,
+        private readonly ConsultaFinanceiraUsuarioService $consultaFinanceiraUsuarioService,
         private readonly CalculadoraProgressoOrcamento $calculadoraProgresso,
     ) {}
 
@@ -121,7 +121,7 @@ class OrcamentoService
     {
         $referencia = $referencia ?? Carbon::today();
         $idsCategorias = $this->idsDaCategoriaEFilhas((int) $orcamento->id_categoria);
-        $gastoMes = $this->lancamentoRepository->somarDespesasDasCategoriasNoMes(
+        $gastoMes = $this->consultaFinanceiraUsuarioService->somarDespesasDasCategoriasNoMes(
             $idUsuario,
             $idsCategorias,
             (int) $referencia->year,

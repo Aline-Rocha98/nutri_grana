@@ -16,8 +16,8 @@ const ROTULOS_PADRAO = {
     semPlano: 'Sem plano financeiro',
     padrao: 'padrão',
     gerenciar: 'Gerenciar planos',
-    nenhumPlano: 'Você ainda não tem planos financeiros ativos.',
-    criarPlano: 'Criar plano',
+    nenhumPlano: 'Você ainda não tem planos financeiros cadastrados.',
+    criarPlano: 'Cadastrar plano financeiro',
     capacidade: 'Capacidade financeira desta renda',
     dicaSemSeparacao: 'Este plano é só orientativo: nenhum item separa valores do saldo.',
 };
@@ -78,58 +78,68 @@ const possuiItemQueSepara = computed(() => itensComValores.value.some((item) => 
 
 <template>
     <div class="space-y-3">
-        <CampoSelecao
-            :id="id"
-            v-model="idPlanoSelecionado"
-            :rotulo="textos.plano"
-            :placeholder="textos.semPlano"
-            placeholder-selecionavel
-            :opcoes="opcoesPlanos"
-            :erro="erro"
-        />
-
-        <div v-if="!planos.length" class="ng-card-muted flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-xs text-ng-ink-muted">
-            <span>{{ textos.nenhumPlano }}</span>
-            <Link v-if="urlPlanosFinanceiros" :href="urlPlanosFinanceiros" class="font-semibold text-ng-brand hover:underline">
+        <div
+            v-if="!planos.length"
+            class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-ng-line bg-ng-card-muted px-4 py-4"
+        >
+            <p class="text-sm text-ng-ink-muted">{{ textos.nenhumPlano }}</p>
+            <Link
+                v-if="urlPlanosFinanceiros"
+                :href="urlPlanosFinanceiros"
+                class="ng-btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-xs normal-case tracking-normal"
+            >
+                <span class="material-symbols-outlined text-[16px]">add</span>
                 {{ textos.criarPlano }}
             </Link>
         </div>
 
-        <template v-else-if="planoSelecionado">
-            <BarraDistribuicaoSegmentada :segmentos="segmentos" />
+        <template v-else>
+            <CampoSelecao
+                :id="id"
+                v-model="idPlanoSelecionado"
+                :rotulo="textos.plano"
+                :placeholder="textos.semPlano"
+                placeholder-selecionavel
+                :opcoes="opcoesPlanos"
+                :erro="erro"
+            />
 
-            <div class="overflow-hidden rounded-xl border border-ng-line bg-ng-card divide-y divide-ng-line">
-                <LinhaItemPlanoFinanceiro
-                    v-for="item in itensComValores"
-                    :key="item.id"
-                    :nome="item.nome"
-                    :regra="item.regra_formatada"
-                    :valor-calculado="item.valor_calculado"
-                    :separar-do-saldo="item.separar_do_saldo"
-                    :conta-destino="item.conta_bancaria_destino_nome ?? ''"
-                    :objetivo="item.objetivo_descricao ?? ''"
-                    :cor="item.cor_hexadecimal"
-                />
-            </div>
+            <template v-if="planoSelecionado">
+                <BarraDistribuicaoSegmentada :segmentos="segmentos" />
 
-            <div v-if="possuiItemQueSepara" class="space-y-2">
-                <p class="text-xs font-medium text-ng-ink-muted">{{ textos.capacidade }}</p>
-                <FluxoCapacidadeFinanceira
-                    :valor-renda="capacidadeFinanceira.renda"
-                    :valor-destinado="capacidadeFinanceira.total_destinado"
-                    :valor-capacidade="capacidadeFinanceira.capacidade"
-                    :percentual-destinado="capacidadeFinanceira.percentual_destinado"
-                    compacto
-                />
+                <div class="overflow-hidden rounded-xl border border-ng-line bg-ng-card divide-y divide-ng-line">
+                    <LinhaItemPlanoFinanceiro
+                        v-for="item in itensComValores"
+                        :key="item.id"
+                        :nome="item.nome"
+                        :regra="item.regra_formatada"
+                        :valor-calculado="item.valor_calculado"
+                        :separar-do-saldo="item.separar_do_saldo"
+                        :conta-destino="item.conta_bancaria_destino_nome ?? ''"
+                        :objetivo="item.objetivo_descricao ?? ''"
+                        :cor="item.cor_hexadecimal"
+                    />
+                </div>
+
+                <div v-if="possuiItemQueSepara" class="space-y-2">
+                    <p class="text-xs font-medium text-ng-ink-muted">{{ textos.capacidade }}</p>
+                    <FluxoCapacidadeFinanceira
+                        :valor-renda="capacidadeFinanceira.renda"
+                        :valor-destinado="capacidadeFinanceira.total_destinado"
+                        :valor-capacidade="capacidadeFinanceira.capacidade"
+                        :percentual-destinado="capacidadeFinanceira.percentual_destinado"
+                        compacto
+                    />
+                </div>
+                <p v-else class="text-xs text-ng-ink-subtle">{{ textos.dicaSemSeparacao }}</p>
+            </template>
+
+            <div v-if="urlPlanosFinanceiros" class="flex justify-end">
+                <Link :href="urlPlanosFinanceiros" class="inline-flex items-center gap-1 text-xs font-semibold text-ng-brand hover:underline">
+                    <span class="material-symbols-outlined text-[16px]">tune</span>
+                    {{ textos.gerenciar }}
+                </Link>
             </div>
-            <p v-else class="text-xs text-ng-ink-subtle">{{ textos.dicaSemSeparacao }}</p>
         </template>
-
-        <div v-if="planos.length && urlPlanosFinanceiros" class="flex justify-end">
-            <Link :href="urlPlanosFinanceiros" class="inline-flex items-center gap-1 text-xs font-semibold text-ng-brand hover:underline">
-                <span class="material-symbols-outlined text-[16px]">tune</span>
-                {{ textos.gerenciar }}
-            </Link>
-        </div>
     </div>
 </template>

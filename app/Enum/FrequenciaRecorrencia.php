@@ -2,6 +2,8 @@
 
 namespace App\Enum;
 
+use Carbon\CarbonInterface;
+
 enum FrequenciaRecorrencia: string
 {
     case Mensal = 'mensal';
@@ -14,6 +16,15 @@ enum FrequenciaRecorrencia: string
             self::Mensal => 'Todo mês',
             self::Semanal => 'Toda semana',
             self::Anual => 'Todo ano',
+        };
+    }
+
+    public function calcularDataDaOcorrencia(CarbonInterface $dataInicio, int $indiceOcorrencia): CarbonInterface
+    {
+        return match ($this) {
+            self::Mensal => $dataInicio->copy()->addMonthsNoOverflow($indiceOcorrencia),
+            self::Semanal => $dataInicio->copy()->addWeeks($indiceOcorrencia),
+            self::Anual => $dataInicio->copy()->addYearsNoOverflow($indiceOcorrencia),
         };
     }
 
