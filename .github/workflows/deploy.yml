@@ -16,7 +16,34 @@ jobs:
     environment: production
 
     steps:
+      - name: Verificar secrets de produção
+        id: verificar_secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+
+          faltando=()
+          [ -z "${VPS_HOST:-}" ] && faltando+=("VPS_HOST")
+          [ -z "${VPS_USER:-}" ] && faltando+=("VPS_USER")
+          [ -z "${VPS_SSH_KEY:-}" ] && faltando+=("VPS_SSH_KEY")
+          [ -z "${VPS_PORT:-}" ] && faltando+=("VPS_PORT")
+          [ -z "${DEPLOY_PATH:-}" ] && faltando+=("DEPLOY_PATH")
+
+          if [ "${#faltando[@]}" -gt 0 ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy ignorado: secrets de produção ainda não configurados (${faltando[*]}). Configure-os no environment production quando a VPS estiver pronta."
+            exit 0
+          fi
+
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
       - name: Deploy via SSH
+        if: steps.verificar_secrets.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
