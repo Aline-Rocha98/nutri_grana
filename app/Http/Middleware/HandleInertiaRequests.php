@@ -28,6 +28,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $usuario->id_usuario,
                     'nome' => $usuario->nome,
                     'email' => $usuario->email,
+                    'ehAdministrador' => $usuario->ehAdministradorDoSistema(),
                 ] : null,
             ],
             'flash' => [

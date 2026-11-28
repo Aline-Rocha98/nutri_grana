@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class Usuario extends Model implements AuthenticatableContract, CanResetPasswordContract, AuthorizableContract
@@ -36,6 +37,7 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
     protected $attributes = [
         'foto_perfil' => null,
         'compartilhamento_habilitado' => 'N',
+        'eh_administrador' => 'N',
     ];
 
     protected $hidden = [
@@ -48,6 +50,7 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
         return [
             'data_nascimento' => 'date',
             'compartilhamento_habilitado' => SimNao::class,
+            'eh_administrador' => SimNao::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -56,6 +59,18 @@ class Usuario extends Model implements AuthenticatableContract, CanResetPassword
     public function possuiCompartilhamentoHabilitado(): bool
     {
         return $this->compartilhamento_habilitado === SimNao::Sim;
+    }
+
+    public function ehAdministradorDoSistema(): bool
+    {
+        return $this->eh_administrador === SimNao::Sim;
+    }
+
+    public static function usuarioDaSessaoEhAdministrador(): bool
+    {
+        $usuario = Auth::user();
+
+        return $usuario instanceof self && $usuario->ehAdministradorDoSistema();
     }
 
     protected static function newFactory(): UsuarioFactory

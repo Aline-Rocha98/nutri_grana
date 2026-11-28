@@ -31,6 +31,13 @@ class UsuarioFactory extends Factory
         ]);
     }
 
+    public function administradorDoSistema(): static
+    {
+        return $this->state(fn () => [
+            'eh_administrador' => 'S',
+        ]);
+    }
+
     public function configure(): static
     {
         return $this->afterMaking(function (Usuario $usuario) {

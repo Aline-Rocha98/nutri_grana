@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureAbsoluteSessionTimeout::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        $middleware->alias([
+            'admin.sistema' => \App\Http\Middleware\EnsureUsuarioAdministradorDoSistema::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

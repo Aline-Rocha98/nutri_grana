@@ -42,6 +42,33 @@ class UsuarioRepository
         return $usuario->refresh();
     }
 
+    public function criarUsuarioAdministradorDoSistema(string $nome, string $email, string $senha): Usuario
+    {
+        $usuario = new Usuario([
+            'nome' => $nome,
+            'email' => mb_strtolower(trim($email)),
+        ]);
+        $usuario->senha = $senha;
+        $usuario->forceFill([
+            'email_verificado' => 'S',
+            'eh_administrador' => SimNao::Sim,
+        ]);
+        $usuario->save();
+
+        return $usuario->refresh();
+    }
+
+    public function promoverUsuarioAdministradorDoSistema(Usuario $usuario, ?string $senha = null): Usuario
+    {
+        if ($senha !== null && $senha !== '') {
+            $usuario->senha = $senha;
+        }
+
+        $usuario->forceFill(['eh_administrador' => SimNao::Sim])->save();
+
+        return $usuario->refresh();
+    }
+
     public function invalidarCodigosAlteracaoSenha(int $idUsuario): void
     {
         CodigoAlteracaoSenha::query()
